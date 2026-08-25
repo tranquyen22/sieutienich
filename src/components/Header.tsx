@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock, Coins } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 
@@ -7,11 +7,17 @@ interface HeaderProps {
   onOpenAuthModal: () => void;
   onOpenAddProductModal: () => void;
   onOpenAdminReviewModal: () => void;
+  onOpenCoinWalletModal: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenAuthModal, onOpenAddProductModal, onOpenAdminReviewModal }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onOpenAuthModal, 
+  onOpenAddProductModal, 
+  onOpenAdminReviewModal,
+  onOpenCoinWalletModal
+}) => {
   const { user, signOut, merchantApplication, isAdmin } = useAuth();
-  const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen } = useShop();
+  const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen, userCoins } = useShop();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Tài khoản';
@@ -53,9 +59,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuthModal, onOpenAddProduc
             </div>
           </div>
 
-          {/* NÚT CHỨC NĂNG (NÚT ĐĂNG TIN + GIỎ HÀNG + AUTH) */}
+          {/* NÚT CHỨC NĂNG (VÍ XU + NÚT ĐĂNG TIN + GIỎ HÀNG + AUTH) */}
           <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* VÍ XU HÀNG NGÀY BUTTON */}
+            <button
+              onClick={onOpenCoinWalletModal}
+              title="Ví Xu Tiện Ích & Lịch sử nhận Xu"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold text-xs rounded-full shadow-md shadow-amber-200 transition cursor-pointer shrink-0"
+            >
+              <Coins className="w-4 h-4 text-yellow-200 animate-pulse" />
+              <span>{userCoins.toLocaleString('vi-VN')} Xu</span>
+            </button>
+
             {/* Nút Đăng tin */}
             <button
               onClick={onOpenAddProductModal}
@@ -99,6 +115,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuthModal, onOpenAddProduc
                       <p className="text-xs text-gray-500">Tài khoản xác thực</p>
                       <p className="text-xs font-bold text-gray-800 truncate">{user.email}</p>
                     </div>
+
+                    {/* Ví Xu Item in User Menu */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenCoinWalletModal();
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-extrabold text-amber-700 hover:bg-amber-50 flex items-center justify-between border-b border-gray-100 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Coins className="w-4 h-4 text-amber-600" />
+                        <span>Ví Xu & Lịch sử nhận Xu</span>
+                      </div>
+                      <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full text-[10px]">
+                        {userCoins.toLocaleString('vi-VN')} Xu
+                      </span>
+                    </button>
 
                     {/* Merchant Application Status Badge for Normal Users */}
                     {merchantApplication && (

@@ -54,8 +54,18 @@ export interface UserProfile {
   email: string;
   full_name?: string;
   phone?: string;
+  coins?: number;
   role?: 'buyer' | 'merchant' | 'admin';
   merchant_status?: 'pending_review' | 'approved' | 'rejected' | null;
+}
+
+export interface CoinTransaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  type: 'earn' | 'spend' | 'bonus';
+  description: string;
+  created_at: string;
 }
 
 export interface MerchantApplication {

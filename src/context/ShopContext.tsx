@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import type { Product, CartItem, Category, UserActivity } from '../types';
+import type { Product, CartItem, Category, UserActivity, CoinTransaction } from '../types';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -11,6 +11,9 @@ interface ShopContextType {
   cartCount: number;
   cartTotalAmount: number;
   userActivities: UserActivity[];
+  userCoins: number;
+  coinTransactions: CoinTransaction[];
+  hasCheckedInToday: boolean;
   selectedCategory: Category;
   searchQuery: string;
   loadingProducts: boolean;
@@ -24,8 +27,10 @@ interface ShopContextType {
   deleteProduct: (id: number | string) => Promise<void>;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
+  dailyCheckIn: () => Promise<{ success: boolean; message: string }>;
+  addCoinTransaction: (amount: number, description: string, type: 'earn' | 'spend' | 'bonus') => Promise<void>;
 
-  // Vietnam Post-Merger Location & GPS Filter states
+  // Location & GPS Filter states
   selectedProvince: string;
   setSelectedProvince: (province: string) => void;
   selectedDistrict: string;
@@ -41,6 +46,26 @@ interface ShopContextType {
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
+// Initial fallback transactions for newly registered user / demo mode
+const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
+  {
+    id: 'tx-welcome-1',
+    user_id: 'guest',
+    amount: 50000,
+    type: 'bonus',
+    description: '🎁 Thưởng chào mừng tài khoản mới',
+    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+  {
+    id: 'tx-checkin-2',
+    user_id: 'guest',
+    amount: 5000,
+    type: 'earn',
+    description: '📅 Điểm danh hàng ngày nhận Xu',
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+];
+
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
 
@@ -52,6 +77,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [loadingCart, setLoadingCart] = useState<boolean>(false);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+
+  // Coin Wallet & History states
+  const [userCoins, setUserCoins] = useState<number>(55000);
+  const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>(DEFAULT_INITIAL_TRANSACTIONS);
+  const [hasCheckedInToday, setHasCheckedInToday] = useState<boolean>(false);
 
   // Location Filter states
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
@@ -83,17 +113,19 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // 2. Fetch Isolated Cart Items for Logged-in Account
-  const fetchUserCart = useCallback(async (userId: string) => {
+  // 2. Fetch Isolated Cart & Coins for Logged-in Account
+  const fetchUserCartAndCoins = useCallback(async (userId: string) => {
     try {
       setLoadingCart(true);
-      const { data, error } = await supabase
+
+      // Fetch Cart
+      const { data: cartData } = await supabase
         .from('cart_items')
         .select('*, product:products(*)')
         .eq('user_id', userId);
 
-      if (!error && data) {
-        const formatted: CartItem[] = data.map((item: any) => ({
+      if (cartData) {
+        const formatted: CartItem[] = cartData.map((item: any) => ({
           id: item.id,
           user_id: item.user_id,
           product_id: item.product_id,
@@ -108,8 +140,43 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }));
         setCartItems(formatted);
       }
+
+      // Fetch Coins balance from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('coins')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profile && typeof profile.coins === 'number') {
+        setUserCoins(profile.coins);
+      } else {
+        setUserCoins(55000);
+      }
+
+      // Fetch Coin Transactions history
+      const { data: txData } = await supabase
+        .from('coin_transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (txData && txData.length > 0) {
+        setCoinTransactions(txData as CoinTransaction[]);
+
+        // Check if user checked in today
+        const todayStr = new Date().toISOString().split('T')[0];
+        const checkedToday = txData.some(
+          (tx: any) =>
+            tx.description.includes('Điểm danh') &&
+            tx.created_at.startsWith(todayStr)
+        );
+        setHasCheckedInToday(checkedToday);
+      } else {
+        setCoinTransactions(DEFAULT_INITIAL_TRANSACTIONS);
+      }
     } catch (err) {
-      console.warn('Error fetching account cart:', err);
+      console.warn('Error fetching account data:', err);
     } finally {
       setLoadingCart(false);
     }
@@ -118,10 +185,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 3. Isolated Account Sync Effect on Auth Change
   useEffect(() => {
     if (user) {
-      // Account Logged In: Fetch isolated cart for this specific account
-      fetchUserCart(user.id);
+      fetchUserCartAndCoins(user.id);
 
-      // Subscribe to Realtime Postgres changes ONLY for this user's cart
       const cartChannel = supabase
         .channel(`realtime_cart_${user.id}`)
         .on(
@@ -133,20 +198,39 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            fetchUserCart(user.id);
+            fetchUserCartAndCoins(user.id);
+          }
+        )
+        .subscribe();
+
+      const coinChannel = supabase
+        .channel(`realtime_coins_${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'coin_transactions',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            fetchUserCartAndCoins(user.id);
           }
         )
         .subscribe();
 
       return () => {
         supabase.removeChannel(cartChannel);
+        supabase.removeChannel(coinChannel);
       };
     } else {
-      // Account Logged Out: Reset cart & personal data for security & isolation
       setCartItems([]);
       setUserActivities([]);
+      setUserCoins(55000);
+      setCoinTransactions(DEFAULT_INITIAL_TRANSACTIONS);
+      setHasCheckedInToday(false);
     }
-  }, [user, fetchUserCart]);
+  }, [user, fetchUserCartAndCoins]);
 
   // Realtime Products Listener
   useEffect(() => {
@@ -189,6 +273,58 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [fetchProducts]);
 
+  // Add Coin Transaction & Update Balance
+  const addCoinTransaction = async (
+    amount: number,
+    description: string,
+    type: 'earn' | 'spend' | 'bonus'
+  ) => {
+    const newCoins = Math.max(0, userCoins + amount);
+    setUserCoins(newCoins);
+
+    const newTx: CoinTransaction = {
+      id: String(Date.now()),
+      user_id: user?.id || 'guest',
+      amount,
+      type,
+      description,
+      created_at: new Date().toISOString(),
+    };
+
+    setCoinTransactions((prev) => [newTx, ...prev]);
+
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ coins: newCoins })
+          .eq('id', user.id);
+
+        await supabase.from('coin_transactions').insert([
+          {
+            user_id: user.id,
+            amount,
+            type,
+            description,
+          },
+        ]);
+      } catch (err) {
+        console.warn('Error recording coin transaction to DB:', err);
+      }
+    }
+  };
+
+  // Daily Check-in (+5,000 Xu)
+  const dailyCheckIn = async (): Promise<{ success: boolean; message: string }> => {
+    if (hasCheckedInToday) {
+      return { success: false, message: 'Bạn đã điểm danh nhận Xu hôm nay rồi. Vui lòng quay lại vào ngày mai!' };
+    }
+
+    await addCoinTransaction(5000, '📅 Điểm danh hàng ngày nhận Xu thưởng', 'earn');
+    setHasCheckedInToday(true);
+    return { success: true, message: 'Chúc mừng! Bạn đã nhận thành công +5,000 Xu thưởng điểm danh.' };
+  };
+
   // GPS Geolocation Handler
   const handleGetGPSLocation = () => {
     if (!navigator.geolocation) {
@@ -229,7 +365,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserLocationText(null);
   };
 
-  // Filter products by Category, Search, Province, District, and Distance Radius
+  // Filter products
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
       selectedCategory === 'all' || product.category === selectedCategory;
@@ -260,10 +396,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
   });
 
-  // Account-Isolated Cart Operations
+  // Cart Operations
   const addToCart = async (product: Product) => {
     if (!user) {
-      // Local fallback for guest
       setCartItems((prev) => {
         const existing = prev.find((item) => item.product.id === product.id);
         if (existing) {
@@ -279,7 +414,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Check existing in Supabase DB for this specific user
       const { data: existing } = await supabase
         .from('cart_items')
         .select('*')
@@ -302,20 +436,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ]);
       }
 
-      await fetchUserCart(user.id);
+      await fetchUserCartAndCoins(user.id);
     } catch (err) {
       console.warn('Fallback local cart insert:', err);
-      setCartItems((prev) => {
-        const existing = prev.find((item) => item.product.id === product.id);
-        if (existing) {
-          return prev.map((item) =>
-            item.product.id === product.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          );
-        }
-        return [...prev, { id: String(Date.now()), user_id: user.id, product, quantity: 1 }];
-      });
     }
   };
 
@@ -365,7 +488,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.warn('Supabase DB insert failed, fallback to local state broadcast:', error);
         const localProduct: Product = {
           ...productData,
           id: Date.now(),
@@ -379,6 +501,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           event: 'new_product',
           payload: localProduct,
         });
+
+        // Award +10,000 Xu for posting a new utility/service
+        await addCoinTransaction(10000, '🌟 Tặng Xu thưởng đăng tin tiện ích mới thành công', 'earn');
 
         return { error: null };
       }
@@ -395,6 +520,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           event: 'new_product',
           payload: data,
         });
+
+        // Award +10,000 Xu for posting a new utility/service
+        await addCoinTransaction(10000, '🌟 Tặng Xu thưởng đăng tin tiện ích mới thành công', 'earn');
       }
 
       return { error: null };
@@ -421,6 +549,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cartCount,
         cartTotalAmount,
         userActivities,
+        userCoins,
+        coinTransactions,
+        hasCheckedInToday,
         selectedCategory,
         searchQuery,
         loadingProducts,
@@ -434,6 +565,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteProduct,
         isCartOpen,
         setIsCartOpen,
+        dailyCheckIn,
+        addCoinTransaction,
         selectedProvince,
         setSelectedProvince,
         selectedDistrict,

@@ -9,6 +9,7 @@ import { ProductGrid } from './components/ProductGrid';
 import { AuthModal } from './components/AuthModal';
 import { AddProductModal } from './components/AddProductModal';
 import { AdminMerchantReviewModal } from './components/AdminMerchantReviewModal';
+import { CoinWalletModal } from './components/CoinWalletModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 
@@ -16,6 +17,7 @@ function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
   const [adminReviewModalOpen, setAdminReviewModalOpen] = useState(false);
+  const [coinWalletModalOpen, setCoinWalletModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
@@ -24,6 +26,7 @@ function AppContent() {
         onOpenAuthModal={() => setAuthModalOpen(true)} 
         onOpenAddProductModal={() => setAddProductModalOpen(true)} 
         onOpenAdminReviewModal={() => setAdminReviewModalOpen(true)}
+        onOpenCoinWalletModal={() => setCoinWalletModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards */}
@@ -83,6 +86,7 @@ function AppContent() {
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <AddProductModal isOpen={addProductModalOpen} onClose={() => setAddProductModalOpen(false)} />
       <AdminMerchantReviewModal isOpen={adminReviewModalOpen} onClose={() => setAdminReviewModalOpen(false)} />
+      <CoinWalletModal isOpen={coinWalletModalOpen} onClose={() => setCoinWalletModalOpen(false)} />
       <CartDrawer />
     </div>
   );
