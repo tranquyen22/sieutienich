@@ -10,14 +10,17 @@ import { AuthModal } from './components/AuthModal';
 import { AddProductModal } from './components/AddProductModal';
 import { AdminMerchantReviewModal } from './components/AdminMerchantReviewModal';
 import { CoinWalletModal } from './components/CoinWalletModal';
+import { ProductDetailModal } from './components/ProductDetailModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
+import type { Product } from './types';
 
 function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
   const [adminReviewModalOpen, setAdminReviewModalOpen] = useState(false);
   const [coinWalletModalOpen, setCoinWalletModalOpen] = useState(false);
+  const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
@@ -38,7 +41,7 @@ function AppContent() {
       {/* DANH MỤC & LƯỚI SẢN PHẨM */}
       <main id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-1 w-full">
         <CategoryFilter />
-        <ProductGrid />
+        <ProductGrid onSelectProduct={(product) => setSelectedProductDetail(product)} />
       </main>
 
       {/* FOOTER */}
@@ -87,6 +90,7 @@ function AppContent() {
       <AddProductModal isOpen={addProductModalOpen} onClose={() => setAddProductModalOpen(false)} />
       <AdminMerchantReviewModal isOpen={adminReviewModalOpen} onClose={() => setAdminReviewModalOpen(false)} />
       <CoinWalletModal isOpen={coinWalletModalOpen} onClose={() => setCoinWalletModalOpen(false)} />
+      <ProductDetailModal product={selectedProductDetail} onClose={() => setSelectedProductDetail(null)} />
       <CartDrawer />
     </div>
   );

@@ -5,13 +5,15 @@ import { useShop } from '../context/ShopContext';
 
 interface ProductCardProps {
   product: Product;
+  onSelectProduct?: (product: Product) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct }) => {
   const { addToCart, deleteProduct } = useShop();
   const [added, setAdded] = React.useState(false);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
     addToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
@@ -62,7 +64,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const phoneNumber = product.phone || '0988.123.456';
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group relative w-full min-w-0">
+    <div 
+      onClick={() => onSelectProduct && onSelectProduct(product)}
+      className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group relative w-full min-w-0 cursor-pointer"
+    >
       <div className="relative h-48 w-full overflow-hidden bg-gray-100">
         <img 
           src={product.img} 
@@ -110,9 +115,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Quick Delete action */}
         <button
-          onClick={() => deleteProduct(product.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteProduct(product.id);
+          }}
           title="Xóa mục tiện ích này"
-          className="absolute top-3 right-3 p-1.5 bg-white/80 hover:bg-rose-500 text-gray-400 hover:text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm"
+          className="absolute top-3 right-3 p-1.5 bg-white/80 hover:bg-rose-500 text-gray-400 hover:text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm cursor-pointer"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -204,6 +212,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {isLodging || isTransport ? (
             <a
               href={`tel:${phoneNumber.replace(/[^0-9]/g, '')}`}
+              onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-200 transition shrink-0 max-w-[55%] truncate"
               title={`Gọi ngay ${phoneNumber}`}
             >
@@ -213,7 +222,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           ) : (
             <button 
               onClick={handleAddToCart} 
-              className={`p-2 rounded-xl font-medium transition-all duration-200 flex items-center gap-1 shrink-0 ${
+              className={`p-2 rounded-xl font-medium transition-all duration-200 flex items-center gap-1 shrink-0 cursor-pointer ${
                 added 
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' 
                   : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-sm'
