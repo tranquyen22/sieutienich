@@ -13,10 +13,14 @@ interface ShopContextType {
   userActivities: UserActivity[];
   
   // Dual Currency Wallet states
-  regularCoins: number; // Xu Thường (Điểm danh, đánh giá, đăng tin - áp dụng cho Cửa hàng xác minh)
-  tqCoins: number; // Xu TQ (Được tặng khi đăng ký tài khoản mới - áp dụng cho Cửa hàng TQ)
+  regularCoins: number;
+  tqCoins: number;
   coinTransactions: CoinTransaction[];
   hasCheckedInToday: boolean;
+
+  // Verified Buyer Purchase Tracking
+  purchasedProductIds: string[];
+  recordPurchase: (productIds: (string | number)[]) => void;
 
   selectedCategory: Category;
   searchQuery: string;
@@ -55,7 +59,7 @@ interface ShopContextType {
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
-// Initial fallback transactions for newly registered user / demo mode
+// Initial fallback transactions
 const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
   {
     id: 'tx-tq-welcome-1',
@@ -77,6 +81,9 @@ const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
   },
 ];
 
+// Default demo purchased product IDs for verified buyer review testing
+const DEFAULT_PURCHASED_IDS: string[] = ['1', '2', '3', '7', '10', '13', '15'];
+
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
 
@@ -89,11 +96,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingCart, setLoadingCart] = useState<boolean>(false);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
-  // Dual Currency Wallet states (Xu Thường & Xu TQ)
+  // Dual Currency Wallet states
   const [regularCoins, setRegularCoins] = useState<number>(5000);
   const [tqCoins, setTqCoins] = useState<number>(50000);
   const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>(DEFAULT_INITIAL_TRANSACTIONS);
   const [hasCheckedInToday, setHasCheckedInToday] = useState<boolean>(false);
+
+  // Verified Buyer Purchase Tracking State
+  const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>(DEFAULT_PURCHASED_IDS);
 
   // Location Filter states
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
@@ -102,6 +112,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [userLocationText, setUserLocationText] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
+
+  const recordPurchase = (productIds: (string | number)[]) => {
+    const stringIds = productIds.map((id) => String(id));
+    setPurchasedProductIds((prev) => Array.from(new Set([...prev, ...stringIds])));
+  };
 
   // 1. Fetch public products list
   const fetchProducts = useCallback(async () => {
@@ -132,7 +147,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoadingCart(true);
 
-      // Fetch Cart
       const { data: cartData } = await supabase
         .from('cart_items')
         .select('*, product:products(*)')
@@ -155,7 +169,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCartItems(formatted);
       }
 
-      // Fetch Dual Coins balances from profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('regular_coins, tq_coins')
@@ -170,7 +183,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTqCoins(50000);
       }
 
-      // Fetch Coin Transactions history
       const { data: txData } = await supabase
         .from('coin_transactions')
         .select('*')
@@ -197,47 +209,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // 3. Isolated Account Sync Effect on Auth Change
+  // Isolated Account Sync Effect
   useEffect(() => {
     if (user) {
       fetchUserCartAndCoins(user.id);
-
-      const cartChannel = supabase
-        .channel(`realtime_cart_${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'cart_items',
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            fetchUserCartAndCoins(user.id);
-          }
-        )
-        .subscribe();
-
-      const coinChannel = supabase
-        .channel(`realtime_coins_${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'coin_transactions',
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            fetchUserCartAndCoins(user.id);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(cartChannel);
-        supabase.removeChannel(coinChannel);
-      };
     } else {
       setCartItems([]);
       setUserActivities([]);
@@ -251,45 +226,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Realtime Products Listener
   useEffect(() => {
     fetchProducts();
-
-    const productsChannel = supabase
-      .channel('realtime_products_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newProduct = payload.new as Product;
-            setProducts((prev) => {
-              if (prev.some((p) => p.id === newProduct.id)) return prev;
-              return [...prev, newProduct];
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedProduct = payload.new as Product;
-            setProducts((prev) =>
-              prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-            );
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = payload.old.id;
-            setProducts((prev) => prev.filter((p) => p.id !== deletedId));
-          }
-        }
-      )
-      .on('broadcast', { event: 'new_product' }, ({ payload }) => {
-        const newProduct = payload as Product;
-        setProducts((prev) => {
-          if (prev.some((p) => p.id === newProduct.id)) return prev;
-          return [...prev, newProduct];
-        });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(productsChannel);
-    };
   }, [fetchProducts]);
 
-  // Add Coin Transaction & Update Balance (Regular vs TQ Coins)
   const addCoinTransaction = async (
     amount: number,
     description: string,
@@ -344,7 +282,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Daily Check-in (+5,000 Xu Thường)
   const dailyCheckIn = async (): Promise<{ success: boolean; message: string }> => {
     if (hasCheckedInToday) {
       return { success: false, message: 'Bạn đã điểm danh nhận Xu hôm nay rồi. Vui lòng quay lại vào ngày mai!' };
@@ -360,7 +297,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: 'Chúc mừng! Bạn đã nhận thành công +5,000 Xu Thường thưởng điểm danh.' };
   };
 
-  // GPS Geolocation Handler
   const handleGetGPSLocation = () => {
     if (!navigator.geolocation) {
       alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
@@ -380,7 +316,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLocating(false);
       },
       (error) => {
-        console.warn('GPS location error, simulating location:', error);
+        console.warn('GPS location error:', error);
         setUserCoords({ lat: 21.0285, lng: 105.8542 });
         setUserLocationText('Cầu Giấy, Hà Nội (GPS Đã kích hoạt)');
         setSelectedProvince('Hà Nội');
@@ -400,7 +336,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserLocationText(null);
   };
 
-  // Filter products
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
       selectedCategory === 'all' || product.category === selectedCategory;
@@ -432,7 +367,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
   });
 
-  // Cart Operations
   const addToCart = async (product: Product) => {
     if (!user) {
       setCartItems((prev) => {
@@ -531,14 +465,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setProducts((prev) => [...prev, localProduct]);
 
-        const channel = supabase.channel('realtime_products_changes');
-        channel.send({
-          type: 'broadcast',
-          event: 'new_product',
-          payload: localProduct,
-        });
-
-        // Award +10,000 Xu Thường for posting a new utility/service & review
         await addCoinTransaction(
           10000,
           '⭐ Tặng Xu Thường thưởng đăng tin / đánh giá thành công',
@@ -555,14 +481,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return [...prev, data];
         });
 
-        const channel = supabase.channel('realtime_products_changes');
-        channel.send({
-          type: 'broadcast',
-          event: 'new_product',
-          payload: data,
-        });
-
-        // Award +10,000 Xu Thường for posting a new utility/service & review
         await addCoinTransaction(
           10000,
           '⭐ Tặng Xu Thường thưởng đăng tin / đánh giá thành công',
@@ -599,6 +517,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         tqCoins,
         coinTransactions,
         hasCheckedInToday,
+        purchasedProductIds,
+        recordPurchase,
         selectedCategory,
         searchQuery,
         loadingProducts,

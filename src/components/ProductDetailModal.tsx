@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Coins, Check, Plus, PhoneCall, User, MessageSquare, Send, Sparkles } from 'lucide-react';
+import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Coins, Check, Plus, PhoneCall, User, MessageSquare, Send, Sparkles, CheckCircle2 } from 'lucide-react';
 import type { Product, ProductReview } from '../types';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,7 @@ interface ProductDetailModalProps {
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClose }) => {
-  const { addToCart, addCoinTransaction } = useShop();
+  const { addToCart, addCoinTransaction, purchasedProductIds } = useShop();
   const { user } = useAuth();
   const [added, setAdded] = useState(false);
 
@@ -44,7 +44,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
 
   const isTQStore = Boolean(product.isTQStore);
   const isVerified = Boolean(product.isLicensed);
-  const isUnverified = !isTQStore && !isVerified;
+
+  // Verified Buyer Review Eligibility Rules
+  const isEligibleShopForReview = isTQStore || isVerified;
+  const isVerifiedBuyer = purchasedProductIds.includes(String(product.id));
 
   const phoneNumber = product.phone || '0988.123.456';
 
@@ -64,11 +67,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
 
   const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !isVerifiedBuyer || !isEligibleShopForReview) return;
 
     const reviewObj: ProductReview = {
       id: String(Date.now()),
-      user_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Khách hàng',
+      user_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Người mua xác minh',
       rating: newRating,
       comment: newComment.trim(),
       created_at: new Date().toISOString(),
@@ -153,7 +156,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
             
             {/* Title & Rating */}
             <div>
-              {!isUnverified ? (
+              {isEligibleShopForReview ? (
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex items-center text-amber-400">
                     <Star className="w-4 h-4 fill-amber-400" />
@@ -162,13 +165,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                     </span>
                   </div>
                   <span className="text-gray-400 text-xs font-semibold">
-                    ({product.reviewCount || reviewsList.length} đánh giá từ khách hàng)
+                    ({product.reviewCount || reviewsList.length} đánh giá từ khách hàng đã mua hàng)
                   </span>
                 </div>
               ) : (
                 <div className="mb-2 text-xs font-bold text-gray-400 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />
-                  <span>Shop chưa xác minh • Chưa mở tính năng đánh giá</span>
+                  <span>Shop chưa xác minh • Không mở lượt đánh giá</span>
                 </div>
               )}
 
@@ -260,60 +263,78 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
             </div>
 
             {/* Ratings & Customer Reviews Section */}
-            {!isUnverified && (
+            {isEligibleShopForReview ? (
               <div className="space-y-3 pt-4 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black uppercase text-gray-900 flex items-center gap-1.5">
                     <MessageSquare className="w-4 h-4 text-indigo-600" />
-                    <span>Đánh giá dịch vụ ({reviewsList.length})</span>
+                    <span>Đánh giá từ người mua hàng ({reviewsList.length})</span>
                   </h3>
                 </div>
 
-                {/* Submit New Review Form */}
-                <form onSubmit={handleAddReview} className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-indigo-900">Viết đánh giá của bạn:</span>
-                    
-                    {/* Star Selection */}
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setNewRating(star)}
-                          className="p-0.5 cursor-pointer"
-                        >
-                          <Star className={`w-4 h-4 ${star <= newRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
-                        </button>
-                      ))}
+                {/* VERIFIED BUYER ONLY REVIEW FORM */}
+                {isVerifiedBuyer ? (
+                  <form onSubmit={handleAddReview} className="bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-emerald-900 flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Bạn đã mua hàng thành công • Viết đánh giá:</span>
+                      </span>
+                      
+                      {/* Star Selection */}
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setNewRating(star)}
+                            className="p-0.5 cursor-pointer"
+                          >
+                            <Star className={`w-4 h-4 ${star <= newRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Nhập cảm nhận của bạn về tiện ích này..."
-                      className="w-full pl-3 pr-24 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500 bg-white"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!newComment.trim()}
-                      className="absolute right-1.5 top-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-bold text-[11px] rounded-lg transition flex items-center gap-1 cursor-pointer"
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Nhập nhận xét của bạn về sản phẩm / dịch vụ..."
+                        className="w-full pl-3 pr-28 py-2 border border-emerald-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500 bg-white"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newComment.trim()}
+                        className="absolute right-1.5 top-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-bold text-[11px] rounded-lg transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <Send className="w-3 h-3" />
+                        <span>Gửi (+10k Xu)</span>
+                      </button>
+                    </div>
+
+                    {reviewSubmitted && (
+                      <div className="text-[11px] font-bold text-emerald-800 flex items-center gap-1 pt-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-bounce" />
+                        <span>Đã gửi đánh giá thành công! Tặng ngay +10.000 Xu Thường vào ví.</span>
+                      </div>
+                    )}
+                  </form>
+                ) : (
+                  <div className="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200 text-xs text-amber-900 font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>🔒 Chỉ khách hàng đã mua/đặt hàng thành công tại gian hàng này mới được quyền viết đánh giá.</span>
+                    </div>
+                    <button 
+                      onClick={handleAddToCart} 
+                      className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-extrabold text-[11px] shrink-0 shadow-sm cursor-pointer"
                     >
-                      <Send className="w-3 h-3" />
-                      <span>Gửi (+10k Xu)</span>
+                      Đặt hàng ngay
                     </button>
                   </div>
-
-                  {reviewSubmitted && (
-                    <div className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 pt-1">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-bounce" />
-                      <span>Đã gửi đánh giá thành công! Tặng ngay +10.000 Xu Thường vào ví.</span>
-                    </div>
-                  )}
-                </form>
+                )}
 
                 {/* Reviews List */}
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -323,6 +344,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                         <span className="font-bold text-gray-900 flex items-center gap-1">
                           <User className="w-3.5 h-3.5 text-gray-400" />
                           {rev.user_name}
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-extrabold">✓ Đã mua hàng</span>
                         </span>
                         <div className="flex items-center text-amber-400">
                           {[...Array(rev.rating)].map((_, i) => (
@@ -334,6 +356,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                     </div>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-gray-100 rounded-2xl border border-gray-200 text-xs text-gray-600 font-bold flex items-center gap-2">
+                <Lock className="w-4 h-4 text-gray-400 shrink-0" />
+                <span>🔒 Shop chưa xác minh ➔ Tính năng Đánh giá & Hiển thị nhận xét chưa được mở.</span>
               </div>
             )}
 

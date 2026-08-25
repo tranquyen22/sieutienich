@@ -3,7 +3,7 @@ import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck } f
 import { useShop } from '../context/ShopContext';
 
 export const CartDrawer: React.FC = () => {
-  const { cartItems, cartCount, cartTotalAmount, removeFromCart, isCartOpen, setIsCartOpen, regularCoins, tqCoins, addCoinTransaction } = useShop();
+  const { cartItems, cartCount, cartTotalAmount, removeFromCart, clearCart, isCartOpen, setIsCartOpen, regularCoins, tqCoins, addCoinTransaction, recordPurchase } = useShop();
 
   const [useTQCoins, setUseTQCoins] = useState(false);
   const [useRegularCoins, setUseRegularCoins] = useState(false);
@@ -37,7 +37,11 @@ export const CartDrawer: React.FC = () => {
       await addCoinTransaction(-regularDiscount, `🛒 Giảm giá đơn hàng bằng Xu Thường tại Cửa hàng đã xác minh`, 'spend', 'regular');
     }
 
-    alert(`Đặt hàng thành công!\n- Tổng tiền: ${cartTotalAmount.toLocaleString('vi-VN')} đ\n- Giảm giá từ Xu: -${totalDiscount.toLocaleString('vi-VN')} đ\n- Thanh toán cuối: ${finalTotalAmount.toLocaleString('vi-VN')} đ`);
+    // Record verified purchase for review eligibility
+    recordPurchase(cartItems.map((item) => item.product.id));
+
+    alert(`Đặt hàng thành công!\n- Tổng tiền: ${cartTotalAmount.toLocaleString('vi-VN')} đ\n- Giảm giá từ Xu: -${totalDiscount.toLocaleString('vi-VN')} đ\n- Thanh toán cuối: ${finalTotalAmount.toLocaleString('vi-VN')} đ\n\n🎉 Bạn đã đủ điều kiện viết Đánh Giá dịch vụ và nhận thưởng +10.000 Xu Thường!`);
+    await clearCart();
     setIsCartOpen(false);
   };
 
