@@ -13,25 +13,22 @@ export const CartDrawer: React.FC = () => {
     regularCoins, 
     tqCoins, 
     addCoinTransaction, 
-    recordPurchase 
+    createOrder
   } = useShop();
 
   const [useTQCoins, setUseTQCoins] = useState(false);
   const [useRegularCoins, setUseRegularCoins] = useState(false);
 
-  // Selected item IDs state for combined checkout selection (Tích đơn hay bỏ đơn khi mua gộp)
+  // Selected item IDs state for combined checkout selection
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
-  // Sync selectedItemIds whenever cartItems change
   useEffect(() => {
     setSelectedItemIds(cartItems.map((item) => item.id));
   }, [cartItems]);
 
   if (!isCartOpen) return null;
 
-  // Filter selected items for combined checkout
   const selectedCartItems = cartItems.filter((item) => selectedItemIds.includes(item.id));
-  
   const isAllSelected = cartItems.length > 0 && selectedItemIds.length === cartItems.length;
 
   const toggleSelectAll = () => {
@@ -48,26 +45,23 @@ export const CartDrawer: React.FC = () => {
     );
   };
 
-  // Selected items total calculations
   const selectedTotalAmount = selectedCartItems.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
 
-  // Check shop verification statuses for SELECTED items
   const hasTQItems = selectedCartItems.some((item) => Boolean(item.product.isTQStore));
   const hasVerifiedItems = selectedCartItems.some((item) => Boolean(item.product.isLicensed));
   const hasUnverifiedItems = selectedCartItems.some((item) => !item.product.isTQStore && !item.product.isLicensed);
 
-  // Calculate Coin Discounts on SELECTED items
   let tqDiscount = 0;
   if (useTQCoins && hasTQItems && selectedTotalAmount > 0) {
-    tqDiscount = Math.min(tqCoins, Math.floor(selectedTotalAmount * 0.2)); // Up to 20% discount
+    tqDiscount = Math.min(tqCoins, Math.floor(selectedTotalAmount * 0.2));
   }
 
   let regularDiscount = 0;
   if (useRegularCoins && (hasVerifiedItems || hasTQItems) && selectedTotalAmount > 0) {
-    regularDiscount = Math.min(regularCoins, Math.floor((selectedTotalAmount - tqDiscount) * 0.1)); // Up to 10% discount
+    regularDiscount = Math.min(regularCoins, Math.floor((selectedTotalAmount - tqDiscount) * 0.1));
   }
 
   const totalDiscount = tqDiscount + regularDiscount;
@@ -86,10 +80,24 @@ export const CartDrawer: React.FC = () => {
       await addCoinTransaction(-regularDiscount, `🛒 Giảm giá đơn mua gộp bằng Xu Thường`, 'spend', 'regular');
     }
 
-    // Record verified purchase for review eligibility
-    recordPurchase(selectedCartItems.map((item) => item.product.id));
+    // Create Intermediary Order in stage 1 (Chờ Shop xác nhận đơn)
+    await createOrder({
+      user_id: 'guest',
+      user_name: 'Khách hàng',
+      items: selectedCartItems.map((item) => ({
+        product_id: item.product.id,
+        product: item.product,
+        quantity: item.quantity,
+        price: item.product.price,
+      })),
+      total_amount: selectedTotalAmount,
+      discount_amount: totalDiscount,
+      final_amount: finalTotalAmount,
+      status: 'pending_seller_confirm',
+      payment_method: 'direct_with_seller',
+    });
 
-    alert(`Đặt hàng gộp thành công!\n- Số lượng đơn đã tích: ${selectedCartItems.length} sản phẩm\n- Tổng tiền: ${selectedTotalAmount.toLocaleString('vi-VN')} đ\n- Giảm giá từ Xu: -${totalDiscount.toLocaleString('vi-VN')} đ\n- Thanh toán cuối: ${finalTotalAmount.toLocaleString('vi-VN')} đ\n\n🎉 Bạn đã đủ điều kiện viết Đánh Giá dịch vụ và nhận thưởng +10.000 Xu Thường!`);
+    alert(`Đặt hàng thành công!\n- Đơn hàng đã được khởi tạo: Giai đoạn 1 (Chờ Shop xác nhận)\n- Phương thức: Sàn trung gian hiển thị (Shop và Khách tự liên hệ giao hàng & tự thanh toán)\n\nKhi Shop chuyển trạng thái sang "Đã giao thành công", bạn sẽ được quyền gửi Đánh Giá sản phẩm!`);
     
     // Remove ONLY selected items from cart
     for (const item of selectedCartItems) {
@@ -161,7 +169,7 @@ export const CartDrawer: React.FC = () => {
                   }`}>
                     <div className="flex items-center gap-3">
                       
-                      {/* Item Selection Checkbox (Tích đơn hay bỏ đơn) */}
+                      {/* Item Selection Checkbox */}
                       <button
                         type="button"
                         onClick={() => toggleSelectItem(item.id)}
@@ -187,7 +195,7 @@ export const CartDrawer: React.FC = () => {
                           {Number(item.product.price).toLocaleString('vi-VN')} đ
                         </p>
                         
-                        {/* Quantity Adjuster (- / +) */}
+                        {/* Quantity Adjuster */}
                         <div className="flex items-center gap-2 mt-1.5">
                           <span className="text-[11px] text-gray-500 font-semibold">Số lượng:</span>
                           <div className="flex items-center border border-gray-200 rounded-lg bg-white overflow-hidden">
@@ -250,6 +258,11 @@ export const CartDrawer: React.FC = () => {
           {cartItems.length > 0 && (
             <div className="p-5 border-t border-gray-100 bg-gray-50/70 space-y-3 shrink-0">
               
+              {/* Intermediary Platform Disclaimer */}
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-tight">
+                ℹ️ <strong>Sàn giao dịch trung gian:</strong> Shop và Khách hàng tự liên hệ thanh toán & tự giao nhận trực tiếp.
+              </div>
+
               {/* Coin Options Panel */}
               <div className="bg-white p-3 rounded-2xl border border-gray-200 space-y-2">
                 <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5 border-b border-gray-100 pb-1.5">
@@ -269,7 +282,7 @@ export const CartDrawer: React.FC = () => {
                       onChange={(e) => setUseTQCoins(e.target.checked)}
                       className="rounded text-amber-600 focus:ring-amber-500"
                     />
-                    <span className="font-bold text-gray-800">Dùng Xu TQ ({tqCoins.toLocaleString()} Xu sẵn có)</span>
+                    <span className="font-bold text-gray-800">Dùng Xu TQ ({tqCoins.toLocaleString()} Xu)</span>
                   </div>
                   <span className="font-extrabold text-amber-600">
                     {hasTQItems ? `-${tqDiscount.toLocaleString()} đ` : 'Chỉ dùng ở Shop TQ'}
@@ -319,7 +332,7 @@ export const CartDrawer: React.FC = () => {
                 disabled={selectedCartItems.length === 0}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
-                <span>Xác nhận Mua Gộp ({selectedCartItems.length} Đơn)</span>
+                <span>Xác nhận Đặt Hàng Trung Gian ({selectedCartItems.length} Đơn)</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

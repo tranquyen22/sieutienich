@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock, Coins } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock, Coins, PackageCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 
@@ -8,16 +8,18 @@ interface HeaderProps {
   onOpenAddProductModal: () => void;
   onOpenAdminReviewModal: () => void;
   onOpenCoinWalletModal: () => void;
+  onOpenOrderTrackingModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   onOpenAuthModal, 
   onOpenAddProductModal, 
   onOpenAdminReviewModal,
-  onOpenCoinWalletModal
+  onOpenCoinWalletModal,
+  onOpenOrderTrackingModal
 }) => {
   const { user, signOut, merchantApplication, isAdmin } = useAuth();
-  const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen, regularCoins, tqCoins } = useShop();
+  const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen, regularCoins, tqCoins, orders } = useShop();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Tài khoản';
@@ -60,10 +62,10 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* NÚT CHỨC NĂNG (VÍ XU ĐA NĂNG + NÚT ĐĂNG TIN + GIỎ HÀNG + AUTH) */}
+          {/* NÚT CHỨC NĂNG (VÍ XU + THEO DÕI ĐƠN + NÚT ĐĂNG TIN + GIỎ HÀNG + AUTH) */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* VÍ XU HÀNG NGÀY BUTTON (HIỂN THỊ DUAL COINS XU TQ & XU THƯỜNG) */}
+            {/* VÍ XU HÀNG NGÀY BUTTON */}
             <button
               onClick={onOpenCoinWalletModal}
               title={`Xu TQ: ${tqCoins.toLocaleString()} | Xu Thường: ${regularCoins.toLocaleString()}`}
@@ -76,6 +78,20 @@ export const Header: React.FC<HeaderProps> = ({
                 {regularCoins > 0 ? `${(regularCoins / 1000).toFixed(0)}k Thường` : ''}
               </span>
               <span className="sm:hidden">{totalCoins.toLocaleString('vi-VN')} Xu</span>
+            </button>
+
+            {/* QUẢN LÝ THEO DÕI ĐƠN HÀNG TRUNG GIAN BUTTON */}
+            <button
+              onClick={onOpenOrderTrackingModal}
+              title="Quản lý & Theo dõi tiến trình đơn hàng trung gian (4 bước)"
+              className="relative p-2 text-gray-600 hover:text-indigo-600 transition rounded-full hover:bg-gray-100 focus:outline-none cursor-pointer shrink-0"
+            >
+              <PackageCheck className="w-6 h-6 text-indigo-600" />
+              {orders.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                  {orders.length}
+                </span>
+              )}
             </button>
 
             {/* Nút Đăng tin */}
@@ -138,6 +154,23 @@ export const Header: React.FC<HeaderProps> = ({
                         <div className="text-amber-600">{tqCoins.toLocaleString()} TQ</div>
                         <div className="text-emerald-600">{regularCoins.toLocaleString()} Thường</div>
                       </div>
+                    </button>
+
+                    {/* Order Tracking Menu Item */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenOrderTrackingModal();
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-extrabold text-indigo-700 hover:bg-indigo-50 flex items-center justify-between border-b border-gray-100 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <PackageCheck className="w-4 h-4 text-indigo-600" />
+                        <span>Theo dõi đơn hàng (4 bước)</span>
+                      </div>
+                      <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                        {orders.length}
+                      </span>
                     </button>
 
                     {/* Merchant Application Status Badge for Normal Users */}

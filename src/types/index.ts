@@ -29,12 +29,12 @@ export interface Product {
   description?: string;
   created_at?: string;
   // Store verification & TQ status
-  isTQStore?: boolean; // Cửa hàng TQ Official (Áp dụng cả Xu TQ & Xu Thường, hiển thị Đánh giá)
-  isLicensed?: boolean; // Cửa hàng đã xác minh / có GPKD (Chỉ áp dụng Xu Thường, hiển thị Đánh giá)
+  isTQStore?: boolean; // Cửa hàng TQ Official
+  isLicensed?: boolean; // Cửa hàng đã xác minh / có GPKD
   licenseNo?: string;
   contactName?: string;
   phone?: string;
-  // Ratings & Reviews (Chỉ hiển thị cho Shop đã xác minh & Shop TQ)
+  // Ratings & Reviews
   rating?: number;
   reviewCount?: number;
   reviews?: ProductReview[];
@@ -54,6 +54,35 @@ export interface CartItem {
   created_at?: string;
 }
 
+export type OrderStatus = 
+  | 'pending_seller_confirm' // Shop xác nhận đơn
+  | 'preparing'              // Đang chuẩn bị
+  | 'delivering'             // Đang giao
+  | 'completed'              // Đã giao thành công
+  | 'cancelled';
+
+export interface OrderItem {
+  product_id: string | number;
+  product: Product;
+  quantity: number;
+  price: number;
+}
+
+export interface Order {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_phone?: string;
+  items: OrderItem[];
+  total_amount: number;
+  discount_amount: number;
+  final_amount: number;
+  status: OrderStatus;
+  payment_method: 'direct_with_seller'; // Sàn trung gian hiển thị, Shop và Khách tự thanh toán & tự giao hàng
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface UserActivity {
   id: string;
   user_id: string;
@@ -67,8 +96,8 @@ export interface UserProfile {
   email: string;
   full_name?: string;
   phone?: string;
-  regular_coins?: number; // Xu Thường (Áp dụng cho các cửa hàng đã xác minh)
-  tq_coins?: number; // Xu TQ (Được tặng khi đăng ký mới, áp dụng cho cửa hàng TQ)
+  regular_coins?: number; // Xu Thường
+  tq_coins?: number; // Xu TQ
   role?: 'buyer' | 'merchant' | 'admin';
   merchant_status?: 'pending_review' | 'approved' | 'rejected' | null;
 }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import type { Product, CartItem, Category, UserActivity, CoinTransaction } from '../types';
+import type { Product, CartItem, Category, UserActivity, CoinTransaction, Order, OrderStatus } from '../types';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -17,6 +17,11 @@ interface ShopContextType {
   tqCoins: number;
   coinTransactions: CoinTransaction[];
   hasCheckedInToday: boolean;
+
+  // Intermediary Orders Lifecycle
+  orders: Order[];
+  createOrder: (orderData: Omit<Order, 'id' | 'created_at'>) => Promise<Order>;
+  updateOrderStatus: (orderId: string, newStatus: OrderStatus) => Promise<void>;
 
   // Verified Buyer Purchase Tracking
   purchasedProductIds: string[];
@@ -82,8 +87,69 @@ const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
   },
 ];
 
+// Default sample orders covering the 4 lifecycle stages
+const DEFAULT_SAMPLE_ORDERS: Order[] = [
+  {
+    id: 'ORD-882901',
+    user_id: 'guest',
+    user_name: 'Nguyễn Văn Hùng',
+    items: [
+      { product_id: 15, product: INITIAL_PRODUCTS[14], quantity: 1, price: 850000 },
+    ],
+    total_amount: 850000,
+    discount_amount: 50000,
+    final_amount: 800000,
+    status: 'pending_seller_confirm', // Giai đoạn 1: Chờ Shop xác nhận
+    payment_method: 'direct_with_seller',
+    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+  },
+  {
+    id: 'ORD-773012',
+    user_id: 'guest',
+    user_name: 'Trần Thị Thu Hải',
+    items: [
+      { product_id: 2, product: INITIAL_PRODUCTS[1], quantity: 2, price: 350000 },
+    ],
+    total_amount: 700000,
+    discount_amount: 20000,
+    final_amount: 680000,
+    status: 'preparing', // Giai đoạn 2: Đang chuẩn bị hàng
+    payment_method: 'direct_with_seller',
+    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+  },
+  {
+    id: 'ORD-662093',
+    user_id: 'guest',
+    user_name: 'Phạm Minh Tuấn',
+    items: [
+      { product_id: 13, product: INITIAL_PRODUCTS[12], quantity: 1, price: 12000000 },
+    ],
+    total_amount: 12000000,
+    discount_amount: 50000,
+    final_amount: 11950000,
+    status: 'delivering', // Giai đoạn 3: Đang giao hàng
+    payment_method: 'direct_with_seller',
+    created_at: new Date(Date.now() - 3600000 * 20).toISOString(),
+  },
+  {
+    id: 'ORD-551044',
+    user_id: 'guest',
+    user_name: 'Lê Hoàng Nam',
+    items: [
+      { product_id: 1, product: INITIAL_PRODUCTS[0], quantity: 1, price: 8500000 },
+      { product_id: 14, product: INITIAL_PRODUCTS[13], quantity: 2, price: 180000 },
+    ],
+    total_amount: 8860000,
+    discount_amount: 60000,
+    final_amount: 8800000,
+    status: 'completed', // Giai đoạn 4: Đã giao hàng thành công (Mở Đánh giá)
+    payment_method: 'direct_with_seller',
+    created_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+  },
+];
+
 // Default demo purchased product IDs
-const DEFAULT_PURCHASED_IDS: string[] = ['1', '2', '3', '7', '10', '13', '15'];
+const DEFAULT_PURCHASED_IDS: string[] = ['1', '2', '3', '7', '10', '13', '14', '15'];
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -96,6 +162,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [loadingCart, setLoadingCart] = useState<boolean>(false);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+
+  // Intermediary Orders State
+  const [orders, setOrders] = useState<Order[]>(DEFAULT_SAMPLE_ORDERS);
 
   // Dual Currency Wallet states
   const [regularCoins, setRegularCoins] = useState<number>(5000);
@@ -117,6 +186,34 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const recordPurchase = (productIds: (string | number)[]) => {
     const stringIds = productIds.map((id) => String(id));
     setPurchasedProductIds((prev) => Array.from(new Set([...prev, ...stringIds])));
+  };
+
+  const createOrder = async (orderData: Omit<Order, 'id' | 'created_at'>): Promise<Order> => {
+    const newOrder: Order = {
+      ...orderData,
+      id: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
+      created_at: new Date().toISOString(),
+    };
+
+    setOrders((prev) => [newOrder, ...prev]);
+    return newOrder;
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    setOrders((prev) =>
+      prev.map((ord) => {
+        if (ord.id === orderId) {
+          const updated = { ...ord, status: newStatus, updated_at: new Date().toISOString() };
+          
+          // When order is completed (Đã giao hàng thành công), unlock review eligibility for those items!
+          if (newStatus === 'completed') {
+            recordPurchase(ord.items.map((item) => item.product_id));
+          }
+          return updated;
+        }
+        return ord;
+      })
+    );
   };
 
   // 1. Fetch public products list
@@ -543,6 +640,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         tqCoins,
         coinTransactions,
         hasCheckedInToday,
+        orders,
+        createOrder,
+        updateOrderStatus,
         purchasedProductIds,
         recordPurchase,
         selectedCategory,

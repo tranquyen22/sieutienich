@@ -11,6 +11,7 @@ import { AddProductModal } from './components/AddProductModal';
 import { AdminMerchantReviewModal } from './components/AdminMerchantReviewModal';
 import { CoinWalletModal } from './components/CoinWalletModal';
 import { ProductDetailModal } from './components/ProductDetailModal';
+import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import type { Product } from './types';
@@ -20,6 +21,7 @@ function AppContent() {
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
   const [adminReviewModalOpen, setAdminReviewModalOpen] = useState(false);
   const [coinWalletModalOpen, setCoinWalletModalOpen] = useState(false);
+  const [orderTrackingModalOpen, setOrderTrackingModalOpen] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
 
   return (
@@ -30,6 +32,7 @@ function AppContent() {
         onOpenAddProductModal={() => setAddProductModalOpen(true)} 
         onOpenAdminReviewModal={() => setAdminReviewModalOpen(true)}
         onOpenCoinWalletModal={() => setCoinWalletModalOpen(true)}
+        onOpenOrderTrackingModal={() => setOrderTrackingModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards */}
@@ -59,44 +62,59 @@ function AppContent() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-gray-900">Supabase Auth Security</h4>
-                <p className="text-xs text-gray-500 mt-0.5">Xác thực người dùng bảo mật chuẩn OAuth2 / JWT.</p>
+                <h4 className="font-bold text-sm text-gray-900">Mạng Lưới Tiện Ích Đã Xác Minh</h4>
+                <p className="text-xs text-gray-500 mt-0.5">Shop TQ & Shop Xác minh minh bạch thông tin GPKD.</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shrink-0">
                 <RefreshCw className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-gray-900">Giao diện chuẩn Responsive</h4>
-                <p className="text-xs text-gray-500 mt-0.5">Tối ưu mượt mà trên mọi thiết bị với Tailwind CSS.</p>
+                <h4 className="font-bold text-sm text-gray-900">Sàn Giao Dịch Trung Gian</h4>
+                <p className="text-xs text-gray-500 mt-0.5">Hiển thị tiện ích, Shop và Khách tự giao dịch & tự thanh toán.</p>
               </div>
             </div>
           </div>
 
-          <div className="pt-8 text-center text-xs text-gray-400">
-            © {new Date().getFullYear()} Siêu Tiện Ích. Nền tảng Đa Dịch Vụ Realtime với React & Supabase.
+          <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-400">
+            <p>© 2026 Siêu Tiện Ích TQ Network. Bản quyền đã được bảo hộ.</p>
+            <div className="flex items-center gap-6">
+              <a href="#" className="hover:text-indigo-600 transition">Điều khoản sử dụng</a>
+              <a href="#" className="hover:text-indigo-600 transition">Chính sách bảo mật</a>
+              <a href="#" className="hover:text-indigo-600 transition">Hỗ trợ khách hàng</a>
+            </div>
           </div>
         </div>
       </footer>
 
-      {/* MODALS & DRAWERS */}
+      {/* MODALS & DRAWER */}
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <AddProductModal isOpen={addProductModalOpen} onClose={() => setAddProductModalOpen(false)} />
       <AdminMerchantReviewModal isOpen={adminReviewModalOpen} onClose={() => setAdminReviewModalOpen(false)} />
       <CoinWalletModal isOpen={coinWalletModalOpen} onClose={() => setCoinWalletModalOpen(false)} />
-      <ProductDetailModal product={selectedProductDetail} onClose={() => setSelectedProductDetail(null)} />
+      
+      <OrderTrackingModal 
+        isOpen={orderTrackingModalOpen} 
+        onClose={() => setOrderTrackingModalOpen(false)} 
+      />
+
+      <ProductDetailModal 
+        product={selectedProductDetail} 
+        onClose={() => setSelectedProductDetail(null)} 
+      />
+      
       <CartDrawer />
     </div>
   );
 }
 
-export default function App() {
+export function App() {
   return (
     <AuthProvider>
       <ShopProvider>
@@ -105,3 +123,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+export default App;
