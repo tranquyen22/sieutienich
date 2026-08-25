@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, PlusCircle, Image as ImageIcon, Tag, DollarSign, FileText, Loader2, Phone, ShieldCheck, AlertTriangle, Building2, MapPin } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { VIETNAM_PROVINCES } from '../data/vietnamLocations';
 import type { Category } from '../types';
 
 interface AddProductModalProps {
@@ -29,25 +30,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const isLodging = category === 'lodging';
   const isTransport = category === 'transport';
 
-  const provinces = [
-    { id: 'TP. Hồ Chí Minh', name: 'TP. Hồ Chí Minh' },
-    { id: 'Hà Nội', name: 'TP. Hà Nội' },
-    { id: 'Hải Phòng', name: 'TP. Hải Phòng' },
-    { id: 'Đà Nẵng', name: 'TP. Đà Nẵng' },
-    { id: 'Cần Thơ', name: 'TP. Cần Thơ' },
-    { id: 'Bình Dương', name: 'Tỉnh Bình Dương' },
-    { id: 'Đồng Nai', name: 'Tỉnh Đồng Nai' },
-  ];
-
-  const districtOptionsMap: Record<string, string[]> = {
-    'TP. Hồ Chí Minh': ['TP. Thủ Đức', 'Quận 1', 'Quận 3', 'Quận 7', 'Quận 10', 'Bình Thạnh', 'Gò Vấp', 'Tân Bình', 'Bình Chánh', 'Hóc Môn'],
-    'Hà Nội': ['Cầu Giấy', 'Hoàn Kiếm', 'Ba Đình', 'Đống Đa', 'Hai Bà Trưng', 'Nam Từ Liêm', 'Bắc Từ Liêm', 'Gia Lâm', 'Đông Anh', 'Thanh Trì'],
-    'Hải Phòng': ['TP. Thủy Nguyên', 'Hồng Bàng', 'Lê Chân', 'Ngô Quyền', 'Hải An', 'An Dương'],
-    'Đà Nẵng': ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Cẩm Lệ', 'Liên Chiểu'],
-    'Bình Dương': ['TP. Thủ Dầu Một', 'TP. Dĩ An', 'TP. Thuận An', 'TP. Bến Cát', 'TP. Tân Uyên'],
-  };
-
-  const currentDistricts = districtOptionsMap[province] || ['Trung tâm'];
+  const currentDistricts = useMemo(() => {
+    const found = VIETNAM_PROVINCES.find((p) => p.id === province);
+    if (found) {
+      return found.districts.filter((d) => !d.includes('Tất cả'));
+    }
+    return ['Trung tâm'];
+  }, [province]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,18 +176,19 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           {/* Location Inputs (Tỉnh/Thành & Quận/Huyện) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0 pt-1 border-t border-gray-100">
             <div className="min-w-0">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Tỉnh / Thành phố *</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Tỉnh / Thành phố (63 Tỉnh/Thành) *</label>
               <div className="relative min-w-0">
                 <select
                   value={province}
                   onChange={(e) => {
                     setProvince(e.target.value);
-                    const defaultDist = districtOptionsMap[e.target.value]?.[0] || 'Trung tâm';
+                    const found = VIETNAM_PROVINCES.find(p => p.id === e.target.value);
+                    const defaultDist = found?.districts.find(d => !d.includes('Tất cả')) || 'Trung tâm';
                     setDistrict(defaultDist);
                   }}
                   className="w-full pl-8 pr-2 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-indigo-500 bg-white truncate box-border"
                 >
-                  {provinces.map((p) => (
+                  {VIETNAM_PROVINCES.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
                     </option>
