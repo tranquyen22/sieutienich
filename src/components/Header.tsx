@@ -53,24 +53,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuthModal, onOpenAddProduc
             </div>
           </div>
 
-          {/* NÚT CHỨC NĂNG (GIỎ HÀNG + AUTH + ADMIN REVIEW) */}
+          {/* NÚT CHỨC NĂNG (NÚT ĐĂNG TIN + GIỎ HÀNG + AUTH) */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Admin Review Modal Trigger */}
-            <button
-              onClick={onOpenAdminReviewModal}
-              title="Phê duyệt hồ sơ mở Shop (Admin Review)"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-full border border-indigo-200 transition cursor-pointer"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-              <span className="hidden md:inline">Admin Review</span>
-            </button>
-
             {/* Nút Đăng tin */}
             <button
               onClick={onOpenAddProductModal}
               title="Đăng tiện ích mới"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-full border border-emerald-200 transition cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-full border border-emerald-200 transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Đăng tin</span>
@@ -131,15 +121,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuthModal, onOpenAddProduc
                       </div>
                     )}
 
+                    {/* Hidden Admin Review Panel inside User Dropdown */}
                     <button
                       onClick={() => {
                         setShowDropdown(false);
                         onOpenAdminReviewModal();
                       }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition"
                     >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Duyệt hồ sơ mở Shop (Admin)</span>
+                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      <span>Quản lý & Duyệt hồ sơ mở Shop</span>
                     </button>
 
                     <button
