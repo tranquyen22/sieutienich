@@ -20,11 +20,12 @@ export interface Product {
   img: string;
   description?: string;
   created_at?: string;
-  // Compliance fields for Lodging & Transport
-  phone?: string;
-  isLicensed?: boolean;
+  // Store verification & TQ status
+  isTQStore?: boolean; // Cửa hàng TQ Official (Áp dụng Xu TQ)
+  isLicensed?: boolean; // Cửa hàng đã xác minh / có GPKD (Áp dụng Xu Thường)
   licenseNo?: string;
   contactName?: string;
+  phone?: string;
   // Vietnam post-merger location fields
   province?: string;
   district?: string;
@@ -54,7 +55,8 @@ export interface UserProfile {
   email: string;
   full_name?: string;
   phone?: string;
-  coins?: number;
+  regular_coins?: number; // Xu Thường (Áp dụng cho các cửa hàng đã xác minh)
+  tq_coins?: number; // Xu TQ (Được tặng khi đăng ký mới, áp dụng cho cửa hàng TQ)
   role?: 'buyer' | 'merchant' | 'admin';
   merchant_status?: 'pending_review' | 'approved' | 'rejected' | null;
 }
@@ -64,6 +66,7 @@ export interface CoinTransaction {
   user_id: string;
   amount: number;
   type: 'earn' | 'spend' | 'bonus';
+  coin_category: 'regular' | 'tq'; // Xu Thường hoặc Xu TQ
   description: string;
   created_at: string;
 }

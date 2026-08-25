@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, Info, MapPin } from 'lucide-react';
+import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, Info, MapPin, Store, CheckCircle } from 'lucide-react';
 import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
 
@@ -70,10 +70,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         />
 
         {/* Category Badge */}
-        <div className="absolute top-3 left-3 max-w-[75%]">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1 max-w-[85%]">
           <span className="inline-block px-2.5 py-1 bg-white/95 backdrop-blur-md rounded-lg text-[10px] uppercase font-extrabold text-indigo-700 tracking-wider shadow-sm border border-indigo-100 truncate max-w-full">
             {getCategoryBadge(product.category)}
           </span>
+
+          {/* TQ Store Badge vs Verified Store Badge */}
+          {product.isTQStore ? (
+            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-amber-500 text-white rounded-lg text-[10px] font-black shadow-sm">
+              <Store className="w-3 h-3" />
+              <span>Cửa hàng TQ (Dùng Xu TQ)</span>
+            </span>
+          ) : product.isLicensed ? (
+            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold shadow-sm">
+              <CheckCircle className="w-3 h-3" />
+              <span>Đã xác minh (Dùng Xu Thường)</span>
+            </span>
+          ) : null}
         </div>
 
         {/* Lodging Business License Badge */}

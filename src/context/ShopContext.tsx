@@ -11,9 +11,13 @@ interface ShopContextType {
   cartCount: number;
   cartTotalAmount: number;
   userActivities: UserActivity[];
-  userCoins: number;
+  
+  // Dual Currency Wallet states
+  regularCoins: number; // Xu Thường (Điểm danh, đánh giá, đăng tin - áp dụng cho Cửa hàng xác minh)
+  tqCoins: number; // Xu TQ (Được tặng khi đăng ký tài khoản mới - áp dụng cho Cửa hàng TQ)
   coinTransactions: CoinTransaction[];
   hasCheckedInToday: boolean;
+
   selectedCategory: Category;
   searchQuery: string;
   loadingProducts: boolean;
@@ -28,7 +32,12 @@ interface ShopContextType {
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   dailyCheckIn: () => Promise<{ success: boolean; message: string }>;
-  addCoinTransaction: (amount: number, description: string, type: 'earn' | 'spend' | 'bonus') => Promise<void>;
+  addCoinTransaction: (
+    amount: number,
+    description: string,
+    type: 'earn' | 'spend' | 'bonus',
+    coinCategory: 'regular' | 'tq'
+  ) => Promise<void>;
 
   // Location & GPS Filter states
   selectedProvince: string;
@@ -49,19 +58,21 @@ const ShopContext = createContext<ShopContextType | undefined>(undefined);
 // Initial fallback transactions for newly registered user / demo mode
 const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
   {
-    id: 'tx-welcome-1',
+    id: 'tx-tq-welcome-1',
     user_id: 'guest',
     amount: 50000,
     type: 'bonus',
-    description: '🎁 Thưởng chào mừng tài khoản mới',
+    coin_category: 'tq',
+    description: '🎁 Thưởng đăng ký tài khoản mới (Xu TQ)',
     created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
   },
   {
-    id: 'tx-checkin-2',
+    id: 'tx-reg-checkin-2',
     user_id: 'guest',
     amount: 5000,
     type: 'earn',
-    description: '📅 Điểm danh hàng ngày nhận Xu',
+    coin_category: 'regular',
+    description: '📅 Điểm danh hàng ngày nhận Xu Thường',
     created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
   },
 ];
@@ -78,8 +89,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingCart, setLoadingCart] = useState<boolean>(false);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
-  // Coin Wallet & History states
-  const [userCoins, setUserCoins] = useState<number>(55000);
+  // Dual Currency Wallet states (Xu Thường & Xu TQ)
+  const [regularCoins, setRegularCoins] = useState<number>(5000);
+  const [tqCoins, setTqCoins] = useState<number>(50000);
   const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>(DEFAULT_INITIAL_TRANSACTIONS);
   const [hasCheckedInToday, setHasCheckedInToday] = useState<boolean>(false);
 
@@ -113,7 +125,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // 2. Fetch Isolated Cart & Coins for Logged-in Account
+  // 2. Fetch Isolated Cart & Dual Coins for Logged-in Account
   const fetchUserCartAndCoins = useCallback(async (userId: string) => {
     try {
       setLoadingCart(true);
@@ -141,17 +153,19 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCartItems(formatted);
       }
 
-      // Fetch Coins balance from profile
+      // Fetch Dual Coins balances from profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('coins')
+        .select('regular_coins, tq_coins')
         .eq('id', userId)
         .maybeSingle();
 
-      if (profile && typeof profile.coins === 'number') {
-        setUserCoins(profile.coins);
+      if (profile) {
+        setRegularCoins(typeof profile.regular_coins === 'number' ? profile.regular_coins : 5000);
+        setTqCoins(typeof profile.tq_coins === 'number' ? profile.tq_coins : 50000);
       } else {
-        setUserCoins(55000);
+        setRegularCoins(5000);
+        setTqCoins(50000);
       }
 
       // Fetch Coin Transactions history
@@ -164,7 +178,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (txData && txData.length > 0) {
         setCoinTransactions(txData as CoinTransaction[]);
 
-        // Check if user checked in today
         const todayStr = new Date().toISOString().split('T')[0];
         const checkedToday = txData.some(
           (tx: any) =>
@@ -226,7 +239,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setCartItems([]);
       setUserActivities([]);
-      setUserCoins(55000);
+      setRegularCoins(5000);
+      setTqCoins(50000);
       setCoinTransactions(DEFAULT_INITIAL_TRANSACTIONS);
       setHasCheckedInToday(false);
     }
@@ -273,20 +287,30 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [fetchProducts]);
 
-  // Add Coin Transaction & Update Balance
+  // Add Coin Transaction & Update Balance (Regular vs TQ Coins)
   const addCoinTransaction = async (
     amount: number,
     description: string,
-    type: 'earn' | 'spend' | 'bonus'
+    type: 'earn' | 'spend' | 'bonus',
+    coinCategory: 'regular' | 'tq'
   ) => {
-    const newCoins = Math.max(0, userCoins + amount);
-    setUserCoins(newCoins);
+    let updatedReg = regularCoins;
+    let updatedTQ = tqCoins;
+
+    if (coinCategory === 'tq') {
+      updatedTQ = Math.max(0, tqCoins + amount);
+      setTqCoins(updatedTQ);
+    } else {
+      updatedReg = Math.max(0, regularCoins + amount);
+      setRegularCoins(updatedReg);
+    }
 
     const newTx: CoinTransaction = {
       id: String(Date.now()),
       user_id: user?.id || 'guest',
       amount,
       type,
+      coin_category: coinCategory,
       description,
       created_at: new Date().toISOString(),
     };
@@ -297,7 +321,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await supabase
           .from('profiles')
-          .update({ coins: newCoins })
+          .update({
+            regular_coins: updatedReg,
+            tq_coins: updatedTQ,
+          })
           .eq('id', user.id);
 
         await supabase.from('coin_transactions').insert([
@@ -305,6 +332,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user_id: user.id,
             amount,
             type,
+            coin_category: coinCategory,
             description,
           },
         ]);
@@ -314,15 +342,20 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Daily Check-in (+5,000 Xu)
+  // Daily Check-in (+5,000 Xu Thường)
   const dailyCheckIn = async (): Promise<{ success: boolean; message: string }> => {
     if (hasCheckedInToday) {
       return { success: false, message: 'Bạn đã điểm danh nhận Xu hôm nay rồi. Vui lòng quay lại vào ngày mai!' };
     }
 
-    await addCoinTransaction(5000, '📅 Điểm danh hàng ngày nhận Xu thưởng', 'earn');
+    await addCoinTransaction(
+      5000,
+      '📅 Điểm danh hàng ngày nhận Xu Thường (Áp dụng các cửa hàng đã xác minh)',
+      'earn',
+      'regular'
+    );
     setHasCheckedInToday(true);
-    return { success: true, message: 'Chúc mừng! Bạn đã nhận thành công +5,000 Xu thưởng điểm danh.' };
+    return { success: true, message: 'Chúc mừng! Bạn đã nhận thành công +5,000 Xu Thường thưởng điểm danh.' };
   };
 
   // GPS Geolocation Handler
@@ -502,8 +535,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           payload: localProduct,
         });
 
-        // Award +10,000 Xu for posting a new utility/service
-        await addCoinTransaction(10000, '🌟 Tặng Xu thưởng đăng tin tiện ích mới thành công', 'earn');
+        // Award +10,000 Xu Thường for posting a new utility/service & review
+        await addCoinTransaction(
+          10000,
+          '⭐ Tặng Xu Thường thưởng đăng tin / đánh giá thành công',
+          'earn',
+          'regular'
+        );
 
         return { error: null };
       }
@@ -521,8 +559,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           payload: data,
         });
 
-        // Award +10,000 Xu for posting a new utility/service
-        await addCoinTransaction(10000, '🌟 Tặng Xu thưởng đăng tin tiện ích mới thành công', 'earn');
+        // Award +10,000 Xu Thường for posting a new utility/service & review
+        await addCoinTransaction(
+          10000,
+          '⭐ Tặng Xu Thường thưởng đăng tin / đánh giá thành công',
+          'earn',
+          'regular'
+        );
       }
 
       return { error: null };
@@ -549,7 +592,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cartCount,
         cartTotalAmount,
         userActivities,
-        userCoins,
+        regularCoins,
+        tqCoins,
         coinTransactions,
         hasCheckedInToday,
         selectedCategory,

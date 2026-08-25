@@ -17,17 +17,18 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCoinWalletModal
 }) => {
   const { user, signOut, merchantApplication, isAdmin } = useAuth();
-  const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen, userCoins } = useShop();
+  const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen, regularCoins, tqCoins } = useShop();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Tài khoản';
+  const totalCoins = regularCoins + tqCoins;
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
           
-          {/* LOGO (LOGO LÀ TQ, CHỮ BÊN CẠNH LÀ SIÊU TIỆN ÍCH GIỮ NGUYÊN) */}
+          {/* LOGO */}
           <a href="#" className="flex items-center gap-2 flex-shrink-0 group">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform tracking-wider">
               TQ
@@ -59,17 +60,22 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* NÚT CHỨC NĂNG (VÍ XU + NÚT ĐĂNG TIN + GIỎ HÀNG + AUTH) */}
+          {/* NÚT CHỨC NĂNG (VÍ XU ĐA NĂNG + NÚT ĐĂNG TIN + GIỎ HÀNG + AUTH) */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* VÍ XU HÀNG NGÀY BUTTON */}
+            {/* VÍ XU HÀNG NGÀY BUTTON (HIỂN THỊ DUAL COINS XU TQ & XU THƯỜNG) */}
             <button
               onClick={onOpenCoinWalletModal}
-              title="Ví Xu Tiện Ích & Lịch sử nhận Xu"
+              title={`Xu TQ: ${tqCoins.toLocaleString()} | Xu Thường: ${regularCoins.toLocaleString()}`}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold text-xs rounded-full shadow-md shadow-amber-200 transition cursor-pointer shrink-0"
             >
               <Coins className="w-4 h-4 text-yellow-200 animate-pulse" />
-              <span>{userCoins.toLocaleString('vi-VN')} Xu</span>
+              <span className="hidden sm:inline">
+                {tqCoins > 0 ? `${(tqCoins / 1000).toFixed(0)}k TQ` : ''} 
+                {tqCoins > 0 && regularCoins > 0 ? ' | ' : ''}
+                {regularCoins > 0 ? `${(regularCoins / 1000).toFixed(0)}k Thường` : ''}
+              </span>
+              <span className="sm:hidden">{totalCoins.toLocaleString('vi-VN')} Xu</span>
             </button>
 
             {/* Nút Đăng tin */}
@@ -122,15 +128,16 @@ export const Header: React.FC<HeaderProps> = ({
                         setShowDropdown(false);
                         onOpenCoinWalletModal();
                       }}
-                      className="w-full text-left px-4 py-2 text-xs font-extrabold text-amber-700 hover:bg-amber-50 flex items-center justify-between border-b border-gray-100 cursor-pointer"
+                      className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-amber-800 hover:bg-amber-50 flex items-center justify-between border-b border-gray-100 cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
                         <Coins className="w-4 h-4 text-amber-600" />
-                        <span>Ví Xu & Lịch sử nhận Xu</span>
+                        <span>Ví Xu (TQ & Thường)</span>
                       </div>
-                      <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full text-[10px]">
-                        {userCoins.toLocaleString('vi-VN')} Xu
-                      </span>
+                      <div className="text-[10px] text-right font-extrabold">
+                        <div className="text-amber-600">{tqCoins.toLocaleString()} TQ</div>
+                        <div className="text-emerald-600">{regularCoins.toLocaleString()} Thường</div>
+                      </div>
                     </button>
 
                     {/* Merchant Application Status Badge for Normal Users */}

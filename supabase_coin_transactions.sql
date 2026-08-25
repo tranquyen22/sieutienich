@@ -1,13 +1,15 @@
--- Add coins column to profiles table
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS coins NUMERIC DEFAULT 55000 NOT NULL;
+-- Add dual coins columns to profiles table
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS regular_coins NUMERIC DEFAULT 5000 NOT NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS tq_coins NUMERIC DEFAULT 50000 NOT NULL;
 
--- Create coin_transactions table with strict per-user account isolation
+-- Create coin_transactions table supporting dual coin categories (regular vs tq)
 CREATE TABLE IF NOT EXISTS public.coin_transactions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     amount NUMERIC NOT NULL,
     type TEXT NOT NULL,
+    coin_category TEXT DEFAULT 'regular' NOT NULL,
     description TEXT NOT NULL
 );
 
