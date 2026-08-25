@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { Header } from './components/Header';
 import { Banner } from './components/Banner';
+import { QuickUtilityGrid } from './components/QuickUtilityGrid';
 import { CategoryFilter } from './components/CategoryFilter';
 import { ProductGrid } from './components/ProductGrid';
 import { AuthModal } from './components/AuthModal';
@@ -23,7 +24,12 @@ function AppContent() {
 
       <Banner />
 
-      <main id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full">
+      {/* KHU VỰC TIỆN ÍCH VÀ DỊCH VỤ TRUY CẬP NHANH (2 HÀNG X 4 CỘT) */}
+      <QuickUtilityGrid 
+        onOpenAddProductModal={() => setAddProductModalOpen(true)} 
+      />
+
+      <main id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
         <CategoryFilter />
         <ProductGrid />
       </main>
@@ -63,7 +69,7 @@ function AppContent() {
           </div>
 
           <div className="pt-8 text-center text-xs text-gray-400">
-            © {new Date().getFullYear()} TQ Store. Biến Web Tĩnh Thành Realtime Full-stack Web với React & Supabase.
+            © {new Date().getFullYear()} Siêu Tiện Ích. Nền tảng Đa Dịch Vụ Realtime với React & Supabase.
           </div>
         </div>
       </footer>
