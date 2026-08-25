@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, PlusCircle, Image as ImageIcon, Tag, DollarSign, FileText, Loader2 } from 'lucide-react';
+import { X, PlusCircle, Image as ImageIcon, Tag, DollarSign, FileText, Loader2, Phone, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import type { Category } from '../types';
 
@@ -16,17 +16,42 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [price, setPrice] = useState('');
   const [img, setImg] = useState('');
   const [description, setDescription] = useState('');
+  const [phone, setPhone] = useState('');
+  const [licenseNo, setLicenseNo] = useState('');
+  const [contactName, setContactName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
+  const isLodging = category === 'lodging';
+  const isTransport = category === 'transport';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+
     if (!name || price === '') return;
+
+    // Enforce business license for lodging
+    if (isLodging && !licenseNo.trim()) {
+      setErrorMsg('Vui lòng nhập Số Giấy phép kinh doanh (GPKD) để đăng gian hàng lưu trú.');
+      return;
+    }
+
+    // Enforce phone for transport and lodging
+    if ((isLodging || isTransport) && !phone.trim()) {
+      setErrorMsg('Vui lòng nhập Số điện thoại liên hệ trực tiếp.');
+      return;
+    }
 
     setLoading(true);
 
-    const imageUrl = img || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80';
+    const imageUrl = img || (isLodging 
+      ? 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80' 
+      : isTransport 
+        ? 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&q=80'
+        : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80');
 
     await addProduct({
       name,
@@ -34,6 +59,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       price: Number(price),
       img: imageUrl,
       description,
+      phone: phone || undefined,
+      licenseNo: isLodging ? (licenseNo.startsWith('GPKD:') ? licenseNo : `GPKD: ${licenseNo}`) : undefined,
+      isLicensed: isLodging ? true : undefined,
+      contactName: contactName || undefined,
     });
 
     setLoading(false);
@@ -41,16 +70,20 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     setPrice('');
     setImg('');
     setDescription('');
+    setPhone('');
+    setLicenseNo('');
+    setContactName('');
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative border border-gray-100"
+        className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative border border-gray-100 max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50 shrink-0">
           <div className="flex items-center gap-2">
             <PlusCircle className="w-5 h-5 text-indigo-600" />
             <h2 className="text-base font-bold text-gray-900">Đăng tiện ích / dịch vụ mới</h2>
@@ -64,7 +97,15 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Modal Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+          {errorMsg && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Tên dịch vụ / tiện ích / sản phẩm *</label>
             <input 
@@ -72,7 +113,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="VD: Cho thuê xe tự lái 4 chỗ / Spa da mặt"
+              placeholder={isLodging ? "VD: Homestay OceanPark Villa" : isTransport ? "VD: Xe ba gác chuyển đồ nội khu" : "VD: Cho thuê xe tự lái / Spa da mặt"}
               className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition"
             />
           </div>
@@ -91,8 +132,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <option value="food">Đồ ăn - Đồ uống</option>
                   <option value="spa">Spa làm đẹp</option>
                   <option value="groceries">Nhu yếu phẩm</option>
-                  <option value="transport">Vận tải</option>
-                  <option value="lodging">Lưu trú</option>
+                  <option value="transport">Vận tải (Danh bạ)</option>
+                  <option value="lodging">Lưu trú (Có GPKD)</option>
                   <option value="home_services">Dịch vụ gia đình & sửa chữa</option>
                   <option value="jobs">Việc làm</option>
                   <option value="public_utilities">Tiện ích công cộng</option>
@@ -102,7 +143,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Giá / Lương (VNĐ) *</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Giá / Giá tham khảo *</label>
               <div className="relative">
                 <input 
                   type="number" 
@@ -117,6 +158,85 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
               </div>
             </div>
           </div>
+
+          {/* Compliance Info Banner */}
+          {isLodging && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 space-y-1">
+              <div className="font-bold flex items-center gap-1 text-emerald-900">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Yêu cầu Giấy phép kinh doanh Lưu trú</span>
+              </div>
+              <p className="text-[11px] text-emerald-700">
+                Sàn chỉ là nơi hiển thị thông tin quảng bá. Cơ sở phải cung cấp GPKD đầy đủ. Đặt phòng liên hệ trực tiếp chủ cơ sở.
+              </p>
+            </div>
+          )}
+
+          {isTransport && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
+              <div className="font-bold flex items-center gap-1 text-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <span>Quy định Danh bạ Vận tải</span>
+              </div>
+              <p className="text-[11px] text-amber-700">
+                Sàn chỉ cung cấp danh bạ kết nối điện thoại trực tiếp giữa khách hàng và nhà xe/tài xế (xe ba gác, đồ đạc). Sàn KHÔNG thu cước vận chuyển hộ.
+              </p>
+            </div>
+          )}
+
+          {/* Mandatory Phone & License fields for Lodging / Transport */}
+          {(isLodging || isTransport) && (
+            <div className="space-y-3 pt-1 border-t border-gray-100">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Số điện thoại liên hệ trực tiếp *
+                </label>
+                <div className="relative">
+                  <input 
+                    type="tel" 
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="VD: 0988.123.456"
+                    className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
+                  />
+                  <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  {isLodging ? "Tên chủ cơ sở / Lễ tân" : "Tên nhà xe / Tên tài xế xe ba gác"}
+                </label>
+                <input 
+                  type="text" 
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder={isLodging ? "VD: Lễ tân Sunshine Hotel" : "VD: Chú Hùng (Chủ xe Ba gác)"}
+                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {isLodging && (
+                <div>
+                  <label className="block text-xs font-semibold text-emerald-800 mb-1">
+                    Số Giấy phép kinh doanh (GPKD) *
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      required
+                      value={licenseNo}
+                      onChange={(e) => setLicenseNo(e.target.value)}
+                      placeholder="VD: 0108928374"
+                      className="w-full pl-9 pr-3 py-2 border border-emerald-300 rounded-xl text-sm focus:outline-none focus:border-emerald-500 bg-emerald-50/20"
+                    />
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 absolute left-3 top-2.5" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">URL hình ảnh (Unsplash / Online Image)</label>
@@ -133,13 +253,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Mô tả ngắn</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Mô tả chi tiết</label>
             <div className="relative">
               <textarea 
                 rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Thông tin liên hệ, chi tiết dịch vụ..."
+                placeholder="Mô tả thông tin chi tiết về tiện ích..."
                 className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 resize-none"
               />
               <FileText className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
@@ -154,10 +274,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Đang đăng lên Supabase...</span>
+                <span>Đang đăng tin...</span>
               </>
             ) : (
-              <span>Đăng ngay</span>
+              <span>Xác nhận đăng tin</span>
             )}
           </button>
         </form>

@@ -43,22 +43,40 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 6,
-    name: "Dịch vụ Xe tải Vận chuyển Hàng hóa & Chuyển nhà Trọn gói",
+    name: "Xe Ba Gác Chuyển Đồ Nội Khu Cư Dân (Liên hệ Trực tiếp Chủ Xe)",
     category: "transport",
-    price: 500000,
+    price: 150000,
     img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&q=80",
-    description: "Đội ngũ xếp dỡ chuyên nghiệp, bốc xếp cẩn thận, phục vụ 24/7."
+    description: "Danh bạ liên hệ trực tiếp chủ xe ba gác nội khu. Sàn chỉ kết nối thông tin, không thu cước hộ.",
+    phone: "0988.123.456",
+    contactName: "Chú Hùng (Chủ xe Ba gác)"
   },
   {
     id: 7,
-    name: "Căn hộ Homestay 1 Phân khu Cao cấp đầy đủ Tiện nghi",
+    name: "Căn hộ Homestay OceanPark (Đã Xác Minh Giấy Phép KD)",
     category: "lodging",
     price: 1200000,
     img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80",
-    description: "Đầy đủ bếp, tủ lạnh, máy giặt, hồ bơi riêng, cho thuê theo ngày hoặc tháng."
+    description: "Cơ sở đã xác minh đủ giấy phép kinh doanh lưu trú. Gọi điện trực tiếp chủ nhà để đặt phòng.",
+    phone: "0912.999.888",
+    isLicensed: true,
+    licenseNo: "GPKD: 0108928374",
+    contactName: "Chị Mai (Chủ Homestay)"
   },
   {
     id: 8,
+    name: "Khách Sạn Sunshine Hotel & Suite (Đã Xác Minh Giấy Phép)",
+    category: "lodging",
+    price: 850000,
+    img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80",
+    description: "Khách sạn tiêu chuẩn 3 sao đầy đủ giấy phép PCCC & GPKD. Liên hệ hotline để đặt phòng.",
+    phone: "024.3829.1122",
+    isLicensed: true,
+    licenseNo: "GPKD: 0312984561",
+    contactName: "Lễ tân Sunshine Hotel"
+  },
+  {
+    id: 9,
     name: "Dịch vụ Bảo dưỡng Vệ sinh Máy lạnh & Sửa chữa Điện nước",
     category: "home_services",
     price: 200000,
@@ -66,7 +84,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: "Thợ giỏi có mặt sau 15 phút, bảo hành dịch vụ 30 ngày."
   },
   {
-    id: 9,
+    id: 10,
     name: "Tuyển dụng Chuyên viên Tư vấn Khách hàng (Thu nhập 15-20 triệu)",
     category: "jobs",
     price: 15000000,
@@ -74,7 +92,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: "Môi trường năng động, thưởng KPI hấp dẫn, không yêu cầu kinh nghiệm."
   },
   {
-    id: 10,
+    id: 11,
     name: "Điểm Thu gom Pin cũ & Đổi Quà Xanh Bảo vệ Môi trường",
     category: "public_utilities",
     price: 0,

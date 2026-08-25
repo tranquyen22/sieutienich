@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Check } from 'lucide-react';
+import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, Info } from 'lucide-react';
 import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
 
@@ -17,6 +17,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setTimeout(() => setAdded(false), 1200);
   };
 
+  const isLodging = product.category === 'lodging';
+  const isTransport = product.category === 'transport';
+
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
       case 'rental':
@@ -30,9 +33,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       case 'groceries':
         return 'Nhu yếu phẩm';
       case 'transport':
-        return 'Vận tải';
+        return 'Vận tải (Danh bạ kết nối)';
       case 'lodging':
-        return 'Lưu trú';
+        return 'Lưu trú (Quảng bá cơ sở)';
       case 'home_services':
         return 'Gia đình & Sửa chữa';
       case 'jobs':
@@ -47,8 +50,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const formatPrice = (price: number, cat: string) => {
     if (price === 0) return 'Miễn phí';
     if (cat === 'jobs') return `Lương ${Number(price).toLocaleString('vi-VN')} đ`;
+    if (cat === 'lodging') return `${Number(price).toLocaleString('vi-VN')} đ / đêm`;
+    if (cat === 'transport') return `Giá tham khảo: ${Number(price).toLocaleString('vi-VN')} đ`;
     return `${Number(price).toLocaleString('vi-VN')} đ`;
   };
+
+  const phoneNumber = product.phone || '0988.123.456';
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group relative">
@@ -61,12 +68,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80';
           }}
         />
+
+        {/* Category Badge */}
         <div className="absolute top-3 left-3 max-w-[85%]">
           <span className="inline-block px-2.5 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[10px] uppercase font-extrabold text-indigo-700 tracking-wider shadow-sm border border-indigo-100 truncate max-w-full">
             {getCategoryBadge(product.category)}
           </span>
         </div>
 
+        {/* Lodging Business License Badge */}
+        {isLodging && (
+          <div className="absolute bottom-3 left-3 right-3">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600/90 text-white backdrop-blur-md rounded-lg text-[10px] font-bold shadow-md border border-emerald-400/30">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>{product.licenseNo || 'Đã xác minh GPKD đầy đủ'}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Quick Delete action */}
         <button
           onClick={() => deleteProduct(product.id)}
           title="Xóa mục tiện ích này"
@@ -76,37 +96,78 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </button>
       </div>
 
-      <div className="p-4 flex flex-col flex-1 justify-between">
+      {/* Card Body */}
+      <div className="p-4 flex flex-col flex-1 justify-between space-y-3">
         <div>
           <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">
             {product.name}
           </h3>
+
+          {/* Contact / License Info */}
+          {product.contactName && (
+            <p className="text-[11px] font-semibold text-indigo-600 mt-1 flex items-center gap-1">
+              <Phone className="w-3 h-3" />
+              <span>{product.contactName}</span>
+            </p>
+          )}
+
           {product.description && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">
               {product.description}
             </p>
           )}
+
+          {/* Compliance Disclaimer Notice */}
+          {isLodging && (
+            <div className="mt-2.5 p-2 bg-indigo-50/60 rounded-xl border border-indigo-100 text-[11px] text-indigo-700 flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>Sàn chỉ hiển thị thông tin quảng bá. Đặt phòng & thanh toán trực tiếp với chủ cơ sở.</span>
+            </div>
+          )}
+
+          {isTransport && (
+            <div className="mt-2.5 p-2 bg-amber-50/60 rounded-xl border border-amber-200/60 text-[11px] text-amber-800 flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
+              <span>Danh bạ liên hệ trực tiếp. Sàn không thu cước vận chuyển hộ.</span>
+            </div>
+          )}
         </div>
 
-        <div className="mt-4 flex items-center justify-between pt-2 border-t border-gray-50">
-          <span className="text-rose-600 font-extrabold text-sm sm:text-base">
-            {formatPrice(product.price, product.category)}
-          </span>
-          <button 
-            onClick={handleAddToCart} 
-            className={`p-2 rounded-xl font-medium transition-all duration-200 flex items-center gap-1 ${
-              added 
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' 
-                : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-sm'
-            }`}
-            title="Thêm vào danh sách tiện ích của bạn"
-          >
-            {added ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <Plus className="w-4 h-4" />
-            )}
-          </button>
+        {/* Pricing & CTA */}
+        <div className="pt-2 border-t border-gray-50 flex items-center justify-between gap-2">
+          <div>
+            <span className="text-rose-600 font-extrabold text-sm sm:text-base block">
+              {formatPrice(product.price, product.category)}
+            </span>
+          </div>
+
+          {/* Special CTA for Lodging & Transport: Direct Phone Call */}
+          {isLodging || isTransport ? (
+            <a
+              href={`tel:${phoneNumber.replace(/[^0-9]/g, '')}`}
+              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-200 transition shrink-0"
+              title={`Gọi ngay ${phoneNumber}`}
+            >
+              <PhoneCall className="w-3.5 h-3.5 animate-bounce" />
+              <span>Gọi ngay ({phoneNumber})</span>
+            </a>
+          ) : (
+            <button 
+              onClick={handleAddToCart} 
+              className={`p-2 rounded-xl font-medium transition-all duration-200 flex items-center gap-1 ${
+                added 
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' 
+                  : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-sm'
+              }`}
+              title="Thêm vào danh sách tiện ích của bạn"
+            >
+              {added ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
