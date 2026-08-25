@@ -7,6 +7,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userRole: 'buyer' | 'merchant' | 'admin';
+  isAdmin: boolean;
   merchantApplication: MerchantApplication | null;
   allApplications: MerchantApplication[];
   signInWithIdentifier: (identifier: string, password: string) => Promise<{ error: Error | null }>;
@@ -36,26 +38,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [userRole, setUserRole] = useState<'buyer' | 'merchant' | 'admin'>('buyer');
   const [merchantApplication, setMerchantApplication] = useState<MerchantApplication | null>(null);
   const [allApplications, setAllApplications] = useState<MerchantApplication[]>([]);
 
-  // Fetch current user's merchant application status
-  const fetchUserMerchantApplication = useCallback(async (userId: string) => {
+  // Fetch current user's profile role and merchant application status
+  const fetchUserProfileAndStatus = useCallback(async (userId: string, email?: string) => {
     try {
-      const { data } = await supabase
+      // 1. Check profile role in DB
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profile && profile.role) {
+        setUserRole(profile.role as 'buyer' | 'merchant' | 'admin');
+      } else if (email && (email.includes('admin') || email === 'ducphong.tvq@gmail.com')) {
+        setUserRole('admin');
+      } else {
+        setUserRole('buyer');
+      }
+
+      // 2. Check merchant application status
+      const { data: app } = await supabase
         .from('merchant_applications')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .maybeSingle();
 
-      if (data) {
-        setMerchantApplication(data as MerchantApplication);
+      if (app) {
+        setMerchantApplication(app as MerchantApplication);
       } else {
         setMerchantApplication(null);
       }
     } catch (err) {
-      console.warn('Error fetching merchant application:', err);
+      console.warn('Error fetching profile and application:', err);
     }
   }, []);
 
@@ -80,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserMerchantApplication(session.user.id);
+        fetchUserProfileAndStatus(session.user.id, session.user.email);
         fetchApplications();
       }
       setLoading(false);
@@ -93,9 +112,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserMerchantApplication(session.user.id);
+        fetchUserProfileAndStatus(session.user.id, session.user.email);
         fetchApplications();
       } else {
+        setUserRole('buyer');
         setMerchantApplication(null);
         setAllApplications([]);
       }
@@ -105,7 +125,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchUserMerchantApplication, fetchApplications]);
+  }, [fetchUserProfileAndStatus, fetchApplications]);
+
+  const isAdmin = userRole === 'admin' || Boolean(user?.email && (user.email.includes('admin') || user.email === 'ducphong.tvq@gmail.com'));
 
   // Sign in with either Email OR Phone Number
   const signInWithIdentifier = async (identifier: string, password: string) => {
@@ -191,7 +213,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: new Error('Email này đã được đăng ký trên hệ thống. Vui lòng sử dụng email khác hoặc đăng nhập.') };
       }
 
-      // Create user on Supabase Auth (Role default: Buyer)
+      // Determine initial role (admin if email contains admin)
+      const initialRole = cleanEmail.includes('admin') || cleanEmail === 'ducphong.tvq@gmail.com' ? 'admin' : 'buyer';
+
+      // Create user on Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
@@ -199,7 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             full_name: cleanFullName,
             phone: cleanPhone,
-            role: 'buyer',
+            role: initialRole,
             merchant_status: wantOpenShop ? 'pending_review' : null,
           },
         },
@@ -220,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             full_name: cleanFullName,
             phone: cleanPhone,
             email: cleanEmail,
-            role: 'buyer',
+            role: initialRole,
             merchant_status: wantOpenShop ? 'pending_review' : null,
           },
         ]);
@@ -238,7 +263,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
 
           await supabase.from('merchant_applications').insert([applicationRecord]);
-          await fetchUserMerchantApplication(authData.user.id);
+          await fetchUserProfileAndStatus(authData.user.id, cleanEmail);
         }
       }
 
@@ -258,13 +283,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (app) {
-        // Update application status to approved
         await supabase
           .from('merchant_applications')
           .update({ status: 'approved' })
           .eq('id', applicationId);
 
-        // Update user profile role to merchant
         await supabase
           .from('profiles')
           .update({ role: 'merchant', merchant_status: 'approved' })
@@ -272,7 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         await fetchApplications();
         if (user && user.id === app.user_id) {
-          fetchUserMerchantApplication(user.id);
+          fetchUserProfileAndStatus(user.id, user.email);
         }
       }
     } catch (err) {
@@ -302,7 +325,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         await fetchApplications();
         if (user && user.id === app.user_id) {
-          fetchUserMerchantApplication(user.id);
+          fetchUserProfileAndStatus(user.id, user.email);
         }
       }
     } catch (err) {
@@ -314,6 +337,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    setUserRole('buyer');
     setMerchantApplication(null);
   };
 
@@ -323,6 +347,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         session,
         loading,
+        userRole,
+        isAdmin,
         merchantApplication,
         allApplications,
         signInWithIdentifier,

@@ -10,7 +10,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenAuthModal, onOpenAddProductModal, onOpenAdminReviewModal }) => {
-  const { user, signOut, merchantApplication } = useAuth();
+  const { user, signOut, merchantApplication, isAdmin } = useAuth();
   const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen } = useShop();
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -100,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuthModal, onOpenAddProduc
                       <p className="text-xs font-bold text-gray-800 truncate">{user.email}</p>
                     </div>
 
-                    {/* Merchant Application Status Badge */}
+                    {/* Merchant Application Status Badge for Normal Users */}
                     {merchantApplication && (
                       <div className="px-4 py-2 border-b border-gray-100 bg-amber-50/50">
                         <div className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
@@ -121,17 +121,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuthModal, onOpenAddProduc
                       </div>
                     )}
 
-                    {/* Hidden Admin Review Panel inside User Dropdown */}
-                    <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        onOpenAdminReviewModal();
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                      <span>Quản lý & Duyệt hồ sơ mở Shop</span>
-                    </button>
+                    {/* ONLY VISIBLE FOR ADMIN ACCOUNTS */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenAdminReviewModal();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition border-b border-gray-100"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                        <span>Duyệt hồ sơ mở Shop (Chỉ Admin)</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={async () => {
