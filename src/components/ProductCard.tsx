@@ -62,6 +62,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
   };
 
   const phoneNumber = product.phone || '0988.123.456';
+  const fullAddress = product.locationName || `${product.district || ''}, ${product.province || ''}`;
 
   return (
     <div 
@@ -130,7 +131,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
       <div className="p-4 flex flex-col flex-1 justify-between space-y-3 min-w-0">
         <div className="min-w-0">
           
-          {/* Rating Stars & Reviews Count: ONLY DISPLAYED FOR VERIFIED SHOPS & TQ STORES */}
+          {/* Rating Stars & Reviews Count */}
           {!isUnverified ? (
             <div className="flex items-center gap-1.5 mb-1 text-xs">
               <div className="flex items-center text-amber-400">
@@ -154,15 +155,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
             {product.name}
           </h3>
 
-          {/* Location Badge (District & Distance) */}
+          {/* Clickable Google Maps Location Link */}
           {(product.district || product.locationName) && (
-            <div className="mt-1.5 flex items-center gap-1 text-[11px] font-bold text-gray-600 truncate">
-              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="Bấm vào đây để mở Google Maps chỉ đường trực tiếp"
+              className="mt-1.5 flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline truncate group/map"
+            >
+              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-bounce" />
               <span className="truncate">
                 {product.district ? product.district : ''} 
                 {product.distanceKm !== undefined ? ` • cách ${product.distanceKm} km` : ''}
               </span>
-            </div>
+              <span className="text-[9px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200 shrink-0 font-extrabold ml-1">
+                🗺️ Chỉ đường GMap
+              </span>
+            </a>
           )}
 
           {/* Contact / License Info */}

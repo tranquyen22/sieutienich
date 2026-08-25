@@ -207,22 +207,37 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
             </div>
 
             {/* Location & Contact Info */}
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 text-xs">
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3 text-xs">
               {(product.locationName || product.district) && (
-                <div className="flex items-start gap-2 text-gray-800">
-                  <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">Địa chỉ & Vị trí:</span>
-                    <span>{product.locationName || `${product.district}, ${product.province}`}</span>
-                    {product.distanceKm !== undefined && (
-                      <span className="text-gray-500 ml-1 font-semibold">({product.distanceKm} km từ vị trí của bạn)</span>
-                    )}
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 text-gray-800">
+                    <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold block">Địa chỉ & Vị trí cửa hàng:</span>
+                      <span>{product.locationName || `${product.district}, ${product.province}`}</span>
+                      {product.distanceKm !== undefined && (
+                        <span className="text-gray-500 ml-1 font-semibold">({product.distanceKm} km từ vị trí hiện tại)</span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Google Maps Directions Link Button */}
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                      product.locationName || `${product.district || ''}, ${product.province || ''}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-rose-200 transition cursor-pointer"
+                  >
+                    <MapPin className="w-4 h-4 text-white animate-bounce shrink-0" />
+                    <span>🗺️ Bấm vào đây để mở Google Maps chỉ đường</span>
+                  </a>
                 </div>
               )}
 
               {product.contactName && (
-                <div className="flex items-center gap-2 text-indigo-700 font-bold pt-1 border-t border-gray-200/60">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold pt-2 border-t border-gray-200/60">
                   <Phone className="w-4 h-4 text-indigo-600 shrink-0" />
                   <span>Liên hệ: {product.contactName} ({phoneNumber})</span>
                 </div>
