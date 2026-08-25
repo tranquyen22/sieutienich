@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "push": "node scripts/auto_git_push.js",
     "lint": "oxlint",
     "preview": "vite preview"
   },
