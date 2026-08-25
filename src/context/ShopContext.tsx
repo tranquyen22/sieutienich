@@ -28,7 +28,8 @@ interface ShopContextType {
   loadingCart: boolean;
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (category: Category) => void;
-  addToCart: (product: Product) => Promise<void>;
+  addToCart: (product: Product, quantity?: number) => Promise<void>;
+  updateCartItemQuantity: (productId: number | string, newQuantity: number) => Promise<void>;
   removeFromCart: (productId: number | string) => Promise<void>;
   clearCart: () => Promise<void>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<{ error: Error | null }>;
@@ -81,7 +82,7 @@ const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
   },
 ];
 
-// Default demo purchased product IDs for verified buyer review testing
+// Default demo purchased product IDs
 const DEFAULT_PURCHASED_IDS: string[] = ['1', '2', '3', '7', '10', '13', '15'];
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -367,18 +368,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
   });
 
-  const addToCart = async (product: Product) => {
+  const addToCart = async (product: Product, quantityToAdd: number = 1) => {
     if (!user) {
       setCartItems((prev) => {
         const existing = prev.find((item) => item.product.id === product.id);
         if (existing) {
           return prev.map((item) =>
             item.product.id === product.id
-              ? { ...item, quantity: item.quantity + 1 }
+              ? { ...item, quantity: item.quantity + quantityToAdd }
               : item
           );
         }
-        return [...prev, { id: String(Date.now()), product, quantity: 1 }];
+        return [...prev, { id: String(Date.now()), product, quantity: quantityToAdd }];
       });
       return;
     }
@@ -394,14 +395,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (existing) {
         await supabase
           .from('cart_items')
-          .update({ quantity: existing.quantity + 1 })
+          .update({ quantity: existing.quantity + quantityToAdd })
           .eq('id', existing.id);
       } else {
         await supabase.from('cart_items').insert([
           {
             user_id: user.id,
             product_id: product.id,
-            quantity: 1,
+            quantity: quantityToAdd,
           },
         ]);
       }
@@ -410,6 +411,31 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.warn('Fallback local cart insert:', err);
     }
+  };
+
+  const updateCartItemQuantity = async (productId: number | string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      await removeFromCart(productId);
+      return;
+    }
+
+    if (user) {
+      try {
+        await supabase
+          .from('cart_items')
+          .update({ quantity: newQuantity })
+          .eq('user_id', user.id)
+          .eq('product_id', productId);
+      } catch (err) {
+        console.warn('Error updating quantity in DB:', err);
+      }
+    }
+
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.product.id === productId ? { ...item, quantity: newQuantity } : item
+      )
+    );
   };
 
   const removeFromCart = async (productId: number | string) => {
@@ -526,6 +552,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSearchQuery,
         setSelectedCategory,
         addToCart,
+        updateCartItemQuantity,
         removeFromCart,
         clearCart,
         addProduct,

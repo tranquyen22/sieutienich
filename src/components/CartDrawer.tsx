@@ -1,47 +1,101 @@
-import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck, Plus, Minus, CheckSquare, Square } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const CartDrawer: React.FC = () => {
-  const { cartItems, cartCount, cartTotalAmount, removeFromCart, clearCart, isCartOpen, setIsCartOpen, regularCoins, tqCoins, addCoinTransaction, recordPurchase } = useShop();
+  const { 
+    cartItems, 
+    cartCount, 
+    removeFromCart, 
+    updateCartItemQuantity,
+    isCartOpen, 
+    setIsCartOpen, 
+    regularCoins, 
+    tqCoins, 
+    addCoinTransaction, 
+    recordPurchase 
+  } = useShop();
 
   const [useTQCoins, setUseTQCoins] = useState(false);
   const [useRegularCoins, setUseRegularCoins] = useState(false);
 
+  // Selected item IDs state for combined checkout selection (Tích đơn hay bỏ đơn khi mua gộp)
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+
+  // Sync selectedItemIds whenever cartItems change
+  useEffect(() => {
+    setSelectedItemIds(cartItems.map((item) => item.id));
+  }, [cartItems]);
+
   if (!isCartOpen) return null;
 
-  // Check shop verification statuses in cart
-  const hasTQItems = cartItems.some((item) => Boolean(item.product.isTQStore));
-  const hasVerifiedItems = cartItems.some((item) => Boolean(item.product.isLicensed));
-  const hasUnverifiedItems = cartItems.some((item) => !item.product.isTQStore && !item.product.isLicensed);
+  // Filter selected items for combined checkout
+  const selectedCartItems = cartItems.filter((item) => selectedItemIds.includes(item.id));
+  
+  const isAllSelected = cartItems.length > 0 && selectedItemIds.length === cartItems.length;
 
-  // Calculate Coin Discounts
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedItemIds([]);
+    } else {
+      setSelectedItemIds(cartItems.map((item) => item.id));
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  // Selected items total calculations
+  const selectedTotalAmount = selectedCartItems.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  );
+
+  // Check shop verification statuses for SELECTED items
+  const hasTQItems = selectedCartItems.some((item) => Boolean(item.product.isTQStore));
+  const hasVerifiedItems = selectedCartItems.some((item) => Boolean(item.product.isLicensed));
+  const hasUnverifiedItems = selectedCartItems.some((item) => !item.product.isTQStore && !item.product.isLicensed);
+
+  // Calculate Coin Discounts on SELECTED items
   let tqDiscount = 0;
-  if (useTQCoins && hasTQItems) {
-    tqDiscount = Math.min(tqCoins, Math.floor(cartTotalAmount * 0.2)); // Up to 20% discount using TQ Coins
+  if (useTQCoins && hasTQItems && selectedTotalAmount > 0) {
+    tqDiscount = Math.min(tqCoins, Math.floor(selectedTotalAmount * 0.2)); // Up to 20% discount
   }
 
   let regularDiscount = 0;
-  if (useRegularCoins && (hasVerifiedItems || hasTQItems)) {
-    regularDiscount = Math.min(regularCoins, Math.floor((cartTotalAmount - tqDiscount) * 0.1)); // Up to 10% discount using Regular Coins
+  if (useRegularCoins && (hasVerifiedItems || hasTQItems) && selectedTotalAmount > 0) {
+    regularDiscount = Math.min(regularCoins, Math.floor((selectedTotalAmount - tqDiscount) * 0.1)); // Up to 10% discount
   }
 
   const totalDiscount = tqDiscount + regularDiscount;
-  const finalTotalAmount = Math.max(0, cartTotalAmount - totalDiscount);
+  const finalTotalAmount = Math.max(0, selectedTotalAmount - totalDiscount);
 
   const handleCheckout = async () => {
+    if (selectedCartItems.length === 0) {
+      alert('Vui lòng tích chọn ít nhất 1 đơn hàng để tiến hành mua gộp!');
+      return;
+    }
+
     if (tqDiscount > 0) {
-      await addCoinTransaction(-tqDiscount, `🛒 Giảm giá đơn hàng bằng Xu TQ tại Cửa hàng TQ`, 'spend', 'tq');
+      await addCoinTransaction(-tqDiscount, `🛒 Giảm giá đơn mua gộp bằng Xu TQ`, 'spend', 'tq');
     }
     if (regularDiscount > 0) {
-      await addCoinTransaction(-regularDiscount, `🛒 Giảm giá đơn hàng bằng Xu Thường tại Cửa hàng đã xác minh`, 'spend', 'regular');
+      await addCoinTransaction(-regularDiscount, `🛒 Giảm giá đơn mua gộp bằng Xu Thường`, 'spend', 'regular');
     }
 
     // Record verified purchase for review eligibility
-    recordPurchase(cartItems.map((item) => item.product.id));
+    recordPurchase(selectedCartItems.map((item) => item.product.id));
 
-    alert(`Đặt hàng thành công!\n- Tổng tiền: ${cartTotalAmount.toLocaleString('vi-VN')} đ\n- Giảm giá từ Xu: -${totalDiscount.toLocaleString('vi-VN')} đ\n- Thanh toán cuối: ${finalTotalAmount.toLocaleString('vi-VN')} đ\n\n🎉 Bạn đã đủ điều kiện viết Đánh Giá dịch vụ và nhận thưởng +10.000 Xu Thường!`);
-    await clearCart();
+    alert(`Đặt hàng gộp thành công!\n- Số lượng đơn đã tích: ${selectedCartItems.length} sản phẩm\n- Tổng tiền: ${selectedTotalAmount.toLocaleString('vi-VN')} đ\n- Giảm giá từ Xu: -${totalDiscount.toLocaleString('vi-VN')} đ\n- Thanh toán cuối: ${finalTotalAmount.toLocaleString('vi-VN')} đ\n\n🎉 Bạn đã đủ điều kiện viết Đánh Giá dịch vụ và nhận thưởng +10.000 Xu Thường!`);
+    
+    // Remove ONLY selected items from cart
+    for (const item of selectedCartItems) {
+      await removeFromCart(item.product.id);
+    }
+
     setIsCartOpen(false);
   };
 
@@ -67,6 +121,24 @@ export const CartDrawer: React.FC = () => {
             </button>
           </div>
 
+          {/* Select All Toggle Bar */}
+          {cartItems.length > 0 && (
+            <div className="px-6 py-2.5 bg-indigo-50/60 border-b border-indigo-100 flex items-center justify-between text-xs font-bold text-indigo-900 shrink-0">
+              <button
+                onClick={toggleSelectAll}
+                className="flex items-center gap-2 hover:text-indigo-700 transition cursor-pointer"
+              >
+                {isAllSelected ? (
+                  <CheckSquare className="w-4 h-4 text-indigo-600" />
+                ) : (
+                  <Square className="w-4 h-4 text-gray-400" />
+                )}
+                <span>Tích chọn tất cả ({selectedCartItems.length}/{cartItems.length} đơn)</span>
+              </button>
+              <span className="text-[11px] text-indigo-600 font-semibold">Tùy chọn mua gộp</span>
+            </div>
+          )}
+
           {/* Cart Items List */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {cartItems.length === 0 ? (
@@ -81,24 +153,65 @@ export const CartDrawer: React.FC = () => {
               cartItems.map((item) => {
                 const isTQ = Boolean(item.product.isTQStore);
                 const isVerified = Boolean(item.product.isLicensed);
+                const isSelected = selectedItemIds.includes(item.id);
 
                 return (
-                  <div key={item.product.id} className="p-3 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                  <div key={item.product.id} className={`p-3 rounded-2xl border transition space-y-2 ${
+                    isSelected ? 'bg-white border-indigo-200 shadow-sm' : 'bg-gray-50/70 border-gray-200 opacity-60'
+                  }`}>
                     <div className="flex items-center gap-3">
+                      
+                      {/* Item Selection Checkbox (Tích đơn hay bỏ đơn) */}
+                      <button
+                        type="button"
+                        onClick={() => toggleSelectItem(item.id)}
+                        className="p-1 text-indigo-600 hover:text-indigo-800 transition cursor-pointer shrink-0"
+                        title={isSelected ? 'Bỏ đơn này khi mua gộp' : 'Tích chọn đơn này khi mua gộp'}
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-indigo-600" />
+                        ) : (
+                          <Square className="w-5 h-5 text-gray-400" />
+                        )}
+                      </button>
+
                       <img 
                         src={item.product.img} 
                         alt={item.product.name} 
-                        className="w-14 h-14 object-cover rounded-xl shrink-0 bg-white"
+                        className="w-14 h-14 object-cover rounded-xl shrink-0 bg-white border border-gray-100"
                       />
+                      
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-semibold text-gray-900 truncate">{item.product.name}</h4>
                         <p className="text-xs text-rose-600 font-bold mt-0.5">
                           {Number(item.product.price).toLocaleString('vi-VN')} đ
                         </p>
-                        <p className="text-[11px] text-gray-500 mt-0.5">
-                          Số lượng: <span className="font-bold">{item.quantity}</span>
-                        </p>
+                        
+                        {/* Quantity Adjuster (- / +) */}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-[11px] text-gray-500 font-semibold">Số lượng:</span>
+                          <div className="flex items-center border border-gray-200 rounded-lg bg-white overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => updateCartItemQuantity(item.product.id, item.quantity - 1)}
+                              className="p-1 hover:bg-gray-100 text-gray-600 transition cursor-pointer"
+                              title="Giảm số lượng"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="px-2 text-xs font-extrabold text-gray-900">{item.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => updateCartItemQuantity(item.product.id, item.quantity + 1)}
+                              className="p-1 hover:bg-gray-100 text-gray-600 transition cursor-pointer"
+                              title="Tăng số lượng"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
+
                       <button 
                         onClick={() => removeFromCart(item.product.id)}
                         className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 cursor-pointer"
@@ -108,22 +221,22 @@ export const CartDrawer: React.FC = () => {
                       </button>
                     </div>
 
-                    {/* Shop Verification & Coin Eligibility Status */}
-                    <div className="pt-2 border-t border-gray-200/60 text-[10px]">
+                    {/* Shop Verification Badge */}
+                    <div className="pt-2 border-t border-gray-100 text-[10px]">
                       {isTQ ? (
                         <div className="text-amber-800 font-bold flex items-center gap-1">
                           <Store className="w-3 h-3 text-amber-600 shrink-0" />
-                          <span>👑 Cửa hàng TQ: Áp dụng được cả Xu TQ & Xu Thường</span>
+                          <span>👑 Shop TQ</span>
                         </div>
                       ) : isVerified ? (
                         <div className="text-emerald-800 font-bold flex items-center gap-1">
                           <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
-                          <span>✓ Cửa hàng xác minh: Chỉ áp dụng Xu Thường</span>
+                          <span>✓ Đã xác minh</span>
                         </div>
                       ) : (
                         <div className="text-gray-500 font-semibold flex items-center gap-1">
                           <Lock className="w-3 h-3 text-amber-500 shrink-0" />
-                          <span>🔒 Shop chưa xác minh: KHÔNG áp dụng giảm giá bằng Xu</span>
+                          <span>🔒 Chưa xác minh</span>
                         </div>
                       )}
                     </div>
@@ -141,7 +254,7 @@ export const CartDrawer: React.FC = () => {
               <div className="bg-white p-3 rounded-2xl border border-gray-200 space-y-2">
                 <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5 border-b border-gray-100 pb-1.5">
                   <Coins className="w-4 h-4 text-amber-500" />
-                  <span>Áp dụng Xu giảm giá đơn hàng:</span>
+                  <span>Áp dụng Xu giảm giá cho đơn đã tích:</span>
                 </div>
 
                 {/* Option 1: Xu TQ */}
@@ -181,19 +294,13 @@ export const CartDrawer: React.FC = () => {
                     {hasVerifiedItems || hasTQItems ? `-${regularDiscount.toLocaleString()} đ` : 'Chỉ dùng ở Shop xác minh'}
                   </span>
                 </label>
-
-                {hasUnverifiedItems && (
-                  <p className="text-[10px] text-amber-800 font-medium pt-1">
-                    ⚠️ Giỏ hàng có sản phẩm từ Shop chưa xác minh sẽ không được giảm giá bằng Xu cho sản phẩm đó.
-                  </p>
-                )}
               </div>
 
               {/* Price Calculation */}
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-gray-500">
-                  <span>Tạm tính tiền hàng:</span>
-                  <span>{cartTotalAmount.toLocaleString('vi-VN')} đ</span>
+                  <span>Tạm tính ({selectedCartItems.length} đơn đã tích):</span>
+                  <span>{selectedTotalAmount.toLocaleString('vi-VN')} đ</span>
                 </div>
                 {totalDiscount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-bold">
@@ -202,16 +309,17 @@ export const CartDrawer: React.FC = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-black text-gray-900 pt-1 border-t border-gray-200">
-                  <span>Tổng thanh toán:</span>
+                  <span>Tổng thanh toán gộp:</span>
                   <span className="text-lg text-rose-600">{finalTotalAmount.toLocaleString('vi-VN')} đ</span>
                 </div>
               </div>
 
               <button 
                 onClick={handleCheckout}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
+                disabled={selectedCartItems.length === 0}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
-                <span>Xác nhận Thanh toán</span>
+                <span>Xác nhận Mua Gộp ({selectedCartItems.length} Đơn)</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

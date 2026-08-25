@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Check, Plus, PhoneCall, User, MessageSquare, Send, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Check, Plus, Minus, PhoneCall, User, MessageSquare, Send, Sparkles, CheckCircle2 } from 'lucide-react';
 import type { Product, ProductReview } from '../types';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
   const { addToCart, addCoinTransaction, purchasedProductIds } = useShop();
   const { user } = useAuth();
   const [added, setAdded] = useState(false);
+  const [quantity, setQuantity] = useState<number>(1);
 
   // Review submission state
   const [newComment, setNewComment] = useState('');
@@ -60,7 +61,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
   };
 
   const handleAddToCart = () => {
-    addToCart(product);
+    addToCart(product, quantity);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
@@ -121,7 +122,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
               }}
             />
 
-            {/* Badges on Hero Image (Tối ưu gọn gàng cho người dùng dễ nhìn) */}
+            {/* Badges on Hero Image */}
             <div className="absolute top-4 left-4 flex flex-col gap-1.5 max-w-[85%]">
               <span className="inline-block px-3 py-1 bg-white/95 backdrop-blur-md rounded-xl text-xs uppercase font-black text-indigo-700 tracking-wider shadow-md">
                 {product.category}
@@ -340,11 +341,34 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
 
         {/* Modal Fixed Footer CTA */}
         <div className="p-4 sm:p-5 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3 shrink-0">
-          <div className="min-w-0">
-            <span className="text-[11px] text-gray-400 font-bold block uppercase">Giá dịch vụ</span>
-            <span className="text-rose-600 font-black text-base sm:text-lg">
-              {formatPrice(product.price, product.category)}
-            </span>
+          <div className="flex items-center gap-4">
+            <div>
+              <span className="text-[11px] text-gray-400 font-bold block uppercase">Giá dịch vụ</span>
+              <span className="text-rose-600 font-black text-base sm:text-lg">
+                {formatPrice(product.price * quantity, product.category)}
+              </span>
+            </div>
+
+            {/* Quantity Selector (- / +) */}
+            {!isLodging && !isTransport && (
+              <div className="flex items-center gap-1.5 bg-white border border-gray-200 p-1 rounded-xl shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-7 h-7 flex items-center justify-center hover:bg-gray-100 text-gray-700 font-bold rounded-lg transition cursor-pointer"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-6 text-center text-xs font-black text-gray-900">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="w-7 h-7 flex items-center justify-center hover:bg-gray-100 text-gray-700 font-bold rounded-lg transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {isLodging || isTransport ? (
@@ -367,12 +391,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
               {added ? (
                 <>
                   <Check className="w-4 h-4" />
-                  <span>Đã thêm vào giỏ</span>
+                  <span>Đã thêm ({quantity}) vào giỏ</span>
                 </>
               ) : (
                 <>
                   <Plus className="w-4 h-4" />
-                  <span>Thêm vào giỏ hàng</span>
+                  <span>Thêm ({quantity}) vào giỏ hàng</span>
                 </>
               )}
             </button>
