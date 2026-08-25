@@ -53,6 +53,20 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name?: string;
+  phone?: string;
+  role?: 'buyer' | 'merchant' | 'admin';
+  merchant_status?: 'pending_review' | 'approved' | 'rejected' | null;
+}
+
+export interface MerchantApplication {
+  id: string;
+  user_id: string;
+  user_email: string;
+  full_name: string;
+  phone: string;
+  shop_name?: string;
+  status: 'pending_review' | 'approved' | 'rejected';
+  created_at: string;
 }
 
 export interface CategoryInfo {

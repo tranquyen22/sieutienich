@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User as UserIcon, Phone, AlertCircle, CheckCircle2, Loader2, Info } from 'lucide-react';
+import { X, Mail, Lock, User as UserIcon, Phone, AlertCircle, CheckCircle2, Loader2, Info, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -12,15 +12,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   
-  // Login form state (Accepts Phone OR Email)
+  // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Register form state (4 mandatory fields: Họ và Tên, SĐT, Gmail, Mật khẩu)
+  // Register form state (4 mandatory fields + 1 optional checkbox)
   const [regFullName, setRegFullName] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [wantOpenShop, setWantOpenShop] = useState(false);
 
   // Status state
   const [loading, setLoading] = useState(false);
@@ -66,38 +67,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     resetForm();
 
-    // 1. Check required 4 fields
     if (!regFullName.trim() || !regPhone.trim() || !regEmail.trim() || !regPassword) {
       setErrorMsg('Vui lòng điền đầy đủ cả 4 thông tin: Họ và Tên, SĐT, Gmail và Mật khẩu.');
       return;
     }
 
-    // 2. Check VN Phone format
     const cleanPhone = regPhone.replace(/[\s\-\.]/g, '');
     if (!validateVietnamesePhone(cleanPhone)) {
       setErrorMsg('Số điện thoại phải đúng dạng số Việt Nam 10 chữ số (ví dụ: 0988123456 hoặc 0351234567).');
       return;
     }
 
-    // 3. Check password length
     if (regPassword.length < 6) {
       setErrorMsg('Mật khẩu phải chứa ít nhất 6 ký tự.');
       return;
     }
 
     setLoading(true);
-    const { error } = await signUpWithDetails(regFullName, cleanPhone, regEmail, regPassword);
+    const { error, applicationCreated } = await signUpWithDetails(
+      regFullName,
+      cleanPhone,
+      regEmail,
+      regPassword,
+      wantOpenShop
+    );
     setLoading(false);
 
     if (error) {
       setErrorMsg(error.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại.');
     } else {
-      setSuccessMsg('Đăng ký tài khoản thành công! Đã kiểm tra SĐT và Gmail chưa có trên hệ thống.');
+      if (applicationCreated) {
+        setSuccessMsg('Đăng ký tài khoản Buyer thành công! Hồ sơ Mở Shop của bạn đã được khởi tạo và đang chờ Admin phê duyệt (Admin Review).');
+      } else {
+        setSuccessMsg('Đăng ký tài khoản Người mua (Buyer) thành công! Đã xác minh SĐT & Gmail hợp lệ.');
+      }
       setTimeout(() => {
         setActiveTab('login');
         setLoginIdentifier(cleanPhone);
         resetForm();
-      }, 1800);
+      }, 2500);
     }
   };
 
@@ -221,7 +229,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </form>
           )}
 
-          {/* Form Đăng ký (Bắt buộc 4 thông tin: Họ tên, SĐT, Gmail, Mật khẩu) */}
+          {/* Form Đăng ký */}
           {activeTab === 'register' && (
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl text-[11px] text-indigo-800 flex items-start gap-1.5">
@@ -261,7 +269,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   />
                   <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
                 </div>
-                <p className="text-[10px] text-gray-500 mt-0.5">Dạng số 10 chữ số hợp lệ Việt Nam (03, 05, 07, 08, 09).</p>
               </div>
 
               {/* 3. Gmail / Email */}
@@ -293,6 +300,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition"
                   />
                   <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                </div>
+              </div>
+
+              {/* PHẦN CUỐI FORM: "Bạn muốn đăng ký thêm?" -> ☐ Đăng ký mở Shop */}
+              <div className="pt-2 border-t border-gray-100 space-y-2">
+                <label className="block text-xs font-extrabold text-gray-900">
+                  Bạn muốn đăng ký thêm?
+                </label>
+
+                <div className={`p-3 rounded-xl border transition-all ${
+                  wantOpenShop 
+                    ? 'bg-amber-50/80 border-amber-300 ring-2 ring-amber-100' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={wantOpenShop}
+                      onChange={(e) => setWantOpenShop(e.target.checked)}
+                      className="mt-0.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 w-4 h-4 shrink-0"
+                    />
+                    <div className="text-xs">
+                      <span className="font-extrabold text-gray-900 flex items-center gap-1.5">
+                        <Store className="w-4 h-4 text-amber-600 shrink-0" />
+                        Đăng ký mở Shop (Merchant)
+                      </span>
+                      <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                        {wantOpenShop ? (
+                          <strong className="text-amber-800 font-bold block">
+                            Tạo hồ sơ mở Shop (Merchant Application) gửi Admin phê duyệt (Admin Review).
+                          </strong>
+                        ) : (
+                          <span>Tài khoản khởi tạo: <strong>Người mua (Buyer)</strong>. Tích chọn nếu muốn đăng ký bán hàng.</span>
+                        )}
+                      </p>
+                    </div>
+                  </label>
                 </div>
               </div>
 

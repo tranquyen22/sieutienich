@@ -8,12 +8,14 @@ import { CategoryFilter } from './components/CategoryFilter';
 import { ProductGrid } from './components/ProductGrid';
 import { AuthModal } from './components/AuthModal';
 import { AddProductModal } from './components/AddProductModal';
+import { AdminMerchantReviewModal } from './components/AdminMerchantReviewModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 
 function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
+  const [adminReviewModalOpen, setAdminReviewModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
@@ -21,6 +23,7 @@ function AppContent() {
       <Header 
         onOpenAuthModal={() => setAuthModalOpen(true)} 
         onOpenAddProductModal={() => setAddProductModalOpen(true)} 
+        onOpenAdminReviewModal={() => setAdminReviewModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards */}
@@ -79,6 +82,7 @@ function AppContent() {
       {/* MODALS & DRAWERS */}
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <AddProductModal isOpen={addProductModalOpen} onClose={() => setAddProductModalOpen(false)} />
+      <AdminMerchantReviewModal isOpen={adminReviewModalOpen} onClose={() => setAdminReviewModalOpen(false)} />
       <CartDrawer />
     </div>
   );
