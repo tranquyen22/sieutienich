@@ -113,7 +113,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('id', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        setProducts(data);
+        const dbIds = new Set(data.map((p: any) => String(p.id)));
+        const missingInitial = INITIAL_PRODUCTS.filter((p) => !dbIds.has(String(p.id)));
+        setProducts([...data, ...missingInitial]);
       } else {
         setProducts(INITIAL_PRODUCTS);
       }
@@ -419,7 +421,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const matchesDistrict =
       selectedDistrict === 'all' ||
       !product.district ||
-      product.district.toLowerCase() === selectedDistrict.toLowerCase();
+      product.district.toLowerCase().includes(selectedDistrict.toLowerCase()) ||
+      selectedDistrict.toLowerCase().includes(product.district.toLowerCase());
 
     const matchesDistance =
       selectedDistance === 'all' ||
