@@ -3,7 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { Header } from './components/Header';
 import { Banner } from './components/Banner';
-import { QuickUtilityGrid } from './components/QuickUtilityGrid';
+import { LocationFilterBar } from './components/LocationFilterBar';
 import { CategoryFilter } from './components/CategoryFilter';
 import { ProductGrid } from './components/ProductGrid';
 import { AuthModal } from './components/AuthModal';
@@ -17,23 +17,25 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+      {/* HEADER */}
       <Header 
         onOpenAuthModal={() => setAuthModalOpen(true)} 
         onOpenAddProductModal={() => setAddProductModalOpen(true)} 
       />
 
+      {/* BANNER Carousel & Side Cards */}
       <Banner />
 
-      {/* KHU VỰC TIỆN ÍCH VÀ DỊCH VỤ TRUY CẬP NHANH (2 HÀNG X 4 CỘT) */}
-      <QuickUtilityGrid 
-        onOpenAddProductModal={() => setAddProductModalOpen(true)} 
-      />
+      {/* THANH LỌC & ĐỊNH VỊ GPS (BÊN DƯỚI BANNER) */}
+      <LocationFilterBar />
 
-      <main id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+      {/* DANH MỤC & LƯỚI SẢN PHẨM */}
+      <main id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-1 w-full">
         <CategoryFilter />
         <ProductGrid />
       </main>
 
+      {/* FOOTER */}
       <footer className="bg-white border-t border-gray-100 mt-16 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8 border-b border-gray-100">
@@ -74,6 +76,7 @@ function AppContent() {
         </div>
       </footer>
 
+      {/* MODALS & DRAWERS */}
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <AddProductModal isOpen={addProductModalOpen} onClose={() => setAddProductModalOpen(false)} />
       <CartDrawer />

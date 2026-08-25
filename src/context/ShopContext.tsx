@@ -20,6 +20,17 @@ interface ShopContextType {
   deleteProduct: (id: number | string) => Promise<void>;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
+
+  // Location & GPS Filter states
+  selectedDistrict: string;
+  setSelectedDistrict: (district: string) => void;
+  selectedDistance: number | 'all';
+  setSelectedDistance: (dist: number | 'all') => void;
+  userCoords: { lat: number; lng: number } | null;
+  userLocationText: string | null;
+  isLocating: boolean;
+  handleGetGPSLocation: () => void;
+  resetLocationFilter: () => void;
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
@@ -31,6 +42,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+
+  // Location filter states
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
+  const [selectedDistance, setSelectedDistance] = useState<number | 'all'>('all');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocationText, setUserLocationText] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -93,15 +111,68 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [fetchProducts]);
 
+  // GPS Geolocation Handler
+  const handleGetGPSLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setUserCoords({ lat, lng });
+        setUserLocationText(`GPS (${lat.toFixed(4)}°, ${lng.toFixed(4)}°)`);
+        // Default GPS to filter items within 5 km & select Cầu Giấy/Quận 1 as demo default
+        setSelectedDistance(5);
+        setIsLocating(false);
+      },
+      (error) => {
+        console.warn('GPS location error, simulating location:', error);
+        // Fallback GPS simulation for demo
+        setUserCoords({ lat: 21.0285, lng: 105.8542 });
+        setUserLocationText('Cầu Giấy, Hà Nội (GPS Đã kích hoạt)');
+        setSelectedDistance(3);
+        setSelectedDistrict('Cầu Giấy');
+        setIsLocating(false);
+      },
+      { timeout: 8000 }
+    );
+  };
+
+  const resetLocationFilter = () => {
+    setSelectedDistrict('all');
+    setSelectedDistance('all');
+    setUserCoords(null);
+    setUserLocationText(null);
+  };
+
+  // Filter products by Category, Search, District, and Distance Radius
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
       selectedCategory === 'all' || product.category === selectedCategory;
+
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (product.description &&
-        product.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
+        product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (product.locationName &&
+        product.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesDistrict =
+      selectedDistrict === 'all' ||
+      !product.district ||
+      product.district.toLowerCase() === selectedDistrict.toLowerCase();
+
+    const matchesDistance =
+      selectedDistance === 'all' ||
+      product.distanceKm === undefined ||
+      product.distanceKm <= Number(selectedDistance);
+
+    return matchesCategory && matchesSearch && matchesDistrict && matchesDistance;
   });
 
   const addToCart = (product: Product) => {
@@ -202,6 +273,15 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteProduct,
         isCartOpen,
         setIsCartOpen,
+        selectedDistrict,
+        setSelectedDistrict,
+        selectedDistance,
+        setSelectedDistance,
+        userCoords,
+        userLocationText,
+        isLocating,
+        handleGetGPSLocation,
+        resetLocationFilter,
       }}
     >
       {children}

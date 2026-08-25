@@ -7,7 +7,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: "rental",
     price: 8500000,
     img: "https://images.unsplash.com/photo-1582037928769-181f2644ecb7?w=500&q=80",
-    description: "Vị trí mặt tiền đường lớn, đông đúc cư dân, phù hợp mở shop hoặc văn phòng."
+    description: "Vị trí mặt tiền đường lớn, đông đúc cư dân, phù hợp mở shop hoặc văn phòng.",
+    district: "Quận 1",
+    distanceKm: 0.8,
+    locationName: "Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh"
   },
   {
     id: 2,
@@ -15,7 +18,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: "fashion",
     price: 350000,
     img: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80",
-    description: "Chất liệu cotton chống nhăn, thoáng mát, phom dáng chuẩn hiện đại."
+    description: "Chất liệu cotton chống nhăn, thoáng mát, phom dáng chuẩn hiện đại.",
+    district: "Cầu Giấy",
+    distanceKm: 1.2,
+    locationName: "Xuân Thủy, Cầu Giấy, Hà Nội"
   },
   {
     id: 3,
@@ -23,7 +29,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: "food",
     price: 490000,
     img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80",
-    description: "Hải sản tươi sống kèm nước lẩu chua cay chuẩn vị, giao tận nơi trong 30 phút."
+    description: "Hải sản tươi sống kèm nước lẩu chua cay chuẩn vị, giao tận nơi trong 30 phút.",
+    district: "Quận 3",
+    distanceKm: 2.1,
+    locationName: "Lê Văn Sỹ, Quận 3, TP. Hồ Chí Minh"
   },
   {
     id: 4,
@@ -31,7 +40,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: "spa",
     price: 650000,
     img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500&q=80",
-    description: "Tẩy tế bào chết, điện di vitamin C và massage thư giãn 75 phút."
+    description: "Tẩy tế bào chết, điện di vitamin C và massage thư giãn 75 phút.",
+    district: "Quận 7",
+    distanceKm: 3.5,
+    locationName: "Phú Mỹ Hưng, Quận 7, TP. Hồ Chí Minh"
   },
   {
     id: 5,
@@ -39,7 +51,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: "groceries",
     price: 280000,
     img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80",
-    description: "Sản phẩm đạt chứng nhận VietGAP, tươi ngon và an toàn cho sức khỏe."
+    description: "Sản phẩm đạt chứng nhận VietGAP, tươi ngon và an toàn cho sức khỏe.",
+    district: "Nam Từ Liêm",
+    distanceKm: 4.2,
+    locationName: "Mễ Trì, Nam Từ Liêm, Hà Nội"
   },
   {
     id: 6,
@@ -49,7 +64,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&q=80",
     description: "Danh bạ liên hệ trực tiếp chủ xe ba gác nội khu. Sàn chỉ kết nối thông tin, không thu cước hộ.",
     phone: "0988.123.456",
-    contactName: "Chú Hùng (Chủ xe Ba gác)"
+    contactName: "Chú Hùng (Chủ xe Ba gác)",
+    district: "Cầu Giấy",
+    distanceKm: 0.5,
+    locationName: "Nội khu Vinhomes Cầu Giấy, Hà Nội"
   },
   {
     id: 7,
@@ -61,7 +79,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     phone: "0912.999.888",
     isLicensed: true,
     licenseNo: "GPKD: 0108928374",
-    contactName: "Chị Mai (Chủ Homestay)"
+    contactName: "Chị Mai (Chủ Homestay)",
+    district: "Gia Lâm",
+    distanceKm: 8.5,
+    locationName: "Vinhomes Ocean Park, Gia Lâm, Hà Nội"
   },
   {
     id: 8,
@@ -73,7 +94,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     phone: "024.3829.1122",
     isLicensed: true,
     licenseNo: "GPKD: 0312984561",
-    contactName: "Lễ tân Sunshine Hotel"
+    contactName: "Lễ tân Sunshine Hotel",
+    district: "Hoàn Kiếm",
+    distanceKm: 1.8,
+    locationName: "Hàng Bông, Hoàn Kiếm, Hà Nội"
   },
   {
     id: 9,
@@ -81,7 +105,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: "home_services",
     price: 200000,
     img: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&q=80",
-    description: "Thợ giỏi có mặt sau 15 phút, bảo hành dịch vụ 30 ngày."
+    description: "Thợ giỏi có mặt sau 15 phút, bảo hành dịch vụ 30 ngày.",
+    district: "Quận 10",
+    distanceKm: 2.8,
+    locationName: "Ba Tháng Hai, Quận 10, TP. Hồ Chí Minh"
   },
   {
     id: 10,
@@ -89,7 +116,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: "jobs",
     price: 15000000,
     img: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=500&q=80",
-    description: "Môi trường năng động, thưởng KPI hấp dẫn, không yêu cầu kinh nghiệm."
+    description: "Môi trường năng động, thưởng KPI hấp dẫn, không yêu cầu kinh nghiệm.",
+    district: "TP. Thủ Đức",
+    distanceKm: 6.0,
+    locationName: "Khu Công Nghệ Cao, TP. Thủ Đức"
   },
   {
     id: 11,
@@ -97,6 +127,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: "public_utilities",
     price: 0,
     img: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=500&q=80",
-    description: "Dịch vụ tiện ích cộng đồng hoàn toàn miễn phí vì không gian xanh."
+    description: "Dịch vụ tiện ích cộng đồng hoàn toàn miễn phí vì không gian xanh.",
+    district: "Cầu Giấy",
+    distanceKm: 0.9,
+    locationName: "Công viên Cầu Giấy, Hà Nội"
   }
 ];

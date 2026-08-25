@@ -19,11 +19,15 @@ export interface Product {
   img: string;
   description?: string;
   created_at?: string;
-  // Specific fields for Lodging & Transport compliance
+  // Compliance fields for Lodging & Transport
   phone?: string;
   isLicensed?: boolean;
   licenseNo?: string;
   contactName?: string;
+  // Location & GPS positioning fields
+  district?: string;
+  distanceKm?: number;
+  locationName?: string;
 }
 
 export interface CartItem {

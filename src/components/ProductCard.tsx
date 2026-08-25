@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, Info } from 'lucide-react';
+import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, Info, MapPin } from 'lucide-react';
 import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
 
@@ -102,6 +102,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors break-words">
             {product.name}
           </h3>
+
+          {/* Location Badge (District & Distance) */}
+          {(product.district || product.locationName) && (
+            <div className="mt-1.5 flex items-center gap-1 text-[11px] font-bold text-gray-600 truncate">
+              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span className="truncate">
+                {product.district ? product.district : ''} 
+                {product.distanceKm !== undefined ? ` • cách ${product.distanceKm} km` : ''}
+              </span>
+            </div>
+          )}
 
           {/* Contact / License Info */}
           {product.contactName && (
