@@ -368,10 +368,16 @@ export const VIETNAM_PROVINCES: ProvinceData[] = [
     name: "Tỉnh Hưng Yên",
     districts: [
       "Tất cả TP / Huyện",
+      "Huyện Khoái Châu",
       "TP. Hưng Yên",
       "Thị xã Mỹ Hào",
       "Huyện Văn Giang",
-      "Huyện Văn Lâm"
+      "Huyện Văn Lâm",
+      "Huyện Yên Mỹ",
+      "Huyện Ân Thi",
+      "Huyện Kim Động",
+      "Huyện Tiên Lữ",
+      "Huyện Phù Cừ"
     ]
   },
   {

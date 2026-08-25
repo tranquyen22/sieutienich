@@ -28,6 +28,7 @@ export const LocationFilterBar: React.FC = () => {
     if (selectedProvince === 'all') {
       return [
         { id: 'all', name: 'Tất cả Quận / Huyện / TP' },
+        { id: 'Khoái Châu', name: 'Huyện Khoái Châu (Hưng Yên)' },
         { id: 'TP. Thủ Đức', name: 'TP. Thủ Đức (TP.HCM)' },
         { id: 'Cầu Giấy', name: 'Cầu Giấy (Hà Nội)' },
         { id: 'Quận 1', name: 'Quận 1 (TP.HCM)' },

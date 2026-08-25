@@ -191,5 +191,36 @@ export const INITIAL_PRODUCTS: Product[] = [
     district: "Cầu Giấy",
     distanceKm: 0.9,
     locationName: "Công viên Cầu Giấy, Hà Nội"
+  },
+  {
+    id: 13,
+    name: "Nhà Xưởng Cho Thuê 500m2 Khoái Châu (TQ Flagship Hưng Yên)",
+    category: "rental",
+    price: 12000000,
+    img: "https://images.unsplash.com/photo-1582037928769-181f2644ecb7?w=500&q=80",
+    description: "Vị trí sát Quốc lộ 39A, xe container vào tận xưởng. Điện 3 pha sẵn sàng sản xuất.",
+    isTQStore: true,
+    isLicensed: true,
+    rating: 5.0,
+    reviewCount: 42,
+    province: "Hưng Yên",
+    district: "Huyện Khoái Châu",
+    distanceKm: 1.5,
+    locationName: "Thị trấn Khoái Châu, Huyện Khoái Châu, Hưng Yên"
+  },
+  {
+    id: 14,
+    name: "Combo Nông Sản Đặc Sản Nhãn Lồng & Cam Canh Khoái Châu Hữu Cơ",
+    category: "groceries",
+    price: 180000,
+    img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80",
+    description: "Nông sản hái tươi tại vườn Khoái Châu Hưng Yên, chuẩn VietGAP an toàn.",
+    isLicensed: true,
+    rating: 4.9,
+    reviewCount: 78,
+    province: "Hưng Yên",
+    district: "Huyện Khoái Châu",
+    distanceKm: 2.0,
+    locationName: "Xã Đông Tảo, Huyện Khoái Châu, Hưng Yên"
   }
 ];
