@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import type { Product, CartItem, Category } from '../types';
+import type { Product, CartItem, Category, UserActivity } from '../types';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 interface ShopContextType {
   products: Product[];
@@ -9,13 +10,16 @@ interface ShopContextType {
   cartItems: CartItem[];
   cartCount: number;
   cartTotalAmount: number;
+  userActivities: UserActivity[];
   selectedCategory: Category;
   searchQuery: string;
   loadingProducts: boolean;
+  loadingCart: boolean;
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (category: Category) => void;
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: number | string) => void;
+  addToCart: (product: Product) => Promise<void>;
+  removeFromCart: (productId: number | string) => Promise<void>;
+  clearCart: () => Promise<void>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<{ error: Error | null }>;
   deleteProduct: (id: number | string) => Promise<void>;
   isCartOpen: boolean;
@@ -38,14 +42,18 @@ interface ShopContextType {
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
+  const [loadingCart, setLoadingCart] = useState<boolean>(false);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
-  // Vietnam Post-Merger Location Filter states
+  // Location Filter states
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
   const [selectedDistance, setSelectedDistance] = useState<number | 'all'>('all');
@@ -53,6 +61,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userLocationText, setUserLocationText] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
+  // 1. Fetch public products list
   const fetchProducts = useCallback(async () => {
     try {
       setLoadingProducts(true);
@@ -74,6 +83,72 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // 2. Fetch Isolated Cart Items for Logged-in Account
+  const fetchUserCart = useCallback(async (userId: string) => {
+    try {
+      setLoadingCart(true);
+      const { data, error } = await supabase
+        .from('cart_items')
+        .select('*, product:products(*)')
+        .eq('user_id', userId);
+
+      if (!error && data) {
+        const formatted: CartItem[] = data.map((item: any) => ({
+          id: item.id,
+          user_id: item.user_id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          product: item.product || {
+            id: item.product_id,
+            name: `Sản phẩm #${item.product_id}`,
+            category: 'general',
+            price: 0,
+            img: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80',
+          },
+        }));
+        setCartItems(formatted);
+      }
+    } catch (err) {
+      console.warn('Error fetching account cart:', err);
+    } finally {
+      setLoadingCart(false);
+    }
+  }, []);
+
+  // 3. Isolated Account Sync Effect on Auth Change
+  useEffect(() => {
+    if (user) {
+      // Account Logged In: Fetch isolated cart for this specific account
+      fetchUserCart(user.id);
+
+      // Subscribe to Realtime Postgres changes ONLY for this user's cart
+      const cartChannel = supabase
+        .channel(`realtime_cart_${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'cart_items',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            fetchUserCart(user.id);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(cartChannel);
+      };
+    } else {
+      // Account Logged Out: Reset cart & personal data for security & isolation
+      setCartItems([]);
+      setUserActivities([]);
+    }
+  }, [user, fetchUserCart]);
+
+  // Realtime Products Listener
   useEffect(() => {
     fetchProducts();
 
@@ -185,22 +260,89 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
   });
 
-  const addToCart = (product: Product) => {
-    setCartItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
+  // Account-Isolated Cart Operations
+  const addToCart = async (product: Product) => {
+    if (!user) {
+      // Local fallback for guest
+      setCartItems((prev) => {
+        const existing = prev.find((item) => item.product.id === product.id);
+        if (existing) {
+          return prev.map((item) =>
+            item.product.id === product.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          );
+        }
+        return [...prev, { id: String(Date.now()), product, quantity: 1 }];
+      });
+      return;
+    }
+
+    try {
+      // Check existing in Supabase DB for this specific user
+      const { data: existing } = await supabase
+        .from('cart_items')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('product_id', product.id)
+        .single();
+
       if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+        await supabase
+          .from('cart_items')
+          .update({ quantity: existing.quantity + 1 })
+          .eq('id', existing.id);
+      } else {
+        await supabase.from('cart_items').insert([
+          {
+            user_id: user.id,
+            product_id: product.id,
+            quantity: 1,
+          },
+        ]);
       }
-      return [...prev, { id: String(Date.now()), product, quantity: 1 }];
-    });
+
+      await fetchUserCart(user.id);
+    } catch (err) {
+      console.warn('Fallback local cart insert:', err);
+      setCartItems((prev) => {
+        const existing = prev.find((item) => item.product.id === product.id);
+        if (existing) {
+          return prev.map((item) =>
+            item.product.id === product.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          );
+        }
+        return [...prev, { id: String(Date.now()), user_id: user.id, product, quantity: 1 }];
+      });
+    }
   };
 
-  const removeFromCart = (productId: number | string) => {
+  const removeFromCart = async (productId: number | string) => {
+    if (user) {
+      try {
+        await supabase
+          .from('cart_items')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', productId);
+      } catch (err) {
+        console.warn('Error removing from DB cart:', err);
+      }
+    }
     setCartItems((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const clearCart = async () => {
+    if (user) {
+      try {
+        await supabase.from('cart_items').delete().eq('user_id', user.id);
+      } catch (err) {
+        console.warn('Error clearing DB cart:', err);
+      }
+    }
+    setCartItems([]);
   };
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -211,9 +353,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addProduct = async (productData: Omit<Product, 'id'>) => {
     try {
+      const payload = {
+        ...productData,
+        user_id: user?.id || null,
+      };
+
       const { data, error } = await supabase
         .from('products')
-        .insert([productData])
+        .insert([payload])
         .select()
         .single();
 
@@ -222,6 +369,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const localProduct: Product = {
           ...productData,
           id: Date.now(),
+          user_id: user?.id,
         };
         setProducts((prev) => [...prev, localProduct]);
 
@@ -272,13 +420,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cartItems,
         cartCount,
         cartTotalAmount,
+        userActivities,
         selectedCategory,
         searchQuery,
         loadingProducts,
+        loadingCart,
         setSearchQuery,
         setSelectedCategory,
         addToCart,
         removeFromCart,
+        clearCart,
         addProduct,
         deleteProduct,
         isCartOpen,

@@ -13,6 +13,7 @@ export type Category =
 
 export interface Product {
   id: number | string;
+  user_id?: string; // Account ownership
   name: string;
   category: Category | string;
   price: number;
@@ -33,8 +34,19 @@ export interface Product {
 
 export interface CartItem {
   id: string;
+  user_id?: string; // Account isolated cart item
+  product_id?: number | string;
   product: Product;
   quantity: number;
+  created_at?: string;
+}
+
+export interface UserActivity {
+  id: string;
+  user_id: string;
+  action_type: 'view_product' | 'search' | 'add_cart' | 'post_product';
+  details: string;
+  created_at: string;
 }
 
 export interface UserProfile {
