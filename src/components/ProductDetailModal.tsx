@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Coins, Check, Plus, PhoneCall, User, MessageSquare, Send, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Check, Plus, PhoneCall, User, MessageSquare, Send, Sparkles, CheckCircle2 } from 'lucide-react';
 import type { Product, ProductReview } from '../types';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -121,7 +121,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
               }}
             />
 
-            {/* Badges on Hero Image */}
+            {/* Badges on Hero Image (Tối ưu gọn gàng cho người dùng dễ nhìn) */}
             <div className="absolute top-4 left-4 flex flex-col gap-1.5 max-w-[85%]">
               <span className="inline-block px-3 py-1 bg-white/95 backdrop-blur-md rounded-xl text-xs uppercase font-black text-indigo-700 tracking-wider shadow-md">
                 {product.category}
@@ -130,17 +130,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
               {isTQStore ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-xl text-xs font-black shadow-md border border-amber-300/40">
                   <Store className="w-4 h-4 shrink-0" />
-                  <span>👑 Cửa Hàng TQ Official</span>
+                  <span>👑 Shop TQ</span>
                 </span>
               ) : isVerified ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white rounded-xl text-xs font-extrabold shadow-md">
                   <ShieldCheck className="w-4 h-4 shrink-0" />
-                  <span>✓ Cửa Hàng Đã Xác Minh GPKD</span>
+                  <span>✓ Đã xác minh</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-900/80 backdrop-blur-md text-gray-200 rounded-xl text-xs font-bold shadow-md">
                   <Lock className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>🔒 Shop Chưa Xác Minh</span>
+                  <span>🔒 Chưa xác minh</span>
                 </span>
               )}
             </div>
@@ -165,48 +165,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                     </span>
                   </div>
                   <span className="text-gray-400 text-xs font-semibold">
-                    ({product.reviewCount || reviewsList.length} đánh giá từ khách hàng đã mua hàng)
+                    ({product.reviewCount || reviewsList.length} đánh giá từ người mua)
                   </span>
                 </div>
               ) : (
                 <div className="mb-2 text-xs font-bold text-gray-400 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />
-                  <span>Shop chưa xác minh • Không mở lượt đánh giá</span>
+                  <span>Chưa xác minh • Không mở lượt đánh giá</span>
                 </div>
               )}
 
               <h2 className="text-xl sm:text-2xl font-black text-gray-900 leading-snug">
                 {product.name}
               </h2>
-            </div>
-
-            {/* Coin Discount Rules Callout */}
-            <div className="p-3.5 rounded-2xl border text-xs leading-relaxed">
-              {isTQStore ? (
-                <div className="bg-amber-50 border-amber-200 text-amber-900 p-3 rounded-xl flex items-start gap-2">
-                  <Coins className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-extrabold block">👑 Gian Hàng TQ Official - Áp dụng cả 2 loại Xu:</span>
-                    <span>Được giảm giá trực tiếp bằng <strong>Xu TQ</strong> (giảm đến 20%) và <strong>Xu Thường</strong> (giảm thêm 10%).</span>
-                  </div>
-                </div>
-              ) : isVerified ? (
-                <div className="bg-emerald-50 border-emerald-200 text-emerald-900 p-3 rounded-xl flex items-start gap-2">
-                  <Coins className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-extrabold block">✓ Cửa Hàng Đã Xác Minh - Áp dụng Xu Thường:</span>
-                    <span>Được áp dụng giảm giá bằng <strong>Xu Thường</strong> từ điểm danh / đánh giá.</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-gray-100 border-gray-200 text-gray-700 p-3 rounded-xl flex items-start gap-2">
-                  <Lock className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-extrabold block">🔒 Cửa Hàng Chưa Xác Minh:</span>
-                    <span>Chưa hỗ trợ áp dụng Xu giảm giá và chưa mở lượt đánh giá công khai.</span>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Location & Contact Info */}
