@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, PackageCheck, Clock, Truck, CheckCircle2, ChevronRight, AlertCircle, ShoppingBag, Store, User, Eye, Lock } from 'lucide-react';
+import { X, PackageCheck, Clock, Truck, CheckCircle2, ChevronRight, AlertCircle, ShoppingBag, Store, User, Eye, Lock, XCircle } from 'lucide-react';
 import type { Order, OrderStatus } from '../types';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +18,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
     userRole === 'merchant' || userRole === 'admin' ? 'merchant' : 'buyer'
   );
 
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'delivering' | 'completed'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'delivering' | 'completed' | 'cancelled'>('all');
 
   if (!isOpen) return null;
 
@@ -28,6 +28,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
     if (activeTab === 'pending') return ord.status === 'pending_seller_confirm' || ord.status === 'preparing';
     if (activeTab === 'delivering') return ord.status === 'delivering';
     if (activeTab === 'completed') return ord.status === 'completed';
+    if (activeTab === 'cancelled') return ord.status === 'cancelled';
     return true;
   });
 
@@ -61,6 +62,13 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
           badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
           icon: CheckCircle2,
         };
+      case 'cancelled':
+        return {
+          step: 0,
+          label: '❌ Đã hủy đơn bởi Shop',
+          badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+          icon: XCircle,
+        };
       default:
         return {
           step: 1,
@@ -80,6 +88,14 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
     else if (order.status === 'delivering') nextStatus = 'completed';
 
     await updateOrderStatus(order.id, nextStatus);
+  };
+
+  const handleCancelOrder = async (order: Order) => {
+    if (!isMerchantControl) return;
+
+    if (window.confirm(`Bạn có chắc chắn muốn HỦY đơn hàng #${order.id.slice(-6)} này không?`)) {
+      await updateOrderStatus(order.id, 'cancelled');
+    }
   };
 
   return (
@@ -107,16 +123,16 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
             Theo Dõi Đơn Hàng Theo Các Giai Đoạn
           </h2>
           <p className="text-xs text-indigo-100 mt-1">
-            Sàn giao dịch trung gian • Khách xem tín hiệu thời gian thực • Shop điều chỉnh trạng thái
+            Sàn giao dịch trung gian • Khách xem tín hiệu thời gian thực • Shop điều chỉnh & Hủy đơn
           </p>
         </div>
 
-        {/* DEMO ROLE MODE SWITCHER (Chuyển chế độ xem Khách vs Shop) */}
+        {/* DEMO ROLE MODE SWITCHER */}
         <div className="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between gap-2 shrink-0 text-xs">
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-slate-300">Chế độ giao diện:</span>
             <span className="text-[11px] bg-slate-800 text-indigo-300 px-2 py-0.5 rounded font-bold">
-              {isMerchantControl ? '👑 Quyền Chủ Shop (Được điều chỉnh)' : '👁️ Quyền Khách Hàng (Chỉ xem & nhận tín hiệu)'}
+              {isMerchantControl ? '👑 Quyền Chủ Shop (Có quyền cập nhật & Hủy đơn)' : '👁️ Quyền Khách Hàng (Chỉ xem & nhận tín hiệu)'}
             </span>
           </div>
 
@@ -147,9 +163,9 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="leading-snug">
             {isMerchantControl ? (
-              <span>⚡ <strong>Quyền Cửa Hàng:</strong> Bấm nút <em>"Chuyển sang giai đoạn tiếp"</em> để cập nhật tín hiệu trực tiếp cho khách hàng.</span>
+              <span>⚡ <strong>Quyền Cửa Hàng:</strong> Shop có quyền bấm nút <em>"Chuyển sang bước tiếp"</em> hoặc bấm <em>"Hủy đơn hàng"</em> khi không thể đáp ứng.</span>
             ) : (
-              <span>👁️ <strong>Tín hiệu Khách hàng:</strong> Khách chỉ xem tín hiệu thời gian thực từ Shop. Khi Shop chuyển sang <strong>"Đã giao thành công"</strong>, bạn sẽ được mở quyền viết Đánh Giá.</span>
+              <span>👁️ <strong>Tín hiệu Khách hàng:</strong> Khách chỉ xem tín hiệu thời gian thực từ Shop. Nếu Shop hủy đơn, tiến trình sẽ báo Hủy trực tiếp.</span>
             )}
           </div>
         </div>
@@ -188,6 +204,14 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
           >
             Đã giao thành công
           </button>
+          <button
+            onClick={() => setActiveTab('cancelled')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
+              activeTab === 'cancelled' ? 'bg-white text-rose-700 shadow-sm border border-rose-200' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            Đã hủy đơn
+          </button>
         </div>
 
         {/* Modal Scrollable Body */}
@@ -201,11 +225,14 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
               const statusInfo = getStatusStepInfo(order.status);
               const StatusIcon = statusInfo.icon;
               const dateStr = new Date(order.created_at).toLocaleString('vi-VN');
+              const isCancelled = order.status === 'cancelled';
 
               return (
                 <div 
                   key={order.id}
-                  className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:border-indigo-200 transition space-y-3"
+                  className={`bg-white border rounded-2xl p-4 shadow-sm transition space-y-3 ${
+                    isCancelled ? 'border-rose-200 bg-rose-50/20' : 'border-gray-200 hover:border-indigo-200'
+                  }`}
                 >
                   {/* Order Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
@@ -228,37 +255,48 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
                   {/* Order Lifecycle Progress Bar (4 Giai đoạn) */}
                   <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                     <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 flex items-center justify-between">
-                      <span>Tín hiệu tiến trình giai đoạn đơn hàng (Bước {statusInfo.step}/4):</span>
-                      <span className="text-indigo-600 font-extrabold flex items-center gap-1">
-                        <Eye className="w-3 h-3 animate-pulse" />
-                        <span>Live Sync</span>
-                      </span>
+                      <span>Tín hiệu tiến trình giai đoạn đơn hàng:</span>
+                      {isCancelled ? (
+                        <span className="text-rose-600 font-extrabold">❌ Đơn đã hủy</span>
+                      ) : (
+                        <span className="text-indigo-600 font-extrabold flex items-center gap-1">
+                          <Eye className="w-3 h-3 animate-pulse" />
+                          <span>Bước {statusInfo.step}/4</span>
+                        </span>
+                      )}
                     </div>
-                    <div className="grid grid-cols-4 gap-1.5 text-center">
-                      <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
-                        statusInfo.step >= 1 ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'
-                      }`}>
-                        1. Shop xác nhận
+                    
+                    {isCancelled ? (
+                      <div className="p-2 bg-rose-100 text-rose-800 rounded-lg text-xs font-bold text-center border border-rose-200">
+                        ❌ Đơn hàng này đã bị Cửa hàng hủy bỏ.
                       </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                        <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
+                          statusInfo.step >= 1 ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'
+                        }`}>
+                          1. Shop xác nhận
+                        </div>
 
-                      <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
-                        statusInfo.step >= 2 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'
-                      }`}>
-                        2. Chuẩn bị hàng
-                      </div>
+                        <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
+                          statusInfo.step >= 2 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'
+                        }`}>
+                          2. Chuẩn bị hàng
+                        </div>
 
-                      <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
-                        statusInfo.step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'
-                      }`}>
-                        3. Đang giao hàng
-                      </div>
+                        <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
+                          statusInfo.step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'
+                        }`}>
+                          3. Đang giao hàng
+                        </div>
 
-                      <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
-                        statusInfo.step >= 4 ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-400'
-                      }`}>
-                        4. Giao thành công
+                        <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
+                          statusInfo.step >= 4 ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-400'
+                        }`}>
+                          4. Giao thành công
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Order Items */}
@@ -310,21 +348,35 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
                     </div>
 
                     {/* PERMISSION BASED ACTIONS */}
-                    {order.status !== 'completed' ? (
+                    {order.status !== 'completed' && order.status !== 'cancelled' ? (
                       isMerchantControl ? (
-                        <button
-                          onClick={() => handleNextStatus(order)}
-                          className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>⚡ Shop Chuyển Sang Bước Tiếp</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleCancelOrder(order)}
+                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white font-extrabold rounded-xl text-xs border border-rose-200 transition cursor-pointer"
+                            title="Chủ shop hủy đơn hàng này"
+                          >
+                            <span>❌ Hủy Đơn</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => handleNextStatus(order)}
+                            className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>⚡ Bước Tiếp</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
                       ) : (
                         <div className="px-3 py-1 bg-gray-100 rounded-xl text-[11px] text-gray-500 font-bold flex items-center gap-1.5 border border-gray-200">
                           <Lock className="w-3.5 h-3.5 text-gray-400" />
                           <span>Khách chỉ xem tín hiệu • Shop đang xử lý</span>
                         </div>
                       )
+                    ) : isCancelled ? (
+                      <div className="px-3 py-1 bg-rose-100 text-rose-800 font-extrabold rounded-xl text-[11px] border border-rose-200">
+                        ❌ Đã hủy bởi Cửa hàng
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <span className="text-emerald-700 font-extrabold text-[11px] flex items-center gap-1">
