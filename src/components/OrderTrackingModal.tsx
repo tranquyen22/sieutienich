@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, PackageCheck, Clock, Truck, CheckCircle2, ChevronRight, AlertCircle, ShoppingBag } from 'lucide-react';
+import { X, PackageCheck, Clock, Truck, CheckCircle2, ChevronRight, AlertCircle, ShoppingBag, Store, User, Eye, Lock } from 'lucide-react';
 import type { Order, OrderStatus } from '../types';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 interface OrderTrackingModalProps {
   isOpen: boolean;
@@ -10,9 +11,18 @@ interface OrderTrackingModalProps {
 
 export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose }) => {
   const { orders, updateOrderStatus } = useShop();
+  const { userRole, isAdmin } = useAuth();
+
+  // Role perspective mode state ('buyer' or 'merchant')
+  const [viewRoleMode, setViewRoleMode] = useState<'buyer' | 'merchant'>(
+    userRole === 'merchant' || userRole === 'admin' ? 'merchant' : 'buyer'
+  );
+
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'delivering' | 'completed'>('all');
 
   if (!isOpen) return null;
+
+  const isMerchantControl = viewRoleMode === 'merchant' || isAdmin;
 
   const filteredOrders = orders.filter((ord) => {
     if (activeTab === 'pending') return ord.status === 'pending_seller_confirm' || ord.status === 'preparing';
@@ -40,7 +50,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
       case 'delivering':
         return {
           step: 3,
-          label: 'Đang giao hàng (Tự giao)',
+          label: 'Đang giao hàng (Shop tự giao)',
           badgeClass: 'bg-blue-100 text-blue-800 border-blue-300',
           icon: Truck,
         };
@@ -62,6 +72,8 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
   };
 
   const handleNextStatus = async (order: Order) => {
+    if (!isMerchantControl) return;
+
     let nextStatus: OrderStatus = 'pending_seller_confirm';
     if (order.status === 'pending_seller_confirm') nextStatus = 'preparing';
     else if (order.status === 'preparing') nextStatus = 'delivering';
@@ -95,15 +107,50 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
             Theo Dõi Đơn Hàng Theo Các Giai Đoạn
           </h2>
           <p className="text-xs text-indigo-100 mt-1">
-            Sàn là giao dịch trung gian hiển thị. Shop và Khách tự liên hệ giao hàng & thanh toán trực tiếp.
+            Sàn giao dịch trung gian • Khách xem tín hiệu thời gian thực • Shop điều chỉnh trạng thái
           </p>
+        </div>
+
+        {/* DEMO ROLE MODE SWITCHER (Chuyển chế độ xem Khách vs Shop) */}
+        <div className="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between gap-2 shrink-0 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-slate-300">Chế độ giao diện:</span>
+            <span className="text-[11px] bg-slate-800 text-indigo-300 px-2 py-0.5 rounded font-bold">
+              {isMerchantControl ? '👑 Quyền Chủ Shop (Được điều chỉnh)' : '👁️ Quyền Khách Hàng (Chỉ xem & nhận tín hiệu)'}
+            </span>
+          </div>
+
+          <div className="flex items-center bg-slate-800 p-0.5 rounded-xl border border-slate-700">
+            <button
+              onClick={() => setViewRoleMode('buyer')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition flex items-center gap-1 cursor-pointer ${
+                viewRoleMode === 'buyer' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <User className="w-3 h-3" />
+              <span>Khách hàng</span>
+            </button>
+            <button
+              onClick={() => setViewRoleMode('merchant')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition flex items-center gap-1 cursor-pointer ${
+                viewRoleMode === 'merchant' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Store className="w-3 h-3" />
+              <span>Tài khoản Shop</span>
+            </button>
+          </div>
         </div>
 
         {/* Intermediary Notice Banner */}
         <div className="bg-amber-50 border-b border-amber-200/70 p-3 text-xs text-amber-900 flex items-start gap-2 shrink-0">
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="leading-snug">
-            <strong>Nguyên tắc vận hành:</strong> Khách và Shop tự trao đổi thanh toán & giao hàng. Khi đơn hàng đạt trạng thái <strong>"Đã giao thành công"</strong>, khách mua mới được quyền viết đánh giá cho <strong>Shop TQ</strong> và <strong>Shop Đã xác minh</strong>.
+            {isMerchantControl ? (
+              <span>⚡ <strong>Quyền Cửa Hàng:</strong> Bấm nút <em>"Chuyển sang giai đoạn tiếp"</em> để cập nhật tín hiệu trực tiếp cho khách hàng.</span>
+            ) : (
+              <span>👁️ <strong>Tín hiệu Khách hàng:</strong> Khách chỉ xem tín hiệu thời gian thực từ Shop. Khi Shop chuyển sang <strong>"Đã giao thành công"</strong>, bạn sẽ được mở quyền viết Đánh Giá.</span>
+            )}
           </div>
         </div>
 
@@ -180,32 +227,32 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
 
                   {/* Order Lifecycle Progress Bar (4 Giai đoạn) */}
                   <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">
-                      Tiến trình giai đoạn đơn hàng (4 Bước):
+                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 flex items-center justify-between">
+                      <span>Tín hiệu tiến trình giai đoạn đơn hàng (Bước {statusInfo.step}/4):</span>
+                      <span className="text-indigo-600 font-extrabold flex items-center gap-1">
+                        <Eye className="w-3 h-3 animate-pulse" />
+                        <span>Live Sync</span>
+                      </span>
                     </div>
                     <div className="grid grid-cols-4 gap-1.5 text-center">
-                      {/* Step 1: Chờ xác nhận */}
                       <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
                         statusInfo.step >= 1 ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'
                       }`}>
                         1. Shop xác nhận
                       </div>
 
-                      {/* Step 2: Đang chuẩn bị */}
                       <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
                         statusInfo.step >= 2 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'
                       }`}>
                         2. Chuẩn bị hàng
                       </div>
 
-                      {/* Step 3: Đang giao */}
                       <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
                         statusInfo.step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'
                       }`}>
                         3. Đang giao hàng
                       </div>
 
-                      {/* Step 4: Giao thành công */}
                       <div className={`p-1.5 rounded-lg text-[10px] font-bold ${
                         statusInfo.step >= 4 ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-400'
                       }`}>
@@ -262,20 +309,27 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
                       </span>
                     </div>
 
-                    {/* Action buttons based on status */}
+                    {/* PERMISSION BASED ACTIONS */}
                     {order.status !== 'completed' ? (
-                      <button
-                        onClick={() => handleNextStatus(order)}
-                        className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Chuyển sang giai đoạn tiếp</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
+                      isMerchantControl ? (
+                        <button
+                          onClick={() => handleNextStatus(order)}
+                          className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>⚡ Shop Chuyển Sang Bước Tiếp</span>
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <div className="px-3 py-1 bg-gray-100 rounded-xl text-[11px] text-gray-500 font-bold flex items-center gap-1.5 border border-gray-200">
+                          <Lock className="w-3.5 h-3.5 text-gray-400" />
+                          <span>Khách chỉ xem tín hiệu • Shop đang xử lý</span>
+                        </div>
+                      )
                     ) : (
                       <div className="flex items-center gap-2">
                         <span className="text-emerald-700 font-extrabold text-[11px] flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Đã mở quyền Đánh giá Shop TQ & Xác minh</span>
+                          <span>Đã giao thành công • Mở quyền Đánh giá</span>
                         </span>
                       </div>
                     )}
