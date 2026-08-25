@@ -24,7 +24,8 @@ export interface Product {
   isLicensed?: boolean;
   licenseNo?: string;
   contactName?: string;
-  // Location & GPS positioning fields
+  // Vietnam post-merger location fields
+  province?: string;
   district?: string;
   distanceKm?: number;
   locationName?: string;

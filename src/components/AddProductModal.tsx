@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, PlusCircle, Image as ImageIcon, Tag, DollarSign, FileText, Loader2, Phone, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { X, PlusCircle, Image as ImageIcon, Tag, DollarSign, FileText, Loader2, Phone, ShieldCheck, AlertTriangle, Building2, MapPin } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import type { Category } from '../types';
 
@@ -19,6 +19,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [phone, setPhone] = useState('');
   const [licenseNo, setLicenseNo] = useState('');
   const [contactName, setContactName] = useState('');
+  const [province, setProvince] = useState('Hà Nội');
+  const [district, setDistrict] = useState('Cầu Giấy');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -26,6 +28,26 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   const isLodging = category === 'lodging';
   const isTransport = category === 'transport';
+
+  const provinces = [
+    { id: 'TP. Hồ Chí Minh', name: 'TP. Hồ Chí Minh' },
+    { id: 'Hà Nội', name: 'TP. Hà Nội' },
+    { id: 'Hải Phòng', name: 'TP. Hải Phòng' },
+    { id: 'Đà Nẵng', name: 'TP. Đà Nẵng' },
+    { id: 'Cần Thơ', name: 'TP. Cần Thơ' },
+    { id: 'Bình Dương', name: 'Tỉnh Bình Dương' },
+    { id: 'Đồng Nai', name: 'Tỉnh Đồng Nai' },
+  ];
+
+  const districtOptionsMap: Record<string, string[]> = {
+    'TP. Hồ Chí Minh': ['TP. Thủ Đức', 'Quận 1', 'Quận 3', 'Quận 7', 'Quận 10', 'Bình Thạnh', 'Gò Vấp', 'Tân Bình', 'Bình Chánh', 'Hóc Môn'],
+    'Hà Nội': ['Cầu Giấy', 'Hoàn Kiếm', 'Ba Đình', 'Đống Đa', 'Hai Bà Trưng', 'Nam Từ Liêm', 'Bắc Từ Liêm', 'Gia Lâm', 'Đông Anh', 'Thanh Trì'],
+    'Hải Phòng': ['TP. Thủy Nguyên', 'Hồng Bàng', 'Lê Chân', 'Ngô Quyền', 'Hải An', 'An Dương'],
+    'Đà Nẵng': ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Cẩm Lệ', 'Liên Chiểu'],
+    'Bình Dương': ['TP. Thủ Dầu Một', 'TP. Dĩ An', 'TP. Thuận An', 'TP. Bến Cát', 'TP. Tân Uyên'],
+  };
+
+  const currentDistricts = districtOptionsMap[province] || ['Trung tâm'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +83,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       licenseNo: isLodging ? (licenseNo.startsWith('GPKD:') ? licenseNo : `GPKD: ${licenseNo}`) : undefined,
       isLicensed: isLodging ? true : undefined,
       contactName: contactName || undefined,
+      province,
+      district,
+      distanceKm: Math.floor(Math.random() * 5) + 1,
+      locationName: `${district}, ${province}`,
     });
 
     setLoading(false);
@@ -154,6 +180,49 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-indigo-500 truncate box-border"
                 />
                 <DollarSign className="w-4 h-4 text-gray-400 absolute left-2.5 top-2.5 shrink-0" />
+              </div>
+            </div>
+          </div>
+
+          {/* Location Inputs (Tỉnh/Thành & Quận/Huyện) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0 pt-1 border-t border-gray-100">
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Tỉnh / Thành phố *</label>
+              <div className="relative min-w-0">
+                <select
+                  value={province}
+                  onChange={(e) => {
+                    setProvince(e.target.value);
+                    const defaultDist = districtOptionsMap[e.target.value]?.[0] || 'Trung tâm';
+                    setDistrict(defaultDist);
+                  }}
+                  className="w-full pl-8 pr-2 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-indigo-500 bg-white truncate box-border"
+                >
+                  {provinces.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <Building2 className="w-4 h-4 text-indigo-600 absolute left-2.5 top-2.5 shrink-0" />
+              </div>
+            </div>
+
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Quận / Huyện sáp nhập *</label>
+              <div className="relative min-w-0">
+                <select
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full pl-8 pr-2 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-indigo-500 bg-white truncate box-border"
+                >
+                  {currentDistricts.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                <MapPin className="w-4 h-4 text-indigo-600 absolute left-2.5 top-2.5 shrink-0" />
               </div>
             </div>
           </div>

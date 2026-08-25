@@ -21,7 +21,9 @@ interface ShopContextType {
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
 
-  // Location & GPS Filter states
+  // Vietnam Post-Merger Location & GPS Filter states
+  selectedProvince: string;
+  setSelectedProvince: (province: string) => void;
   selectedDistrict: string;
   setSelectedDistrict: (district: string) => void;
   selectedDistance: number | 'all';
@@ -43,7 +45,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
-  // Location filter states
+  // Vietnam Post-Merger Location Filter states
+  const [selectedProvince, setSelectedProvince] = useState<string>('all');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
   const [selectedDistance, setSelectedDistance] = useState<number | 'all'>('all');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -125,17 +128,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const lng = position.coords.longitude;
         setUserCoords({ lat, lng });
         setUserLocationText(`GPS (${lat.toFixed(4)}°, ${lng.toFixed(4)}°)`);
-        // Default GPS to filter items within 5 km & select Cầu Giấy/Quận 1 as demo default
+        setSelectedProvince('Hà Nội');
+        setSelectedDistrict('Cầu Giấy');
         setSelectedDistance(5);
         setIsLocating(false);
       },
       (error) => {
         console.warn('GPS location error, simulating location:', error);
-        // Fallback GPS simulation for demo
         setUserCoords({ lat: 21.0285, lng: 105.8542 });
         setUserLocationText('Cầu Giấy, Hà Nội (GPS Đã kích hoạt)');
-        setSelectedDistance(3);
+        setSelectedProvince('Hà Nội');
         setSelectedDistrict('Cầu Giấy');
+        setSelectedDistance(3);
         setIsLocating(false);
       },
       { timeout: 8000 }
@@ -143,13 +147,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetLocationFilter = () => {
+    setSelectedProvince('all');
     setSelectedDistrict('all');
     setSelectedDistance('all');
     setUserCoords(null);
     setUserLocationText(null);
   };
 
-  // Filter products by Category, Search, District, and Distance Radius
+  // Filter products by Category, Search, Province, District, and Distance Radius
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
       selectedCategory === 'all' || product.category === selectedCategory;
@@ -162,6 +167,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (product.locationName &&
         product.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
 
+    const matchesProvince =
+      selectedProvince === 'all' ||
+      !product.province ||
+      product.province.toLowerCase() === selectedProvince.toLowerCase();
+
     const matchesDistrict =
       selectedDistrict === 'all' ||
       !product.district ||
@@ -172,7 +182,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       product.distanceKm === undefined ||
       product.distanceKm <= Number(selectedDistance);
 
-    return matchesCategory && matchesSearch && matchesDistrict && matchesDistance;
+    return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
   });
 
   const addToCart = (product: Product) => {
@@ -273,6 +283,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteProduct,
         isCartOpen,
         setIsCartOpen,
+        selectedProvince,
+        setSelectedProvince,
         selectedDistrict,
         setSelectedDistrict,
         selectedDistance,

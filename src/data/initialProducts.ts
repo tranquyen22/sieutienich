@@ -8,6 +8,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 8500000,
     img: "https://images.unsplash.com/photo-1582037928769-181f2644ecb7?w=500&q=80",
     description: "Vị trí mặt tiền đường lớn, đông đúc cư dân, phù hợp mở shop hoặc văn phòng.",
+    province: "TP. Hồ Chí Minh",
     district: "Quận 1",
     distanceKm: 0.8,
     locationName: "Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh"
@@ -19,6 +20,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 350000,
     img: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80",
     description: "Chất liệu cotton chống nhăn, thoáng mát, phom dáng chuẩn hiện đại.",
+    province: "Hà Nội",
     district: "Cầu Giấy",
     distanceKm: 1.2,
     locationName: "Xuân Thủy, Cầu Giấy, Hà Nội"
@@ -30,6 +32,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 490000,
     img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80",
     description: "Hải sản tươi sống kèm nước lẩu chua cay chuẩn vị, giao tận nơi trong 30 phút.",
+    province: "TP. Hồ Chí Minh",
     district: "Quận 3",
     distanceKm: 2.1,
     locationName: "Lê Văn Sỹ, Quận 3, TP. Hồ Chí Minh"
@@ -41,6 +44,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 650000,
     img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500&q=80",
     description: "Tẩy tế bào chết, điện di vitamin C và massage thư giãn 75 phút.",
+    province: "TP. Hồ Chí Minh",
     district: "Quận 7",
     distanceKm: 3.5,
     locationName: "Phú Mỹ Hưng, Quận 7, TP. Hồ Chí Minh"
@@ -52,6 +56,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 280000,
     img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80",
     description: "Sản phẩm đạt chứng nhận VietGAP, tươi ngon và an toàn cho sức khỏe.",
+    province: "Hà Nội",
     district: "Nam Từ Liêm",
     distanceKm: 4.2,
     locationName: "Mễ Trì, Nam Từ Liêm, Hà Nội"
@@ -65,6 +70,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: "Danh bạ liên hệ trực tiếp chủ xe ba gác nội khu. Sàn chỉ kết nối thông tin, không thu cước hộ.",
     phone: "0988.123.456",
     contactName: "Chú Hùng (Chủ xe Ba gác)",
+    province: "Hà Nội",
     district: "Cầu Giấy",
     distanceKm: 0.5,
     locationName: "Nội khu Vinhomes Cầu Giấy, Hà Nội"
@@ -80,6 +86,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     isLicensed: true,
     licenseNo: "GPKD: 0108928374",
     contactName: "Chị Mai (Chủ Homestay)",
+    province: "Hà Nội",
     district: "Gia Lâm",
     distanceKm: 8.5,
     locationName: "Vinhomes Ocean Park, Gia Lâm, Hà Nội"
@@ -95,6 +102,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     isLicensed: true,
     licenseNo: "GPKD: 0312984561",
     contactName: "Lễ tân Sunshine Hotel",
+    province: "Hà Nội",
     district: "Hoàn Kiếm",
     distanceKm: 1.8,
     locationName: "Hàng Bông, Hoàn Kiếm, Hà Nội"
@@ -106,6 +114,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 200000,
     img: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&q=80",
     description: "Thợ giỏi có mặt sau 15 phút, bảo hành dịch vụ 30 ngày.",
+    province: "TP. Hồ Chí Minh",
     district: "Quận 10",
     distanceKm: 2.8,
     locationName: "Ba Tháng Hai, Quận 10, TP. Hồ Chí Minh"
@@ -117,17 +126,33 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 15000000,
     img: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=500&q=80",
     description: "Môi trường năng động, thưởng KPI hấp dẫn, không yêu cầu kinh nghiệm.",
+    province: "TP. Hồ Chí Minh",
     district: "TP. Thủ Đức",
     distanceKm: 6.0,
-    locationName: "Khu Công Nghệ Cao, TP. Thủ Đức"
+    locationName: "Khu Công Nghệ Cao, TP. Thủ Đức (Sáp nhập Q2, Q9, Thủ Đức)"
   },
   {
     id: 11,
+    name: "Dịch vụ Vận tải Hàng hóa & Cẩu Thùng Thủy Nguyên",
+    category: "transport",
+    price: 350000,
+    img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&q=80",
+    description: "Xe cẩu thùng chở hàng hóa khu đô thị mới Thủy Nguyên. Danh bạ kết nối trực tiếp chủ xe.",
+    phone: "0904.555.777",
+    contactName: "Nhà xe Thủy Nguyên",
+    province: "Hải Phòng",
+    district: "TP. Thủy Nguyên",
+    distanceKm: 2.5,
+    locationName: "Trung tâm Đô thị Mới Thủy Nguyên, Hải Phòng"
+  },
+  {
+    id: 12,
     name: "Điểm Thu gom Pin cũ & Đổi Quà Xanh Bảo vệ Môi trường",
     category: "public_utilities",
     price: 0,
     img: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=500&q=80",
     description: "Dịch vụ tiện ích cộng đồng hoàn toàn miễn phí vì không gian xanh.",
+    province: "Hà Nội",
     district: "Cầu Giấy",
     distanceKm: 0.9,
     locationName: "Công viên Cầu Giấy, Hà Nội"
