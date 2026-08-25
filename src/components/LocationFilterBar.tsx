@@ -1,13 +1,9 @@
 import React, { useMemo } from 'react';
-import { MapPin, Navigation, Compass, Loader2, RotateCcw, CheckCircle2, Building2, Bot, Sparkles } from 'lucide-react';
+import { MapPin, Navigation, Compass, Loader2, RotateCcw, CheckCircle2, Building2 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { VIETNAM_PROVINCES } from '../data/vietnamLocations';
 
-interface LocationFilterBarProps {
-  onOpenAIFilterModal?: () => void;
-}
-
-export const LocationFilterBar: React.FC<LocationFilterBarProps> = ({ onOpenAIFilterModal }) => {
+export const LocationFilterBar: React.FC = () => {
   const {
     selectedProvince,
     setSelectedProvince,
@@ -71,26 +67,12 @@ export const LocationFilterBar: React.FC<LocationFilterBarProps> = ({ onOpenAIFi
 
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 relative z-10">
           
-          {/* LEFT: GPS & AI Assistant Trigger Buttons */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {/* AI Assistant Button */}
-            {onOpenAIFilterModal && (
-              <button
-                onClick={onOpenAIFilterModal}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md shadow-violet-200 transition cursor-pointer shrink-0"
-                title="Trợ lý AI hỗ trợ tìm kiếm & chọn lọc tự động bằng câu lệnh"
-              >
-                <Bot className="w-4 h-4 text-violet-200 animate-bounce" />
-                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-                <span>Trợ lý AI Smart Filter</span>
-              </button>
-            )}
-
-            {/* GPS Positioning Button */}
+          {/* LEFT: GPS Button */}
+          <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={handleGetGPSLocation}
               disabled={isLocating}
-              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 cursor-pointer shadow-md shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 cursor-pointer shadow-md shrink-0 ${
                 userLocationText
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200'
                   : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200'
@@ -105,12 +87,12 @@ export const LocationFilterBar: React.FC<LocationFilterBarProps> = ({ onOpenAIFi
               ) : userLocationText ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-200" />
-                  <span className="truncate max-w-[150px] sm:max-w-[200px]">{userLocationText}</span>
+                  <span className="truncate max-w-[180px] sm:max-w-[220px]">{userLocationText}</span>
                 </>
               ) : (
                 <>
                   <Navigation className="w-4 h-4 shrink-0 animate-pulse" />
-                  <span>GPS Trực tiếp</span>
+                  <span>Định vị GPS trực tiếp</span>
                 </>
               )}
             </button>

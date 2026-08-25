@@ -10,7 +10,6 @@ import { AuthModal } from './components/AuthModal';
 import { AddProductModal } from './components/AddProductModal';
 import { AdminMerchantReviewModal } from './components/AdminMerchantReviewModal';
 import { CoinWalletModal } from './components/CoinWalletModal';
-import { AISmartFilterModal } from './components/AISmartFilterModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 
@@ -19,7 +18,6 @@ function AppContent() {
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
   const [adminReviewModalOpen, setAdminReviewModalOpen] = useState(false);
   const [coinWalletModalOpen, setCoinWalletModalOpen] = useState(false);
-  const [aiFilterModalOpen, setAiFilterModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
@@ -34,8 +32,8 @@ function AppContent() {
       {/* BANNER Carousel & Side Cards */}
       <Banner />
 
-      {/* THANH LỌC, ĐỊNH VỊ GPS & TRỢ LÝ AI SMART FILTER */}
-      <LocationFilterBar onOpenAIFilterModal={() => setAiFilterModalOpen(true)} />
+      {/* THANH LỌC & ĐỊNH VỊ GPS (BÊN DƯỚI BANNER) */}
+      <LocationFilterBar />
 
       {/* DANH MỤC & LƯỚI SẢN PHẨM */}
       <main id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-1 w-full">
@@ -89,7 +87,6 @@ function AppContent() {
       <AddProductModal isOpen={addProductModalOpen} onClose={() => setAddProductModalOpen(false)} />
       <AdminMerchantReviewModal isOpen={adminReviewModalOpen} onClose={() => setAdminReviewModalOpen(false)} />
       <CoinWalletModal isOpen={coinWalletModalOpen} onClose={() => setCoinWalletModalOpen(false)} />
-      <AISmartFilterModal isOpen={aiFilterModalOpen} onClose={() => setAiFilterModalOpen(false)} />
       <CartDrawer />
     </div>
   );
