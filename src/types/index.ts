@@ -11,6 +11,14 @@ export type Category =
   | 'jobs' 
   | 'public_utilities';
 
+export interface ProductReview {
+  id: string;
+  user_name: string;
+  rating: number; // 1 to 5 stars
+  comment: string;
+  created_at: string;
+}
+
 export interface Product {
   id: number | string;
   user_id?: string; // Account ownership
@@ -21,11 +29,15 @@ export interface Product {
   description?: string;
   created_at?: string;
   // Store verification & TQ status
-  isTQStore?: boolean; // Cửa hàng TQ Official (Áp dụng Xu TQ)
-  isLicensed?: boolean; // Cửa hàng đã xác minh / có GPKD (Áp dụng Xu Thường)
+  isTQStore?: boolean; // Cửa hàng TQ Official (Áp dụng cả Xu TQ & Xu Thường, hiển thị Đánh giá)
+  isLicensed?: boolean; // Cửa hàng đã xác minh / có GPKD (Chỉ áp dụng Xu Thường, hiển thị Đánh giá)
   licenseNo?: string;
   contactName?: string;
   phone?: string;
+  // Ratings & Reviews (Chỉ hiển thị cho Shop đã xác minh & Shop TQ)
+  rating?: number;
+  reviewCount?: number;
+  reviews?: ProductReview[];
   // Vietnam post-merger location fields
   province?: string;
   district?: string;

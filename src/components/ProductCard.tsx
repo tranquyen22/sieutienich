@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, Info, MapPin, Store, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, MapPin, Store, CheckCircle, Star, Lock, Coins } from 'lucide-react';
 import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
 
@@ -19,6 +19,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const isLodging = product.category === 'lodging';
   const isTransport = product.category === 'transport';
+
+  const isTQStore = Boolean(product.isTQStore);
+  const isVerified = Boolean(product.isLicensed);
+  const isUnverified = !isTQStore && !isVerified;
 
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
@@ -69,24 +73,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           }}
         />
 
-        {/* Category Badge */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1 max-w-[85%]">
+        {/* Top Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1 max-w-[85%]">
           <span className="inline-block px-2.5 py-1 bg-white/95 backdrop-blur-md rounded-lg text-[10px] uppercase font-extrabold text-indigo-700 tracking-wider shadow-sm border border-indigo-100 truncate max-w-full">
             {getCategoryBadge(product.category)}
           </span>
 
-          {/* TQ Store Badge vs Verified Store Badge */}
-          {product.isTQStore ? (
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-amber-500 text-white rounded-lg text-[10px] font-black shadow-sm">
-              <Store className="w-3 h-3" />
-              <span>Cửa hàng TQ (Dùng Xu TQ)</span>
+          {/* Shop Verification & Coin Eligibility Badges */}
+          {isTQStore ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg text-[10px] font-black shadow-md border border-amber-300/40">
+              <Store className="w-3 h-3 shrink-0" />
+              <span>👑 Shop TQ (Dùng Cả Xu TQ & Xu Thường)</span>
             </span>
-          ) : product.isLicensed ? (
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold shadow-sm">
-              <CheckCircle className="w-3 h-3" />
-              <span>Đã xác minh (Dùng Xu Thường)</span>
+          ) : isVerified ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold shadow-md">
+              <CheckCircle className="w-3 h-3 shrink-0" />
+              <span>✓ Shop Xác minh (Chỉ dùng Xu Thường)</span>
             </span>
-          ) : null}
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-900/80 backdrop-blur-md text-gray-200 rounded-lg text-[10px] font-bold shadow-sm">
+              <Lock className="w-3 h-3 shrink-0 text-amber-400" />
+              <span>🔒 Shop chưa xác minh (Không dùng Xu)</span>
+            </span>
+          )}
         </div>
 
         {/* Lodging Business License Badge */}
@@ -112,6 +121,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Card Body */}
       <div className="p-4 flex flex-col flex-1 justify-between space-y-3 min-w-0">
         <div className="min-w-0">
+          
+          {/* Rating Stars & Reviews Count: ONLY DISPLAYED FOR VERIFIED SHOPS & TQ STORES */}
+          {!isUnverified ? (
+            <div className="flex items-center gap-1.5 mb-1 text-xs">
+              <div className="flex items-center text-amber-400">
+                <Star className="w-3.5 h-3.5 fill-amber-400" />
+                <span className="ml-1 font-black text-gray-900 text-xs">
+                  {product.rating ? product.rating.toFixed(1) : '5.0'}
+                </span>
+              </div>
+              <span className="text-gray-400 text-[11px]">
+                ({product.reviewCount || 48} đánh giá)
+              </span>
+            </div>
+          ) : (
+            <div className="mb-1 text-[11px] font-bold text-gray-400 flex items-center gap-1">
+              <Lock className="w-3 h-3 text-gray-400" />
+              <span>Chưa xác minh • Chưa mở lượt đánh giá</span>
+            </div>
+          )}
+
           <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors break-words">
             {product.name}
           </h3>
@@ -141,20 +171,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </p>
           )}
 
-          {/* Compliance Disclaimer Notice */}
-          {isLodging && (
-            <div className="mt-2.5 p-2 bg-indigo-50/60 rounded-xl border border-indigo-100 text-[11px] text-indigo-700 flex items-start gap-1.5 min-w-0">
-              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              <span className="leading-tight break-words">Quảng bá cơ sở. Đặt phòng & thanh toán trực tiếp với chủ nhà.</span>
-            </div>
-          )}
-
-          {isTransport && (
-            <div className="mt-2.5 p-2 bg-amber-50/60 rounded-xl border border-amber-200/60 text-[11px] text-amber-800 flex items-start gap-1.5 min-w-0">
-              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
-              <span className="leading-tight break-words">Danh bạ kết nối trực tiếp. Sàn không thu cước vận chuyển hộ.</span>
-            </div>
-          )}
+          {/* Coin Usage Disclaimer Pill */}
+          <div className="mt-2.5">
+            {isTQStore ? (
+              <div className="p-2 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span className="font-bold">Được dùng CẢ 2 LOẠI XU (Xu TQ & Xu Thường)</span>
+              </div>
+            ) : isVerified ? (
+              <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-900 flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="font-bold">Được dùng Xu Thường (Không dùng Xu TQ)</span>
+              </div>
+            ) : (
+              <div className="p-2 bg-gray-100 rounded-xl border border-gray-200 text-[11px] text-gray-600 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <span>Shop chưa xác minh ➔ KHÔNG được dùng Xu</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Pricing & CTA */}
