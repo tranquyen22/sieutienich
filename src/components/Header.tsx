@@ -27,10 +27,10 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
           
-          {/* LOGO */}
+          {/* LOGO (LOGO LÀ TQ, CHỮ BÊN CẠNH LÀ SIÊU TIỆN ÍCH GIỮ NGUYÊN) */}
           <a href="#" className="flex items-center gap-2 flex-shrink-0 group">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-              STÍ
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform tracking-wider">
+              TQ
             </div>
             <span className="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
               Siêu Tiện Ích
