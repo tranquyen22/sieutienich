@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Coins, ArrowUpRight, ArrowDownLeft, Gift, CalendarCheck, CheckCircle2, AlertCircle, Clock, Sparkles, Store, ShieldCheck } from 'lucide-react';
+import { X, Coins, ArrowUpRight, ArrowDownLeft, CalendarCheck, CheckCircle2, AlertCircle, Clock, Sparkles, Store, ShieldCheck, Info, Flame, AlertTriangle } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 interface CoinWalletModalProps {
   isOpen: boolean;
@@ -8,13 +9,30 @@ interface CoinWalletModalProps {
 }
 
 export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClose }) => {
-  const { regularCoins, tqCoins, coinTransactions, dailyCheckIn, hasCheckedInToday } = useShop();
+  const { 
+    regularCoins, 
+    tqCoins, 
+    coinTransactions, 
+    dailyCheckIn, 
+    hasCheckedInToday, 
+    checkInStreak,
+    reviewCashbackRate,
+    setReviewCashbackRate,
+    monthlyDistributedCoins,
+    purchasedProductIds,
+    orders
+  } = useShop();
 
-  const [activeTab, setActiveTab] = useState<'history' | 'tasks'>('history');
+  const { isAdmin, userRole } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<'history' | 'tasks' | 'rules'>('tasks');
   const [historyFilter, setHistoryFilter] = useState<'all' | 'regular' | 'tq'>('all');
   const [checkInMsg, setCheckInMsg] = useState<{ success: boolean; text: string } | null>(null);
 
   if (!isOpen) return null;
+
+  const completedOrdersCount = orders.filter((o) => o.status === 'completed').length;
+  const hasCompletedOrder = completedOrdersCount > 0 || purchasedProductIds.length > 0;
 
   const filteredTransactions = coinTransactions.filter((tx) => {
     if (historyFilter === 'regular') return tx.coin_category === 'regular';
@@ -25,7 +43,7 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
   const handleCheckInClick = async () => {
     const res = await dailyCheckIn();
     setCheckInMsg({ success: res.success, text: res.message });
-    setTimeout(() => setCheckInMsg(null), 4000);
+    setTimeout(() => setCheckInMsg(null), 5000);
   };
 
   return (
@@ -48,124 +66,320 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
 
           <div className="flex items-center gap-2 text-amber-100 text-xs font-extrabold uppercase tracking-wider mb-3">
             <Coins className="w-4 h-4 text-yellow-300 animate-bounce" />
-            <span>Ví Xu Tiện Ích Đa Năng</span>
+            <span>Ví Điểm Thưởng Siêu Tiện Ích • 1 Xu = 1 Đồng</span>
           </div>
 
-          {/* DUAL COIN DISPLAY (Xu TQ & Xu Thường) */}
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            {/* 1. XU TQ */}
-            <div className="bg-white/15 backdrop-blur-md border border-white/20 p-3 rounded-2xl">
-              <div className="flex items-center gap-1 text-[11px] font-extrabold text-yellow-200">
-                <Store className="w-3.5 h-3.5" />
-                <span>Ví Xu TQ</span>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Wallet 1: Xu TQ */}
+            <div className="bg-white/15 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+              <div className="flex items-center gap-1.5 text-xs text-amber-100 font-bold mb-1">
+                <Store className="w-3.5 h-3.5 text-yellow-300" />
+                <span>👑 Xu TQ (Official)</span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-white mt-1">
+              <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {tqCoins.toLocaleString('vi-VN')}
               </div>
-              <p className="text-[10px] text-amber-100 mt-1 leading-tight">
-                👑 Áp dụng tại Cửa hàng TQ
-              </p>
+              <p className="text-[10px] text-amber-200 mt-1">Dùng giảm tới 20% tại Shop TQ</p>
             </div>
 
-            {/* 2. XU THƯỜNG */}
-            <div className="bg-white/15 backdrop-blur-md border border-white/20 p-3 rounded-2xl">
-              <div className="flex items-center gap-1 text-[11px] font-extrabold text-emerald-200">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Ví Xu Thường</span>
+            {/* Wallet 2: Xu Thường */}
+            <div className="bg-white/15 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+              <div className="flex items-center gap-1.5 text-xs text-amber-100 font-bold mb-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                <span>✓ Xu Thường</span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-white mt-1">
+              <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {regularCoins.toLocaleString('vi-VN')}
               </div>
-              <p className="text-[10px] text-emerald-100 mt-1 leading-tight">
-                ✓ Áp dụng Cửa hàng đã xác minh
-              </p>
+              <p className="text-[10px] text-amber-200 mt-1">Dùng giảm tại các Shop xác minh</p>
             </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/20 text-xs text-amber-100">
-            <div className="flex items-center gap-1.5 text-[11px]">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-              <span>Quy đổi: <strong>1 Xu = 1 VNĐ</strong></span>
-            </div>
-
-            {/* Daily Check-in Button */}
-            <button
-              onClick={handleCheckInClick}
-              disabled={hasCheckedInToday}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-extrabold text-xs transition shadow-md cursor-pointer ${
-                hasCheckedInToday
-                  ? 'bg-amber-800/40 text-amber-200 border border-amber-400/30'
-                  : 'bg-white text-amber-700 hover:bg-yellow-50 shadow-amber-900/20'
-              }`}
-            >
-              <CalendarCheck className="w-3.5 h-3.5" />
-              <span>{hasCheckedInToday ? 'Đã điểm danh' : 'Điểm danh (+5k Xu Thường)'}</span>
-            </button>
           </div>
         </div>
 
-        {/* Check-in Message Alert */}
-        {checkInMsg && (
-          <div className={`p-3 text-xs flex items-center gap-2 font-bold shrink-0 ${
-            checkInMsg.success ? 'bg-emerald-50 text-emerald-800 border-b border-emerald-200' : 'bg-amber-50 text-amber-800 border-b border-amber-200'
-          }`}>
-            {checkInMsg.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />}
-            <span>{checkInMsg.text}</span>
+        {/* Legal Disclaimer Bar */}
+        <div className="bg-slate-900 text-white px-4 py-2 text-[11px] flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 text-slate-300">
+            <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>Xu là điểm thưởng (không đổi ra tiền). Shop không có xu.</span>
           </div>
-        )}
+          <span className="bg-amber-500/30 text-amber-300 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">
+            Hạn 6 tháng
+          </span>
+        </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-gray-100 bg-gray-50/70 p-2 gap-2 shrink-0">
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex-1 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
-              activeTab === 'history'
-                ? 'bg-white text-amber-800 shadow-sm border border-amber-200'
-                : 'text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            Lịch sử nhận Xu
-          </button>
+        {/* Modal Navigation Tabs */}
+        <div className="flex border-b border-gray-100 bg-gray-50/70 p-2 gap-1 shrink-0">
           <button
             onClick={() => setActiveTab('tasks')}
-            className={`flex-1 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
-              activeTab === 'tasks'
-                ? 'bg-white text-amber-800 shadow-sm border border-amber-200'
-                : 'text-gray-500 hover:text-gray-800'
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'tasks' ? 'bg-white text-amber-700 shadow-sm border border-amber-200' : 'text-gray-500 hover:text-gray-800'
             }`}
           >
-            Quy định & Nhiệm vụ Xu
+            <CalendarCheck className="w-4 h-4 text-amber-600" />
+            <span>Điểm danh & Nhiệm vụ</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'rules' ? 'bg-white text-amber-700 shadow-sm border border-amber-200' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <Info className="w-4 h-4 text-indigo-600" />
+            <span>Quy tắc Xu (11 Quy định)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'history' ? 'bg-white text-amber-700 shadow-sm border border-amber-200' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <Clock className="w-4 h-4 text-amber-600" />
+            <span>Lịch sử biến động</span>
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3">
+        {/* Scrollable Body */}
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
           
-          {/* TAB 1: LỊCH SỬ NHẬN / TIÊU XU */}
+          {/* TAB 1: DAILY CHECK-IN & TASKS */}
+          {activeTab === 'tasks' && (
+            <div className="space-y-4">
+              
+              {/* Daily Check-in Card with 7-Day Streak */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-sm text-amber-950 flex items-center gap-1.5">
+                      <Flame className="w-4 h-4 text-orange-500" />
+                      <span>Chuỗi Điểm Danh 7 Ngày Nhận Xu</span>
+                    </h3>
+                    <p className="text-[11px] text-amber-800/80 mt-0.5">
+                      Ngày 1-6 nhận 50 xu/ngày • Ngày 7 thưởng +300 xu (Trọn tuần 600 xu)
+                    </p>
+                  </div>
+
+                  <span className="text-xs font-black bg-orange-500 text-white px-2.5 py-1 rounded-full shadow-sm">
+                    Chuỗi: Day {checkInStreak}/7
+                  </span>
+                </div>
+
+                {/* Condition Notification */}
+                {!hasCompletedOrder && (
+                  <div className="p-2.5 bg-rose-100/80 border border-rose-300 rounded-xl text-xs text-rose-900 font-bold flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <span>⚠️ Bạn cần có ít nhất 1 đơn hàng đã hoàn thành để mở khóa tính năng Điểm Danh! (Giúp chống nick ảo).</span>
+                  </div>
+                )}
+
+                {/* 7-Day Streak Visualization */}
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+                    const isPassed = day < checkInStreak;
+                    const isCurrent = day === checkInStreak;
+                    const dayXu = day === 7 ? '+300' : '50';
+
+                    return (
+                      <div 
+                        key={day}
+                        className={`p-2 rounded-xl text-[10px] font-bold border transition ${
+                          isCurrent
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105'
+                            : isPassed
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : 'bg-white text-gray-400 border-gray-200'
+                        }`}
+                      >
+                        <div className="text-[9px] uppercase font-extrabold opacity-80">N{day}</div>
+                        <div className="font-black text-xs mt-0.5">{dayXu}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Check-in Trigger Button */}
+                <button
+                  type="button"
+                  onClick={handleCheckInClick}
+                  disabled={hasCheckedInToday || userRole === 'merchant'}
+                  className={`w-full py-3 rounded-xl font-extrabold text-xs transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+                    userRole === 'merchant'
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : hasCheckedInToday
+                      ? 'bg-emerald-600 text-white shadow-emerald-200'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-amber-200'
+                  }`}
+                >
+                  {userRole === 'merchant' ? (
+                    <span>Tài khoản Shop không có tích Xu</span>
+                  ) : hasCheckedInToday ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Đã điểm danh hôm nay (Hẹn quay lại ngày mai)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-yellow-200 animate-spin" />
+                      <span>Điểm Danh Ngay (+{checkInStreak === 7 ? '300' : '50'} Xu Thường)</span>
+                    </>
+                  )}
+                </button>
+
+                {checkInMsg && (
+                  <div className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                    checkInMsg.success ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'
+                  }`}>
+                    {checkInMsg.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
+                    <span>{checkInMsg.text}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Tasks List */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black uppercase text-gray-900">Cách kiếm thêm Xu</h4>
+
+                {/* Task 1: Review Completed Order */}
+                <div className="p-3 bg-white border border-gray-200 rounded-2xl flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-gray-900 block">Viết Đánh Giá Đơn Đã Hoàn Thành</span>
+                    <span className="text-gray-500 text-[11px]">Hoàn {reviewCashbackRate}% giá trị đơn (Admin cài đặt 1-3%)</span>
+                  </div>
+                  <span className="px-2.5 py-1 bg-amber-100 text-amber-900 font-extrabold rounded-lg shrink-0">
+                    +{reviewCashbackRate}% Xu
+                  </span>
+                </div>
+
+                {/* Task 2: Admin / Campaign Reward */}
+                <div className="p-3 bg-white border border-gray-200 rounded-2xl flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-gray-900 block">Thưởng Đăng Tin & Sự Kiện Admin</span>
+                    <span className="text-gray-500 text-[11px]">Admin tặng Xu khi tham gia các chiến dịch toàn sàn</span>
+                  </div>
+                  <span className="px-2.5 py-1 bg-indigo-100 text-indigo-900 font-extrabold rounded-lg shrink-0">
+                    +10.000 Xu
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 2: RULES MATRIX */}
+          {activeTab === 'rules' && (
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-slate-900 text-white rounded-2xl border border-slate-700 space-y-2">
+                <h3 className="font-extrabold text-amber-400 text-sm flex items-center gap-1.5">
+                  <Info className="w-4 h-4 text-amber-400" />
+                  <span>Quy Định Hệ Thống Xu (11 Quy Tắc)</span>
+                </h3>
+                <p className="text-[11px] text-slate-300">
+                  Xu là điểm thưởng khuyến khích tiêu dùng, giữ ranh giới pháp lý dự án minh bạch.
+                </p>
+              </div>
+
+              {/* Rules List */}
+              <div className="space-y-2 text-gray-800">
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">1. Quy đổi giá trị:</span>
+                  <span className="font-black text-amber-700">1 Xu = 1 VNĐ</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">2. Hoàn xu khi đánh giá:</span>
+                  <span className="font-black text-amber-700">{reviewCashbackRate}% giá trị đơn (Admin chỉnh 1-3%)</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">3. Điểm danh Ngày 1–6:</span>
+                  <span className="font-black text-emerald-700">50 xu / ngày</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">4. Điểm danh Ngày 7:</span>
+                  <span className="font-black text-emerald-700">+300 xu (Trọn tuần 600 xu, bỏ lỡ 1 ngày reset)</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">5. Điều kiện điểm danh:</span>
+                  <span className="font-black text-rose-700">Có ít nhất 1 đơn hoàn thành (Chống nick ảo)</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">6. Trần phát toàn sàn:</span>
+                  <span className="font-black text-purple-700">500.000 xu / tháng (Hiện tại: {monthlyDistributedCoins.toLocaleString()}/500k)</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">7. Trần tiêu mỗi đơn:</span>
+                  <span className="font-black text-indigo-700">Tối đa 10% đơn, không quá 50.000 xu</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">8. Hạn sử dụng:</span>
+                  <span className="font-black text-amber-700">6 tháng (Có thông báo trước)</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">9. Đổi ra tiền mặt:</span>
+                  <span className="font-black text-rose-700">KHÔNG (Xu là điểm thưởng, giữ ranh giới luật)</span>
+                </div>
+
+                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
+                  <span className="font-bold text-gray-600">10. Tài khoản Shop:</span>
+                  <span className="font-black text-gray-700">KHÔNG có Xu (Chỉ dùng cho Buyer)</span>
+                </div>
+              </div>
+
+              {/* ADMIN REVIEW CASHBACK CONFIGURATOR */}
+              {isAdmin && (
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-300 space-y-2 mt-3">
+                  <span className="font-extrabold text-amber-900 text-xs block">👑 Cài đặt Admin: Tỷ lệ hoàn Xu khi đánh giá</span>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3].map((rate) => (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => setReviewCashbackRate(rate)}
+                        className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer ${
+                          reviewCashbackRate === rate ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-amber-900 border border-amber-300'
+                        }`}
+                      >
+                        {rate}% giá trị đơn
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: TRANSACTION HISTORY */}
           {activeTab === 'history' && (
             <div className="space-y-3">
-              {/* Filter pills */}
-              <div className="flex items-center gap-2 pb-1">
+              {/* Filter sub-tabs */}
+              <div className="flex gap-1.5 text-xs">
                 <button
                   onClick={() => setHistoryFilter('all')}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition ${
-                    historyFilter === 'all' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-3 py-1 rounded-lg font-bold cursor-pointer ${
+                    historyFilter === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   Tất cả ({coinTransactions.length})
                 </button>
                 <button
                   onClick={() => setHistoryFilter('tq')}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition ${
-                    historyFilter === 'tq' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                  className={`px-3 py-1 rounded-lg font-bold cursor-pointer ${
+                    historyFilter === 'tq' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   Xu TQ
                 </button>
                 <button
                   onClick={() => setHistoryFilter('regular')}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition ${
-                    historyFilter === 'regular' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  className={`px-3 py-1 rounded-lg font-bold cursor-pointer ${
+                    historyFilter === 'regular' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   Xu Thường
@@ -173,141 +387,48 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
               </div>
 
               {/* Transactions List */}
-              {filteredTransactions.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 text-xs">
-                  Chưa có lịch sử biến động Xu phù hợp.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredTransactions.map((tx) => {
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {filteredTransactions.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400 text-xs">
+                    Chưa có biến động điểm thưởng nào.
+                  </div>
+                ) : (
+                  filteredTransactions.map((tx) => {
                     const isEarn = tx.type === 'earn' || tx.type === 'bonus';
                     const isTQ = tx.coin_category === 'tq';
-
-                    const dateStr = new Date(tx.created_at).toLocaleString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                    });
+                    const dateStr = new Date(tx.created_at).toLocaleString('vi-VN');
 
                     return (
-                      <div 
-                        key={tx.id}
-                        className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-amber-200 transition gap-3"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                            isTQ 
-                              ? 'bg-amber-100 text-amber-700' 
-                              : isEarn 
-                                ? 'bg-emerald-50 text-emerald-600' 
-                                : 'bg-rose-50 text-rose-600'
+                      <div key={tx.id} className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                            isEarn ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                           }`}>
-                            {isEarn ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                            {isEarn ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                           </div>
-
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase ${
-                                isTQ ? 'bg-amber-500 text-white' : 'bg-emerald-100 text-emerald-800'
-                              }`}>
+                          <div>
+                            <h4 className="font-bold text-gray-900 line-clamp-1">{tx.description}</h4>
+                            <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                              <span>{dateStr}</span>
+                              <span>•</span>
+                              <span className={isTQ ? 'text-amber-600 font-extrabold' : 'text-emerald-600 font-extrabold'}>
                                 {isTQ ? 'Xu TQ' : 'Xu Thường'}
                               </span>
-                              <h4 className="text-xs font-bold text-gray-900 truncate">{tx.description}</h4>
-                            </div>
-                            <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1">
-                              <Clock className="w-3 h-3 shrink-0" />
-                              <span>{dateStr}</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className={`text-xs font-black shrink-0 ${
-                          isEarn ? (isTQ ? 'text-amber-600' : 'text-emerald-600') : 'text-rose-600'
-                        }`}>
-                          {isEarn ? '+' : '-'}{tx.amount.toLocaleString('vi-VN')} Xu
+                        <div className="text-right shrink-0">
+                          <span className={`font-black text-sm ${
+                            isEarn ? 'text-emerald-600' : 'text-rose-600'
+                          }`}>
+                            {isEarn ? '+' : '-'}{tx.amount.toLocaleString('vi-VN')} Xu
+                          </span>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 2: QUY ĐỊNH & NHIỆM VỤ NHẬN XU */}
-          {activeTab === 'tasks' && (
-            <div className="space-y-3">
-              {/* Rule Banner */}
-              <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
-                <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                  <Coins className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Phân Phối & Áp Dụng 2 Loại Xu</span>
-                </div>
-                <p className="text-[11px] text-amber-800 leading-snug">
-                  • <strong>Xu TQ</strong>: Tặng khi Đăng ký mới ➔ Áp dụng duy nhất tại <strong>Cửa hàng TQ</strong>.<br/>
-                  • <strong>Xu Thường</strong>: Nhận từ Điểm danh / Đánh giá ➔ Áp dụng tại <strong>Cửa hàng đã xác minh</strong>.
-                </p>
-              </div>
-
-              {/* Task 1: Đăng ký mới */}
-              <div className="p-3.5 bg-white border border-amber-200 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center font-bold">
-                    <Gift className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-xs text-gray-900">Đăng ký tài khoản mới</h4>
-                    <p className="text-[11px] text-gray-500">Tặng ngay <strong>Xu TQ</strong> khi tạo tài khoản thành công.</p>
-                  </div>
-                </div>
-
-                <span className="px-3 py-1.5 bg-amber-500 text-white font-black text-xs rounded-xl shadow-sm shrink-0">
-                  +50.000 Xu TQ
-                </span>
-              </div>
-
-              {/* Task 2: Điểm danh */}
-              <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center font-bold">
-                    <CalendarCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-xs text-gray-900">Điểm danh hàng ngày</h4>
-                    <p className="text-[11px] text-gray-500">Nhận ngay <strong>Xu Thường</strong> mỗi ngày 1 lần điểm danh.</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleCheckInClick}
-                  disabled={hasCheckedInToday}
-                  className={`px-3 py-1.5 rounded-xl font-bold text-xs shrink-0 cursor-pointer ${
-                    hasCheckedInToday
-                      ? 'bg-gray-200 text-gray-500'
-                      : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
-                  }`}
-                >
-                  {hasCheckedInToday ? 'Đã nhận' : '+5.000 Xu Thường'}
-                </button>
-              </div>
-
-              {/* Task 3: Đánh giá & Đăng tin */}
-              <div className="p-3.5 bg-white border border-gray-200 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center font-bold">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-xs text-gray-900">Đánh giá & Đăng tin tiện ích mới</h4>
-                    <p className="text-[11px] text-gray-500">Tặng <strong>Xu Thường</strong> khi đánh giá / tạo bài đăng dịch vụ mới.</p>
-                  </div>
-                </div>
-
-                <span className="px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 shrink-0">
-                  +10.000 Xu Thường
-                </span>
+                  })
+                )}
               </div>
             </div>
           )}

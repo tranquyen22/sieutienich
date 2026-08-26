@@ -137,6 +137,7 @@ export interface CoinTransaction {
   coin_category: 'regular' | 'tq'; // Xu Thường hoặc Xu TQ
   description: string;
   created_at: string;
+  expires_at?: string; // Hạn dùng 6 tháng
 }
 
 export interface MerchantApplication {

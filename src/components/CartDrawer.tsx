@@ -57,15 +57,18 @@ export const CartDrawer: React.FC = () => {
   const hasVerifiedItems = selectedCartItems.some((item) => Boolean(item.product.isLicensed));
   const hasUnverifiedItems = selectedCartItems.some((item) => !item.product.isTQStore && !item.product.isLicensed);
 
-  // Rule 5: Coins discount
+  // Rule 8: Trần tiêu mỗi đơn - Tối đa 10% giá trị đơn, không quá 50.000 xu
+  const maxCoinAllowedPerOrder = Math.min(50000, Math.floor(selectedTotalAmount * 0.10));
+
   let tqDiscount = 0;
   if (useTQCoins && hasTQItems && selectedTotalAmount > 0) {
-    tqDiscount = Math.min(tqCoins, Math.floor(selectedTotalAmount * 0.2));
+    tqDiscount = Math.min(tqCoins, maxCoinAllowedPerOrder);
   }
 
   let regularDiscount = 0;
   if (useRegularCoins && (hasVerifiedItems || hasTQItems) && selectedTotalAmount > 0) {
-    regularDiscount = Math.min(regularCoins, Math.floor((selectedTotalAmount - tqDiscount) * 0.1));
+    const remainingCoinCap = Math.max(0, maxCoinAllowedPerOrder - tqDiscount);
+    regularDiscount = Math.min(regularCoins, remainingCoinCap);
   }
 
   // Rule 7: Platform Voucher (Only for verified shops)

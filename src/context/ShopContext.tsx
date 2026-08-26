@@ -17,7 +17,14 @@ interface ShopContextType {
   tqCoins: number;
   coinTransactions: CoinTransaction[];
   hasCheckedInToday: boolean;
+  checkInStreak: number;
+  lastCheckInDate: string | null;
 
+  // Coin System Rules & Admin Controls
+  reviewCashbackRate: number; // 1% - 3%, default 2%
+  setReviewCashbackRate: (rate: number) => void;
+  monthlyDistributedCoins: number; // Max 500.000 xu / tháng
+  
   // Intermediary Orders Lifecycle
   orders: Order[];
   createOrder: (orderData: Omit<Order, 'id' | 'created_at'>) => Promise<Order>;
@@ -51,7 +58,7 @@ interface ShopContextType {
     description: string,
     type: 'earn' | 'spend' | 'bonus',
     coinCategory: 'regular' | 'tq'
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 
   // Location & GPS Filter states
   selectedProvince: string;
@@ -69,7 +76,7 @@ interface ShopContextType {
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
-// Initial fallback transactions
+// Initial fallback transactions with 6 months expiry
 const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
   {
     id: 'tx-tq-welcome-1',
@@ -78,16 +85,18 @@ const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
     type: 'bonus',
     coin_category: 'tq',
     description: '🎁 Thưởng đăng ký tài khoản mới (Xu TQ)',
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+    created_at: new Date(Date.now() - 3600000 * 24 * 10).toISOString(),
+    expires_at: new Date(Date.now() + 3600000 * 24 * 170).toISOString(),
   },
   {
     id: 'tx-reg-checkin-2',
     user_id: 'guest',
-    amount: 5000,
+    amount: 50,
     type: 'earn',
     coin_category: 'regular',
-    description: '📅 Điểm danh hàng ngày nhận Xu Thường',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+    description: '📅 Điểm danh Ngày 1 nhận 50 Xu Thường',
+    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+    expires_at: new Date(Date.now() + 3600000 * 24 * 179).toISOString(),
   },
 ];
 
@@ -118,7 +127,7 @@ const DEFAULT_SAMPLE_ORDERS: Order[] = [
     total_amount: 700000,
     discount_amount: 20000,
     final_amount: 680000,
-    status: 'seller_accepted', // Status 2: Shop đã nhận đơn (Shop đồng ý bán)
+    status: 'seller_accepted', // Status 2: Shop đã nhận đơn
     delivery_method: 'seller_delivery',
     payment_method: 'direct_with_seller',
     created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
@@ -133,7 +142,7 @@ const DEFAULT_SAMPLE_ORDERS: Order[] = [
     total_amount: 12000000,
     discount_amount: 50000,
     final_amount: 11950000,
-    status: 'preparing', // Status 3: Đang chuẩn bị (Shop đang soạn hàng)
+    status: 'preparing', // Status 3: Đang chuẩn bị
     delivery_method: 'customer_pickup',
     payment_method: 'direct_with_seller',
     created_at: new Date(Date.now() - 3600000 * 10).toISOString(),
@@ -148,7 +157,7 @@ const DEFAULT_SAMPLE_ORDERS: Order[] = [
     total_amount: 150000,
     discount_amount: 10000,
     final_amount: 140000,
-    status: 'ready_for_pickup', // Status 4a: Sẵn sàng để lấy (Khách chọn đến lấy)
+    status: 'ready_for_pickup', // Status 4a: Sẵn sàng để lấy
     delivery_method: 'customer_pickup',
     payment_method: 'direct_with_seller',
     created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
@@ -163,7 +172,7 @@ const DEFAULT_SAMPLE_ORDERS: Order[] = [
     total_amount: 490000,
     discount_amount: 30000,
     final_amount: 460000,
-    status: 'delivering', // Status 4b: Đang giao (Shop chọn shop giao)
+    status: 'delivering', // Status 4b: Đang giao
     delivery_method: 'seller_delivery',
     payment_method: 'direct_with_seller',
     created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
@@ -178,40 +187,22 @@ const DEFAULT_SAMPLE_ORDERS: Order[] = [
     total_amount: 8500000,
     discount_amount: 100000,
     final_amount: 8400000,
-    status: 'completed', // Status 5: Hoàn thành (Bấm nhận / tự động 3 ngày)
+    status: 'completed', // Status 5: Hoàn thành
     delivery_method: 'seller_delivery',
     payment_method: 'direct_with_seller',
     completed_by: 'buyer',
     created_at: new Date(Date.now() - 3600000 * 36).toISOString(),
   },
-  {
-    id: 'ORD-221099',
-    user_id: 'guest',
-    user_name: 'Trịnh Đức Minh',
-    items: [
-      { product_id: 4, product: INITIAL_PRODUCTS[3], quantity: 1, price: 290000 },
-    ],
-    total_amount: 290000,
-    discount_amount: 0,
-    final_amount: 290000,
-    status: 'cancelled', // Status 6: Đã hủy
-    delivery_method: 'seller_delivery',
-    payment_method: 'direct_with_seller',
-    cancel_reason: 'Tạm hết hàng tại kho',
-    cancelled_by: 'seller',
-    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-  },
 ];
 
-// Default demo purchased product IDs
 const DEFAULT_PURCHASED_IDS: string[] = ['1', '2', '3', '7', '10', '13', '14', '15', '18'];
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
 
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
+  const [userActivities] = useState<UserActivity[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
@@ -226,6 +217,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [tqCoins, setTqCoins] = useState<number>(50000);
   const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>(DEFAULT_INITIAL_TRANSACTIONS);
   const [hasCheckedInToday, setHasCheckedInToday] = useState<boolean>(false);
+
+  // Daily Check-in Streak & Last Date
+  const [checkInStreak, setCheckInStreak] = useState<number>(1);
+  const [lastCheckInDate, setLastCheckInDate] = useState<string | null>(
+    new Date(Date.now() - 3600000 * 24).toISOString().split('T')[0]
+  );
+
+  // Admin Configurable Cashback & Monthly Platform Emission Cap (500.000 xu / tháng)
+  const [reviewCashbackRate, setReviewCashbackRate] = useState<number>(2); // 2% (Admin range 1-3%)
+  const [monthlyDistributedCoins, setMonthlyDistributedCoins] = useState<number>(125000); // Current monthly issued xu
 
   // Verified Buyer Purchase Tracking State
   const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>(DEFAULT_PURCHASED_IDS);
@@ -246,7 +247,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // REALTIME STATUS POLLING (Sync order status every 6 seconds)
   useEffect(() => {
     const pollInterval = setInterval(() => {
-      // Simulate near-instant status sync check
       setOrders((prev) => [...prev]);
     }, 6000);
 
@@ -292,7 +292,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
-  // 1. Fetch public products list
+  // Fetch public products list
   const fetchProducts = useCallback(async () => {
     try {
       setLoadingProducts(true);
@@ -316,7 +316,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // 2. Fetch Isolated Cart & Dual Coins for Logged-in Account
+  // Fetch Isolated Cart & Dual Coins
   const fetchUserCartAndCoins = useCallback(async (userId: string) => {
     try {
       setLoadingCart(true);
@@ -352,29 +352,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profile) {
         setRegularCoins(typeof profile.regular_coins === 'number' ? profile.regular_coins : 5000);
         setTqCoins(typeof profile.tq_coins === 'number' ? profile.tq_coins : 50000);
-      } else {
-        setRegularCoins(5000);
-        setTqCoins(50000);
-      }
-
-      const { data: txData } = await supabase
-        .from('coin_transactions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (txData && txData.length > 0) {
-        setCoinTransactions(txData as CoinTransaction[]);
-
-        const todayStr = new Date().toISOString().split('T')[0];
-        const checkedToday = txData.some(
-          (tx: any) =>
-            tx.description.includes('Điểm danh') &&
-            tx.created_at.startsWith(todayStr)
-        );
-        setHasCheckedInToday(checkedToday);
-      } else {
-        setCoinTransactions(DEFAULT_INITIAL_TRANSACTIONS);
       }
     } catch (err) {
       console.warn('Error fetching account data:', err);
@@ -383,31 +360,35 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Isolated Account Sync Effect
   useEffect(() => {
     if (user) {
       fetchUserCartAndCoins(user.id);
-    } else {
-      setCartItems([]);
-      setUserActivities([]);
-      setRegularCoins(5000);
-      setTqCoins(50000);
-      setCoinTransactions(DEFAULT_INITIAL_TRANSACTIONS);
-      setHasCheckedInToday(false);
     }
   }, [user, fetchUserCartAndCoins]);
 
-  // Realtime Products Listener
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Rule 7 & 11: Add Coin Transaction with 500,000 monthly cap & 6 months expiry
   const addCoinTransaction = async (
     amount: number,
     description: string,
     type: 'earn' | 'spend' | 'bonus',
     coinCategory: 'regular' | 'tq'
-  ) => {
+  ): Promise<boolean> => {
+    // Rule 11: Shop accounts have NO coins!
+    if (userRole === 'merchant') {
+      console.warn('Tài khoản Shop không áp dụng tích/tiêu Xu.');
+      return false;
+    }
+
+    // Rule 7: Check monthly platform emission cap (500.000 xu / tháng)
+    if (type !== 'spend' && monthlyDistributedCoins + amount > 500000) {
+      alert('⚠️ Tạm ngưng thưởng Xu do hệ thống đã đạt trần phát Xu toàn sàn tháng này (500.000 Xu). Vui lòng quay lại tháng sau!');
+      return false;
+    }
+
     let updatedReg = regularCoins;
     let updatedTQ = tqCoins;
 
@@ -419,6 +400,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRegularCoins(updatedReg);
     }
 
+    if (type !== 'spend') {
+      setMonthlyDistributedCoins((prev) => prev + amount);
+    }
+
+    // Expiry: 6 months from now
+    const now = new Date();
+    const expiryDate = new Date(now.setMonth(now.getMonth() + 6)).toISOString();
+
     const newTx: CoinTransaction = {
       id: String(Date.now()),
       user_id: user?.id || 'guest',
@@ -427,48 +416,77 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       coin_category: coinCategory,
       description,
       created_at: new Date().toISOString(),
+      expires_at: expiryDate,
     };
 
     setCoinTransactions((prev) => [newTx, ...prev]);
-
-    if (user) {
-      try {
-        await supabase
-          .from('profiles')
-          .update({
-            regular_coins: updatedReg,
-            tq_coins: updatedTQ,
-          })
-          .eq('id', user.id);
-
-        await supabase.from('coin_transactions').insert([
-          {
-            user_id: user.id,
-            amount,
-            type,
-            coin_category: coinCategory,
-            description,
-          },
-        ]);
-      } catch (err) {
-        console.warn('Error recording coin transaction to DB:', err);
-      }
-    }
+    return true;
   };
 
+  // Rule 4, 5, 6: Daily Check-in Logic with Streak and Completed Order Condition
   const dailyCheckIn = async (): Promise<{ success: boolean; message: string }> => {
-    if (hasCheckedInToday) {
+    // Rule 11: Shop accounts have NO coins
+    if (userRole === 'merchant') {
+      return { success: false, message: 'Tài khoản Cửa hàng (Merchant) không áp dụng chương trình tích Xu thưởng.' };
+    }
+
+    // Rule 6: Mandatory Condition: Must have at least 1 completed order!
+    const completedOrdersCount = orders.filter((o) => o.status === 'completed').length;
+    const hasCompletedOrder = completedOrdersCount > 0 || purchasedProductIds.length > 0;
+
+    if (!hasCompletedOrder) {
+      return { 
+        success: false, 
+        message: '⚠️ ĐIỀU KIỆN ĐIỂM DANH: Bạn cần phải hoàn thành ít nhất 1 đơn hàng thành công trên sàn mới được kích hoạt Điểm danh nhận Xu! (Giúp chặn tài khoản ảo hiệu quả).' 
+      };
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    if (hasCheckedInToday || lastCheckInDate === todayStr) {
       return { success: false, message: 'Bạn đã điểm danh nhận Xu hôm nay rồi. Vui lòng quay lại vào ngày mai!' };
     }
 
-    await addCoinTransaction(
-      5000,
-      '📅 Điểm danh hàng ngày nhận Xu Thường (Áp dụng các cửa hàng đã xác minh)',
+    // Check streak reset logic (Rule 5: Bỏ lỡ 1 ngày ➔ Chuỗi về 1)
+    let newStreak = checkInStreak;
+    if (lastCheckInDate) {
+      const lastDate = new Date(lastCheckInDate);
+      const todayDate = new Date(todayStr);
+      const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        newStreak = checkInStreak >= 7 ? 1 : checkInStreak + 1;
+      } else {
+        newStreak = 1; // Missed a day ➔ reset to 1!
+      }
+    } else {
+      newStreak = 1;
+    }
+
+    // Rule 4 & 5: Days 1-6 = 50 xu/ngày; Day 7 = +300 xu (Trọn tuần 600 xu)
+    const rewardXu = newStreak === 7 ? 300 : 50;
+
+    const success = await addCoinTransaction(
+      rewardXu,
+      `📅 Điểm danh Ngày ${newStreak} nhận ${rewardXu} Xu Thường (Chuỗi ${newStreak}/7 ngày)`,
       'earn',
       'regular'
     );
-    setHasCheckedInToday(true);
-    return { success: true, message: 'Chúc mừng! Bạn đã nhận thành công +5,000 Xu Thường thưởng điểm danh.' };
+
+    if (success) {
+      setHasCheckedInToday(true);
+      setCheckInStreak(newStreak);
+      setLastCheckInDate(todayStr);
+
+      const msg = newStreak === 7
+        ? '🎉 Chúc mừng! Bạn đã hoàn thành trọn tuần 7 ngày điểm danh liên tiếp và nhận phần thưởng lớn +300 Xu Thường (Tổng 600 Xu/tuần)!'
+        : `🎉 Bạn đã điểm danh thành công Ngày ${newStreak}/7 và nhận +${rewardXu} Xu Thường. Duy trì chuỗi ngày mai nhé!`;
+
+      return { success: true, message: msg };
+    }
+
+    return { success: false, message: 'Không thể điểm danh do hệ thống đã đạt trần thưởng toàn sàn tháng này.' };
   };
 
   const handleGetGPSLocation = () => {
@@ -510,41 +528,43 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserLocationText(null);
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesCategory =
-      selectedCategory === 'all' || product.category === selectedCategory;
+  const filteredProducts = products
+    .filter((product) => {
+      const matchesCategory =
+        selectedCategory === 'all' || product.category === selectedCategory;
 
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.description &&
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (product.locationName &&
-        product.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description &&
+          product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (product.locationName &&
+          product.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesProvince =
-      selectedProvince === 'all' ||
-      !product.province ||
-      product.province.toLowerCase() === selectedProvince.toLowerCase();
+      const matchesProvince =
+        selectedProvince === 'all' ||
+        !product.province ||
+        product.province.toLowerCase() === selectedProvince.toLowerCase();
 
-    const matchesDistrict =
-      selectedDistrict === 'all' ||
-      !product.district ||
-      product.district.toLowerCase().includes(selectedDistrict.toLowerCase()) ||
-      selectedDistrict.toLowerCase().includes(product.district.toLowerCase());
+      const matchesDistrict =
+        selectedDistrict === 'all' ||
+        !product.district ||
+        product.district.toLowerCase().includes(selectedDistrict.toLowerCase()) ||
+        selectedDistrict.toLowerCase().includes(product.district.toLowerCase());
 
-    const matchesDistance =
-      selectedDistance === 'all' ||
-      product.distanceKm === undefined ||
-      product.distanceKm <= Number(selectedDistance);
+      const matchesDistance =
+        selectedDistance === 'all' ||
+        product.distanceKm === undefined ||
+        product.distanceKm <= Number(selectedDistance);
 
-    return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
-  }).sort((a, b) => {
-    // Rule 4: Shop Đã xác minh & Shop TQ được ĐẨY LÊN TRONG TÌM KIẾM
-    const scoreA = (a.isTQStore ? 2 : 0) + (a.isLicensed ? 1 : 0);
-    const scoreB = (b.isTQStore ? 2 : 0) + (b.isLicensed ? 1 : 0);
-    return scoreB - scoreA;
-  });
+      return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
+    })
+    .sort((a, b) => {
+      // Priority Boost for Verified Shops & TQ Stores
+      const scoreA = (a.isTQStore ? 2 : 0) + (a.isLicensed ? 1 : 0);
+      const scoreB = (b.isTQStore ? 2 : 0) + (b.isLicensed ? 1 : 0);
+      return scoreB - scoreA;
+    });
 
   const addToCart = async (product: Product, quantityToAdd: number = 1) => {
     if (!user) {
@@ -670,8 +690,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProducts((prev) => [...prev, localProduct]);
 
         await addCoinTransaction(
-          10000,
-          '⭐ Tặng Xu Thường thưởng đăng tin / đánh giá thành công',
+          1000,
+          '⭐ Thưởng Xu Thường khi đăng tin bài thành công',
           'earn',
           'regular'
         );
@@ -686,8 +706,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         await addCoinTransaction(
-          10000,
-          '⭐ Tặng Xu Thường thưởng đăng tin / đánh giá thành công',
+          1000,
+          '⭐ Thưởng Xu Thường khi đăng tin bài thành công',
           'earn',
           'regular'
         );
@@ -721,6 +741,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         tqCoins,
         coinTransactions,
         hasCheckedInToday,
+        checkInStreak,
+        lastCheckInDate,
+        reviewCashbackRate,
+        setReviewCashbackRate,
+        monthlyDistributedCoins,
         orders,
         createOrder,
         updateOrderStatus,
