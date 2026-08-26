@@ -11,10 +11,10 @@ export const FloatingQuickChatButton: React.FC<FloatingQuickChatButtonProps> = (
   unreadCount = 2,
 }) => {
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2 group animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-2 group animate-in fade-in slide-in-from-bottom-4 duration-300">
       
       {/* Tooltip Label */}
-      <span className="hidden sm:inline-block px-3 py-1.5 bg-slate-900 text-white text-xs font-black rounded-xl shadow-lg border border-slate-700 opacity-90 group-hover:opacity-100 transition">
+      <span className="hidden md:inline-block px-3 py-1.5 bg-slate-900 text-white text-xs font-black rounded-xl shadow-lg border border-slate-700 opacity-90 group-hover:opacity-100 transition">
         💬 Tin Nhắn Realtime
       </span>
 
