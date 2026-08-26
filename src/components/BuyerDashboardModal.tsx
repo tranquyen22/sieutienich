@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
-  X, ShoppingBag, Coins, Ticket, MapPin, Heart, Clock, MessageSquare, 
-  Bell, Star, CalendarCheck, QrCode, Share2, Calendar, KeyRound, HelpCircle, 
-  Trash2, ShieldAlert, Copy, ArrowUpRight, ArrowDownLeft, Store
+  X, ShoppingBag, Coins, Ticket, MapPin, Clock, MessageSquare, 
+  Star, Calendar, KeyRound, 
+  LogOut, ChevronRight, Truck, CheckCircle2, RotateCcw, Package, Sparkles, Store
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -20,7 +20,6 @@ interface BuyerDashboardModalProps {
 export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
   isOpen,
   onClose,
-  addresses,
   onOpenAddressBook,
   onOpenMessaging,
   onOpenOrderTracking,
@@ -28,144 +27,98 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
   const { 
     regularCoins, 
     tqCoins, 
-    coinTransactions, 
     dailyCheckIn, 
-    hasCheckedInToday, 
     checkInStreak,
-    orders,
-    products
+    orders
   } = useShop();
 
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+
+  const [orderFilter, setOrderFilter] = useState<'all' | 'pending' | 'preparing' | 'shipping' | 'completed' | 'cancelled'>('all');
 
   const [activeTab, setActiveTab] = useState<
+    | 'overview'
     | 'orders' 
     | 'wallet' 
-    | 'history' 
     | 'vouchers' 
     | 'addresses' 
-    | 'favorites' 
-    | 'recent' 
     | 'messages' 
     | 'notifications' 
     | 'reviews' 
     | 'checkin' 
-    | 'qrcode' 
-    | 'referral' 
     | 'booking' 
     | 'rentals' 
     | 'support' 
     | 'settings' 
     | 'delete_account'
-  >('orders');
-
-  const [orderFilter, setOrderFilter] = useState<'processing' | 'completed'>('processing');
-  const [copiedReferral, setCopiedReferral] = useState(false);
-  const [deleteReason, setDeleteReason] = useState('');
-
-  // Sample Favorites
-  const favoriteProducts = products.slice(0, 4);
-
-  // Sample Recently Viewed
-  const recentlyViewedProducts = products.slice(0, 6);
-
-  // Sample User Reviews
-  const [myReviews] = useState([
-    {
-      id: 'rev-1',
-      product_name: 'Combo Lẩu Thái Hải Sản Khoái Châu',
-      rating: 5,
-      comment: 'Đồ ăn cực tươi ngon, giao nhanh trong 30 phút. Rất hài lòng!',
-      date: '2026-08-20',
-    },
-    {
-      id: 'rev-2',
-      product_name: 'Cho Thuê Kiot Mặt Tiền Chợ Khoái Châu',
-      rating: 5,
-      comment: 'Chủ gian hàng hỗ trợ thủ tục rất nhiệt tình. Vị trí kiot đắc địa.',
-      date: '2026-08-15',
-    },
-  ]);
-
-  // Sample Bookings & Active Rentals
-  const myBookings = [
-    {
-      id: 'BK-9921',
-      service_name: 'Đặt Lịch Gội Đầu Thảo Dược Đông Y',
-      shop_name: 'Spa Đông Y Khoái Châu',
-      booking_date: '2026-08-28 14:00',
-      status: 'confirmed',
-    },
-  ];
-
-  const activeRentals = [
-    {
-      id: 'RNT-4410',
-      item_name: 'Thuê Thiết Bị Âm Thanh Sự Kiện',
-      shop_name: 'Điện Máy Hưng Yên',
-      rental_period: '25/08/2026 - 28/08/2026',
-      status: 'in_use',
-    },
-  ];
+  >('overview');
 
   if (!isOpen) return null;
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Khách Hàng Siêu Tiện Ích';
-  const referralCode = `TQ-${displayName.toUpperCase().replace(/\s+/g, '')}889`;
+  const displayPhone = user?.user_metadata?.phone || '0367.818.343';
+  const displayEmail = user?.email || 'tranvanquyen2211@gmail.com';
 
-  const copyReferralCode = () => {
-    navigator.clipboard.writeText(referralCode);
-    setCopiedReferral(true);
-    setTimeout(() => setCopiedReferral(false), 2500);
-  };
-
-  const handleAccountDeletionRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!deleteReason.trim()) {
-      alert('Vui lòng nhập lý do bạn muốn yêu cầu xóa tài khoản!');
-      return;
+  const handleSignOutUser = async () => {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản cá nhân?')) {
+      await signOut();
+      onClose();
     }
-    alert('⚠️ Yêu cầu xóa tài khoản đã được ghi nhận theo Nghị định 13/ND-CP về Bảo vệ dữ liệu cá nhân. Hệ thống sẽ xử lý và xóa toàn bộ dữ liệu trong vòng 7 ngày làm việc.');
-    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
       <div 
         className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 max-h-[92vh] flex flex-col md:flex-row min-w-0"
         onClick={(e) => e.stopPropagation()}
       >
         
-        {/* SIDEBAR NAVIGATION (18 MODULES ACCORDING TO REQUIREMENTS) */}
-        <div className="w-full md:w-64 bg-slate-900 text-slate-300 p-4 border-r border-slate-800 shrink-0 overflow-y-auto max-h-48 md:max-h-full space-y-4">
+        {/* DESKTOP & TABLET SIDEBAR NAVIGATION */}
+        <div className="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 p-4 border-r border-slate-800 shrink-0 overflow-y-auto space-y-4 text-xs">
           
-          {/* User Profile Summary Header */}
+          {/* User Profile Card Header */}
           <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center font-black text-white text-base shadow-md">
+            <div className="w-11 h-11 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center font-black text-white text-base shadow-md shrink-0">
               {displayName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="font-extrabold text-sm text-white truncate">{displayName}</h3>
-              <span className="text-[10px] text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                ✓ Tài khoản Khách Hàng
+              <p className="text-[10px] text-slate-400 truncate">{displayPhone}</p>
+              <span className="text-[9px] text-amber-300 bg-amber-950/80 border border-amber-800 px-2 py-0.5 rounded-full font-bold inline-block mt-0.5">
+                🥇 Hạng Vàng TQ Member
               </span>
             </div>
           </div>
 
-          {/* Navigation Links Group 1: Shopping & Wallet */}
-          <div className="space-y-1 text-xs">
+          {/* Nav Group 1: Overview & Orders */}
+          <div className="space-y-1">
             <div className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider px-2 mb-1">
-              Mua sắm & Ví thưởng
+              Trang cá nhân & Đơn hàng
             </div>
 
             <button
-              onClick={() => setActiveTab('orders')}
+              onClick={() => setActiveTab('overview')}
               className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
+                activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 text-slate-300'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>1. Tổng Quan Hồ Sơ</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center justify-between transition cursor-pointer ${
                 activeTab === 'orders' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 text-slate-300'
               }`}
             >
-              <ShoppingBag className="w-4 h-4 text-indigo-400" />
-              <span>1. Đơn Hàng</span>
+              <div className="flex items-center gap-2.5">
+                <ShoppingBag className="w-4 h-4 text-indigo-400" />
+                <span>2. Đơn Hàng Của Tôi</span>
+              </div>
+              <span className="px-2 py-0.5 bg-indigo-500/30 text-indigo-300 rounded-full font-extrabold text-[10px]">
+                {orders.length}
+              </span>
             </button>
 
             <button
@@ -176,32 +129,27 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 <Coins className="w-4 h-4 text-amber-400" />
-                <span>2. Ví Xu Thưởng</span>
+                <span>3. Ví Xu & Điểm Thưởng</span>
               </div>
-              <span className="text-[10px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded font-black">
-                {(regularCoins + tqCoins).toLocaleString()}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'history' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <Clock className="w-4 h-4 text-indigo-400" />
-              <span>3. Lịch Sử Biến Động Xu</span>
+              <span className="text-[10px] text-amber-300 font-extrabold">{(regularCoins + tqCoins).toLocaleString()} Xu</span>
             </button>
 
             <button
               onClick={() => setActiveTab('vouchers')}
               className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'vouchers' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
+                activeTab === 'vouchers' ? 'bg-rose-600 text-white shadow-md' : 'hover:bg-slate-800 text-slate-300'
               }`}
             >
               <Ticket className="w-4 h-4 text-rose-400" />
-              <span>4. Mã Ưu Đãi Voucher</span>
+              <span>4. Mã Ưu Đãi Voucher (3)</span>
             </button>
+          </div>
+
+          {/* Nav Group 2: Personalization & Address */}
+          <div className="space-y-1">
+            <div className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider px-2 mb-1">
+              Tiện ích & Địa chỉ
+            </div>
 
             <button
               onClick={() => setActiveTab('addresses')}
@@ -210,34 +158,7 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
               }`}
             >
               <MapPin className="w-4 h-4 text-emerald-400" />
-              <span>5. Sổ Địa Chỉ Nhận Hàng</span>
-            </button>
-          </div>
-
-          {/* Navigation Links Group 2: Personalization & Interactive */}
-          <div className="space-y-1 text-xs">
-            <div className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider px-2 mb-1">
-              Cá nhân & Tương tác
-            </div>
-
-            <button
-              onClick={() => setActiveTab('favorites')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'favorites' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <Heart className="w-4 h-4 text-rose-400" />
-              <span>6. Danh Sách Yêu Thích</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('recent')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'recent' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <Clock className="w-4 h-4 text-sky-400" />
-              <span>7. Đã Xem Gần Đây</span>
+              <span>5. Sổ Địa Chỉ & GPS Maps</span>
             </button>
 
             <button
@@ -247,17 +168,7 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
               }`}
             >
               <MessageSquare className="w-4 h-4 text-indigo-400" />
-              <span>8. Tin Nhắn Với Shop</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('notifications')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'notifications' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <Bell className="w-4 h-4 text-amber-400" />
-              <span>9. Thông Báo Hệ Thống</span>
+              <span>6. Tin Nhắn Messenger</span>
             </button>
 
             <button
@@ -267,44 +178,7 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
               }`}
             >
               <Star className="w-4 h-4 text-yellow-400" />
-              <span>10. Đánh Giá Của Tôi</span>
-            </button>
-          </div>
-
-          {/* Navigation Links Group 3: Verification & Utilities */}
-          <div className="space-y-1 text-xs">
-            <div className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider px-2 mb-1">
-              Tiện ích & Bảo mật
-            </div>
-
-            <button
-              onClick={() => setActiveTab('checkin')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'checkin' ? 'bg-amber-600 text-white' : 'hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <CalendarCheck className="w-4 h-4 text-amber-400" />
-              <span>11. Điểm Danh Nhận Xu</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('qrcode')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'qrcode' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <QrCode className="w-4 h-4 text-emerald-400" />
-              <span>12. Mã QR Quét Tại Quầy</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('referral')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'referral' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <Share2 className="w-4 h-4 text-purple-400" />
-              <span>13. Giới Thiệu Bạn Bè</span>
+              <span>7. Đánh Giá Của Tôi</span>
             </button>
 
             <button
@@ -313,8 +187,8 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
                 activeTab === 'booking' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
               }`}
             >
-              <Calendar className="w-4 h-4 text-blue-400" />
-              <span>14. Đặt Lịch Booking</span>
+              <Calendar className="w-4 h-4 text-sky-400" />
+              <span>8. Đặt Lịch Booking</span>
             </button>
 
             <button
@@ -324,44 +198,83 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
               }`}
             >
               <Store className="w-4 h-4 text-orange-400" />
-              <span>15. Theo Dõi Đồ Đang Thuê</span>
+              <span>9. Theo Dõi Đồ Đang Thuê</span>
             </button>
+          </div>
 
-            <button
-              onClick={() => setActiveTab('support')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'support' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
-              }`}
-            >
-              <HelpCircle className="w-4 h-4 text-teal-400" />
-              <span>16. Hỗ Trợ Khách Hàng</span>
-            </button>
-
+          {/* Nav Group 3: Settings & Logout */}
+          <div className="space-y-1 pt-2 border-t border-slate-800">
             <button
               onClick={() => setActiveTab('settings')}
               className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
                 activeTab === 'settings' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800 text-slate-300'
               }`}
             >
-              <KeyRound className="w-4 h-4 text-yellow-400" />
-              <span>17. Cài Đặt & Bảo Mật</span>
+              <KeyRound className="w-4 h-4 text-slate-400" />
+              <span>10. Cài Đặt & Bảo Mật</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('delete_account')}
-              className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 transition cursor-pointer ${
-                activeTab === 'delete_account' ? 'bg-rose-600 text-white' : 'hover:bg-rose-950/50 text-rose-400'
-              }`}
+              onClick={handleSignOutUser}
+              className="w-full text-left px-3 py-2 rounded-xl font-bold flex items-center gap-2.5 hover:bg-rose-950/40 text-rose-400 transition cursor-pointer"
             >
-              <Trash2 className="w-4 h-4 text-rose-400" />
-              <span>18. Yêu Cầu Xóa Tài Khoản</span>
+              <LogOut className="w-4 h-4 text-rose-400" />
+              <span>Đăng Xuất Tài Khoản</span>
             </button>
           </div>
 
         </div>
 
+        {/* MOBILE HORIZONTAL SUBTAB BAR (Visible on Smartphones) */}
+        <div className="md:hidden bg-slate-900 text-white p-3 border-b border-slate-800 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none text-xs font-bold">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'overview' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'
+            }`}
+          >
+            🌟 Hồ Sơ Chuẩn
+          </button>
+
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'orders' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'
+            }`}
+          >
+            🛍️ Đơn Hàng ({orders.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('wallet')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'wallet' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
+            }`}
+          >
+            🪙 Ví Xu ({(regularCoins + tqCoins).toLocaleString()})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('vouchers')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'vouchers' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
+            }`}
+          >
+            🎟️ Mã Voucher
+          </button>
+
+          <button
+            onClick={() => setActiveTab('addresses')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'addresses' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
+            }`}
+          >
+            🗺️ Ghim Địa Chỉ Maps
+          </button>
+        </div>
+
         {/* MAIN DISPLAY CONTENT AREA */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col relative">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col relative text-xs font-medium">
           
           {/* Close Modal Button */}
           <button
@@ -372,484 +285,390 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
             <X className="w-5 h-5" />
           </button>
 
-          {/* 1. ORDERS MODULE */}
+          {/* TAB 1: OVERVIEW (MODERN E-COMMERCE PROFILE DASHBOARD) */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              
+              {/* Profile Card Header Banner */}
+              <div className="bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-900 text-white rounded-3xl p-5 shadow-lg relative overflow-hidden space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center font-black text-2xl text-white border-2 border-white/30 shadow-md shrink-0">
+                      {displayName.charAt(0).toUpperCase()}
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <strong className="text-lg font-black text-white">{displayName}</strong>
+                        <span className="px-2 py-0.5 bg-emerald-500/30 text-emerald-200 rounded-full font-bold text-[10px] border border-emerald-300/30 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span>Chính chủ</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-indigo-200 font-medium">SĐT: {displayPhone} • Email: {displayEmail}</p>
+                      <span className="text-[10px] text-amber-200 bg-amber-950/80 px-2.5 py-0.5 rounded-full font-bold border border-amber-300/30 inline-block">
+                        🥇 Thành Viên Vàng TQ Member (Đã xác thực)
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setActiveTab('settings')}
+                    className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl backdrop-blur-md font-bold text-xs transition cursor-pointer border border-white/30"
+                  >
+                    ✏️ Sửa Hồ Sơ
+                  </button>
+                </div>
+
+                {/* DUAL WALLET & VOUCHER QUICK BAR */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-white/20 text-center">
+                  <div 
+                    onClick={() => setActiveTab('wallet')}
+                    className="p-2.5 bg-white/10 hover:bg-white/20 rounded-2xl transition cursor-pointer backdrop-blur-sm"
+                  >
+                    <span className="text-[10px] text-amber-200 block font-bold">🪙 Ví Xu Thường</span>
+                    <strong className="text-sm font-black text-amber-300">{regularCoins.toLocaleString()} Xu</strong>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTab('wallet')}
+                    className="p-2.5 bg-white/10 hover:bg-white/20 rounded-2xl transition cursor-pointer backdrop-blur-sm"
+                  >
+                    <span className="text-[10px] text-yellow-200 block font-bold">👑 Ví Xu TQ</span>
+                    <strong className="text-sm font-black text-yellow-300">{tqCoins.toLocaleString()} Xu</strong>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTab('vouchers')}
+                    className="p-2.5 bg-white/10 hover:bg-white/20 rounded-2xl transition cursor-pointer backdrop-blur-sm"
+                  >
+                    <span className="text-[10px] text-rose-200 block font-bold">🎟️ Mã Voucher</span>
+                    <strong className="text-sm font-black text-white">3 Khả dụng</strong>
+                  </div>
+
+                  <div 
+                    onClick={dailyCheckIn}
+                    className="p-2.5 bg-white/10 hover:bg-white/20 rounded-2xl transition cursor-pointer backdrop-blur-sm"
+                  >
+                    <span className="text-[10px] text-emerald-200 block font-bold">🔥 Điểm danh</span>
+                    <strong className="text-sm font-black text-emerald-300">Day {checkInStreak}/7 (+50)</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5-STEP ORDER PIPELINE GRID (STANDARD E-COMMERCE FORM) */}
+              <div className="p-5 bg-gray-50 border border-gray-200 rounded-3xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-gray-900 text-sm flex items-center gap-1.5">
+                    <ShoppingBag className="w-4 h-4 text-indigo-600" />
+                    <span>Đơn Hàng Của Tôi</span>
+                  </h3>
+
+                  <button
+                    onClick={() => setActiveTab('orders')}
+                    className="text-indigo-600 hover:text-indigo-800 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <span>Xem lịch sử đơn</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-5 gap-1 text-center pt-2">
+                  <div 
+                    onClick={() => { setOrderFilter('pending'); setActiveTab('orders'); }}
+                    className="p-2.5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 transition cursor-pointer space-y-1"
+                  >
+                    <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mx-auto font-bold">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-700 block">Chờ nhận</span>
+                  </div>
+
+                  <div 
+                    onClick={() => { setOrderFilter('preparing'); setActiveTab('orders'); }}
+                    className="p-2.5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 transition cursor-pointer space-y-1"
+                  >
+                    <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto font-bold">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-700 block">Chuẩn bị</span>
+                  </div>
+
+                  <div 
+                    onClick={() => { setOrderFilter('shipping'); setActiveTab('orders'); }}
+                    className="p-2.5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 transition cursor-pointer space-y-1"
+                  >
+                    <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mx-auto font-bold">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-700 block">Đang giao</span>
+                  </div>
+
+                  <div 
+                    onClick={() => { setOrderFilter('completed'); setActiveTab('orders'); }}
+                    className="p-2.5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 transition cursor-pointer space-y-1"
+                  >
+                    <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mx-auto font-bold">
+                      <Star className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-700 block">Đánh giá (+Xu)</span>
+                  </div>
+
+                  <div 
+                    onClick={() => { setOrderFilter('cancelled'); setActiveTab('orders'); }}
+                    className="p-2.5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 transition cursor-pointer space-y-1"
+                  >
+                    <div className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mx-auto font-bold">
+                      <RotateCcw className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-700 block">Trả hàng / Hủy</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SERVICE UTILITIES GRID */}
+              <div className="space-y-3">
+                <h3 className="font-black text-gray-900 text-sm">Dịch Vụ & Tiện Ích Đa Năng:</h3>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div 
+                    onClick={onOpenAddressBook}
+                    className="p-3.5 bg-white border border-gray-200 hover:border-indigo-300 rounded-2xl flex items-center gap-3 transition cursor-pointer shadow-2xs"
+                  >
+                    <div className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <strong className="font-bold text-gray-900 block text-xs">Sổ Địa Chỉ & GPS</strong>
+                      <span className="text-[10px] text-gray-400 block">Ghim Google Maps</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={onOpenMessaging}
+                    className="p-3.5 bg-white border border-gray-200 hover:border-indigo-300 rounded-2xl flex items-center gap-3 transition cursor-pointer shadow-2xs"
+                  >
+                    <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <strong className="font-bold text-gray-900 block text-xs">Tin Nhắn Messenger</strong>
+                      <span className="text-[10px] text-indigo-600 font-bold block">Chat Realtime (🔴 2)</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTab('vouchers')}
+                    className="p-3.5 bg-white border border-gray-200 hover:border-indigo-300 rounded-2xl flex items-center gap-3 transition cursor-pointer shadow-2xs"
+                  >
+                    <div className="w-9 h-9 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                      <Ticket className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <strong className="font-bold text-gray-900 block text-xs">Kho Voucher Đã Lưu</strong>
+                      <span className="text-[10px] text-rose-600 font-bold block">3 Giảm giá khả dụng</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTab('reviews')}
+                    className="p-3.5 bg-white border border-gray-200 hover:border-indigo-300 rounded-2xl flex items-center gap-3 transition cursor-pointer shadow-2xs"
+                  >
+                    <div className="w-9 h-9 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                      <Star className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <strong className="font-bold text-gray-900 block text-xs">Đánh Giá Của Tôi</strong>
+                      <span className="text-[10px] text-amber-600 font-bold block">Thưởng 2% Hoàn Xu</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTab('booking')}
+                    className="p-3.5 bg-white border border-gray-200 hover:border-indigo-300 rounded-2xl flex items-center gap-3 transition cursor-pointer shadow-2xs"
+                  >
+                    <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                      <Calendar className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <strong className="font-bold text-gray-900 block text-xs">Lịch Đặt Booking</strong>
+                      <span className="text-[10px] text-gray-400 block">Spa / Đồ ăn / Dịch vụ</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTab('rentals')}
+                    className="p-3.5 bg-white border border-gray-200 hover:border-indigo-300 rounded-2xl flex items-center gap-3 transition cursor-pointer shadow-2xs"
+                  >
+                    <div className="w-9 h-9 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                      <Store className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <strong className="font-bold text-gray-900 block text-xs">Đồ Thuê / Mặt Bằng</strong>
+                      <span className="text-[10px] text-gray-400 block">Căn hộ / Homestay</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 2: ORDERS MODULE */}
           {activeTab === 'orders' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                <h2 className="text-base font-black text-gray-900 flex items-center gap-2">
                   <ShoppingBag className="w-5 h-5 text-indigo-600" />
-                  <span>Quản Lý Đơn Hàng Của Tôi</span>
+                  <span>Quản Lý Đơn Hàng Của Tôi ({orders.length})</span>
                 </h2>
 
-                <div className="flex gap-2 text-xs">
-                  <button
-                    onClick={() => setOrderFilter('processing')}
-                    className={`px-3 py-1.5 rounded-xl font-extrabold cursor-pointer transition ${
-                      orderFilter === 'processing' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    Đang xử lý ({orders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled').length})
-                  </button>
-                  <button
-                    onClick={() => setOrderFilter('completed')}
-                    className={`px-3 py-1.5 rounded-xl font-extrabold cursor-pointer transition ${
-                      orderFilter === 'completed' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    Đã xong ({orders.filter((o) => o.status === 'completed').length})
-                  </button>
-                </div>
+                <button
+                  onClick={onOpenOrderTracking}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-sm cursor-pointer"
+                >
+                  Mở Tracking Tiến Trình Đơn
+                </button>
               </div>
 
               <div className="space-y-3">
                 {orders
-                  .filter((o) => (orderFilter === 'completed' ? o.status === 'completed' : o.status !== 'completed'))
+                  .filter((o) => {
+                    if (orderFilter === 'all') return true;
+                    if (orderFilter === 'pending') return o.status === 'pending_seller_confirm' || o.status === 'seller_accepted';
+                    if (orderFilter === 'preparing') return o.status === 'preparing';
+                    if (orderFilter === 'shipping') return o.status === 'delivering' || o.status === 'ready_for_pickup';
+                    if (orderFilter === 'completed') return o.status === 'completed';
+                    if (orderFilter === 'cancelled') return o.status === 'cancelled';
+                    return true;
+                  })
                   .map((ord) => (
-                    <div key={ord.id} className="p-4 bg-white border border-gray-200 rounded-2xl shadow-sm space-y-2 text-xs">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                        <span className="font-extrabold text-indigo-700">Mã đơn: #{ord.id}</span>
-                        <span className="text-gray-400">{new Date(ord.created_at).toLocaleString('vi-VN')}</span>
-                      </div>
-                      <div className="space-y-1">
-                        {ord.items.map((it, idx) => (
-                          <div key={idx} className="flex items-center justify-between">
-                            <span className="font-semibold text-gray-800">{it.product.name} x{it.quantity}</span>
-                            <span className="font-bold text-gray-900">{(it.price * it.quantity).toLocaleString()} đ</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between font-bold">
-                        <span>Tổng tiền: <strong className="text-rose-600">{ord.final_amount.toLocaleString()} đ</strong></span>
-                        <button
-                          onClick={onOpenOrderTracking}
-                          className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs cursor-pointer"
-                        >
-                          Xem chi tiết tiến trình
-                        </button>
-                      </div>
+                  <div key={ord.id} className="p-4 bg-white border border-gray-200 rounded-2xl shadow-sm space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                      <span className="font-extrabold text-indigo-700">Mã đơn: #{ord.id}</span>
+                      <span className="text-gray-400">{new Date(ord.created_at).toLocaleString('vi-VN')}</span>
                     </div>
-                  ))}
+                    <div className="space-y-1">
+                      {ord.items.map((it, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className="font-semibold text-gray-800">{it.product.name} x{it.quantity}</span>
+                          <span className="font-bold text-gray-900">{(it.price * it.quantity).toLocaleString()} đ</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between font-bold">
+                      <span>Tổng tiền: <strong className="text-rose-600">{ord.final_amount.toLocaleString()} đ</strong></span>
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-extrabold">
+                        {ord.status === 'completed' ? '✓ Đã hoàn thành' : '🚚 Đang xử lý'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* 2. COIN WALLET MODULE */}
+          {/* TAB 3: COIN WALLET MODULE */}
           {activeTab === 'wallet' && (
             <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
+              <h2 className="text-base font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
                 <Coins className="w-5 h-5 text-amber-500" />
-                <span>Ví Xu Thưởng & Hạn Sử Dụng</span>
+                <span>Ví Xu Thưởng Đa Năng</span>
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-2xl shadow-md">
-                  <span className="text-xs font-extrabold uppercase text-amber-100 block">👑 Số Dư Xu TQ</span>
+                <div className="p-4 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-2xl shadow-md space-y-1">
+                  <span className="text-xs font-extrabold uppercase text-amber-100 block">👑 Ví Xu TQ</span>
                   <span className="text-3xl font-black">{tqCoins.toLocaleString()} Xu</span>
-                  <p className="text-[11px] text-amber-100 mt-2">Áp dụng giảm tới 20% tại Gian hàng TQ Official</p>
+                  <p className="text-[11px] text-amber-100 pt-1">Chiết khấu trực tiếp tại Gian hàng TQ Official</p>
                 </div>
 
-                <div className="p-4 bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl shadow-md">
-                  <span className="text-xs font-extrabold uppercase text-emerald-100 block">✓ Số Dư Xu Thường</span>
+                <div className="p-4 bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl shadow-md space-y-1">
+                  <span className="text-xs font-extrabold uppercase text-indigo-100 block">🪙 Ví Xu Thường</span>
                   <span className="text-3xl font-black">{regularCoins.toLocaleString()} Xu</span>
-                  <p className="text-[11px] text-emerald-100 mt-2">Áp dụng giảm giá tại các Shop Đã Xác Minh</p>
+                  <p className="text-[11px] text-indigo-100 pt-1">Đổi Voucher giảm giá & quà tặng sàn</p>
                 </div>
               </div>
-
-              {/* Coins Nearing Expiration Notice */}
-              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-2 text-xs">
-                <h3 className="font-extrabold text-amber-950 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-amber-600" />
-                  <span>Xu Sắp Hết Hạn Sử Dụng (Thông Báo Trước)</span>
-                </h3>
-                <p className="text-amber-900">
-                  ⏳ Bạn có <strong>500 Xu Thường</strong> sắp hết hạn sử dụng vào ngày <strong>15/09/2026</strong> (Hạn dùng 6 tháng). Hãy sử dụng ngay để được trừ tiền đơn hàng!
-                </p>
-              </div>
             </div>
           )}
 
-          {/* 3. COIN TRANSACTION HISTORY MODULE */}
-          {activeTab === 'history' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <Clock className="w-5 h-5 text-indigo-600" />
-                <span>Lịch Sử Xu — Nhận Vào Từ Đâu & Tiêu Vào Đâu</span>
-              </h2>
-
-              <div className="space-y-2 text-xs">
-                {coinTransactions.map((tx) => {
-                  const isEarn = tx.type === 'earn' || tx.type === 'bonus';
-                  return (
-                    <div key={tx.id} className="p-3 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold ${
-                          isEarn ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                        }`}>
-                          {isEarn ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                        </div>
-                        <div>
-                          <span className="font-extrabold text-gray-900 block">{tx.description}</span>
-                          <span className="text-[10px] text-gray-400">{new Date(tx.created_at).toLocaleString('vi-VN')}</span>
-                        </div>
-                      </div>
-                      <span className={`font-black text-sm ${isEarn ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {isEarn ? '+' : '-'}{tx.amount.toLocaleString()} Xu
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 4. SAVED VOUCHERS MODULE */}
+          {/* TAB 4: VOUCHER MODULE */}
           {activeTab === 'vouchers' && (
             <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
+              <h2 className="text-base font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
                 <Ticket className="w-5 h-5 text-rose-500" />
-                <span>Mã Ưu Đãi & Voucher Đã Lưu</span>
+                <span>Kho Voucher Đã Lưu (3 Mã Khả Dụng)</span>
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-1">
-                  <span className="font-black text-rose-700 text-sm block">🎟️ PLATFORM15K</span>
-                  <span className="font-bold text-gray-800 block">Voucher Sàn Giảm 15.000đ</span>
-                  <p className="text-[11px] text-gray-500">Áp dụng cho các Shop đã xác minh & Shop TQ</p>
-                </div>
-
-                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-1">
-                  <span className="font-black text-indigo-700 text-sm block">🎟️ FREESHIP20K</span>
-                  <span className="font-bold text-gray-800 block">Miễn Phí Vận Chuyển 20.000đ</span>
-                  <p className="text-[11px] text-gray-500">Cho đơn hàng từ 200.000đ</p>
+              <div className="space-y-3">
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <strong className="font-extrabold text-rose-900 text-xs block">VOUCHER FREESHIP KHOÁI CHÂU</strong>
+                    <p className="text-[11px] text-rose-700">Giảm 20.000đ phí vận chuyển cho đơn từ 150k</p>
+                  </div>
+                  <button className="px-3 py-1.5 bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer">
+                    Dùng ngay
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 5. SAVED ADDRESSES MODULE */}
+          {/* TAB 5: ADDRESS BOOK */}
           {activeTab === 'addresses' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                <h2 className="text-base font-black text-gray-900 flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-emerald-600" />
-                  <span>Sổ Địa Chỉ Nhận Hàng</span>
+                  <span>Sổ Địa Chỉ Giao Hàng & Ghim GPS</span>
                 </h2>
+
                 <button
                   onClick={onOpenAddressBook}
-                  className="px-3 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-xl cursor-pointer"
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs shadow-sm cursor-pointer"
                 >
-                  Quản lý sổ địa chỉ
+                  + Thêm / Quản lý Địa chỉ
                 </button>
               </div>
-
-              <div className="space-y-2 text-xs">
-                {addresses.map((a) => (
-                  <div key={a.id} className="p-3.5 bg-gray-50 border border-gray-200 rounded-2xl space-y-1">
-                    <div className="flex items-center justify-between">
-                      <strong className="text-gray-900 font-extrabold">{a.recipient_name} ({a.phone})</strong>
-                      {a.is_default && <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-black">Mặc định</span>}
-                    </div>
-                    <p className="text-gray-600">{a.detail_address}, {a.district}, {a.province}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
-          {/* 6. FAVORITES MODULE */}
-          {activeTab === 'favorites' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <Heart className="w-5 h-5 text-rose-500" />
-                <span>Danh Sách Sản Phẩm / Dịch Vụ Yêu Thích</span>
-              </h2>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                {favoriteProducts.map((p) => (
-                  <div key={p.id} className="p-2.5 bg-white border border-gray-200 rounded-2xl space-y-1.5">
-                    <img src={p.img} alt={p.name} className="w-full h-24 object-cover rounded-xl" />
-                    <span className="font-bold text-gray-900 block truncate">{p.name}</span>
-                    <span className="font-black text-rose-600 block">{p.price.toLocaleString()} đ</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 7. RECENTLY VIEWED MODULE */}
-          {activeTab === 'recent' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <Clock className="w-5 h-5 text-sky-500" />
-                <span>Đã Xem Gần Đây (Tính năng tối ưu dùng nhiều nhất)</span>
-              </h2>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                {recentlyViewedProducts.map((p) => (
-                  <div key={p.id} className="p-3 bg-white border border-gray-200 rounded-2xl flex items-center gap-2">
-                    <img src={p.img} alt={p.name} className="w-12 h-12 object-cover rounded-xl shrink-0" />
-                    <div className="min-w-0">
-                      <span className="font-bold text-gray-900 block truncate">{p.name}</span>
-                      <span className="font-black text-indigo-600 block">{p.price.toLocaleString()} đ</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 8. MESSAGES INBOX MODULE */}
+          {/* TAB 6: MESSENGER */}
           {activeTab === 'messages' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                <h2 className="text-base font-black text-gray-900 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-indigo-600" />
-                  <span>Hộp Tin Nhắn Với Gian Hàng</span>
+                  <span>Trung Tâm Tin Nhắn Messenger Realtime</span>
                 </h2>
+
                 <button
                   onClick={onOpenMessaging}
-                  className="px-3 py-1.5 bg-indigo-600 text-white font-bold text-xs rounded-xl cursor-pointer"
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs shadow-sm cursor-pointer"
                 >
-                  Mở khung chat trực tiếp
+                  Mở Messenger 2 Cột
                 </button>
               </div>
-              <p className="text-xs text-gray-500">Xem danh sách các cuộc trò chuyện đã gắn với sản phẩm hoặc đơn hàng.</p>
             </div>
           )}
 
-          {/* 9. NOTIFICATIONS MODULE */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <Bell className="w-5 h-5 text-amber-500" />
-                <span>Thông Báo Hệ Thống (Tách riêng khỏi luồng tin nhắn)</span>
-              </h2>
-              <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100 text-xs text-indigo-900">
-                Thông báo đơn hàng, cập nhật điểm thưởng và thông báo từ Admin được tách thành một luồng độc lập với tin nhắn chat trực tiếp.
-              </div>
-            </div>
-          )}
-
-          {/* 10. REVIEWS MODULE */}
-          {activeTab === 'reviews' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <Star className="w-5 h-5 text-yellow-500" />
-                <span>Đánh Giá Của Tôi — Xem Lại & Chỉnh Sửa</span>
-              </h2>
-
-              <div className="space-y-3 text-xs">
-                {myReviews.map((rev) => (
-                  <div key={rev.id} className="p-4 bg-white border border-gray-200 rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <strong className="text-gray-900 font-extrabold">{rev.product_name}</strong>
-                      <span className="text-yellow-500 font-black">{'⭐'.repeat(rev.rating)} ({rev.rating}/5)</span>
-                    </div>
-                    <p className="text-gray-700">{rev.comment}</p>
-                    <div className="text-[10px] text-gray-400 flex items-center justify-between pt-1 border-t border-gray-100">
-                      <span>Đăng ngày: {rev.date}</span>
-                      <button className="text-indigo-600 font-bold hover:underline cursor-pointer">Sửa đánh giá</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 11. DAILY CHECK-IN MODULE */}
-          {activeTab === 'checkin' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <CalendarCheck className="w-5 h-5 text-amber-500" />
-                <span>Điểm Danh Hàng Ngày Nhận Xu</span>
-              </h2>
-
-              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-amber-950">Chuỗi điểm danh hiện tại: Day {checkInStreak}/7</span>
-                  <button
-                    onClick={dailyCheckIn}
-                    disabled={hasCheckedInToday}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 text-white font-extrabold rounded-xl cursor-pointer"
-                  >
-                    {hasCheckedInToday ? 'Đã điểm danh hôm nay' : 'Điểm Danh Ngay'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 12. PHONE & QR CODE MODULE */}
-          {activeTab === 'qrcode' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <QrCode className="w-5 h-5 text-emerald-600" />
-                <span>Mã QR Xác Minh Quét Tại Quầy</span>
-              </h2>
-
-              <div className="p-6 bg-slate-900 text-white rounded-3xl text-center space-y-3 max-w-sm mx-auto">
-                <div className="w-40 h-40 bg-white p-2 rounded-2xl mx-auto flex items-center justify-center border-4 border-emerald-400">
-                  <div className="w-full h-full bg-slate-900 rounded-xl flex items-center justify-center text-emerald-400 font-mono text-xs font-bold p-2 text-center">
-                    [MÃ QR XÁC MINH KHOÁI CHÂU NET]
-                  </div>
-                </div>
-                <span className="font-extrabold text-sm block">SĐT: {user?.phone || '0987654321'}</span>
-                <p className="text-[11px] text-slate-300">Đưa mã QR này cho nhân viên tại quầy cửa hàng để xác minh lấy hàng / đặt cọc.</p>
-              </div>
-            </div>
-          )}
-
-          {/* 13. REFERRAL CODE MODULE */}
-          {activeTab === 'referral' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <Share2 className="w-5 h-5 text-purple-600" />
-                <span>Mã Giới Thiệu Bạn Bè Nhận Xu</span>
-              </h2>
-
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl space-y-3 text-xs">
-                <span className="font-bold text-purple-950 block">Mã giới thiệu độc quyền của bạn:</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={referralCode}
-                    className="flex-1 px-3 py-2 bg-white border border-purple-300 rounded-xl font-mono font-black text-purple-900 text-sm"
-                  />
-                  <button
-                    onClick={copyReferralCode}
-                    className="px-4 py-2 bg-purple-600 text-white font-extrabold rounded-xl cursor-pointer flex items-center gap-1"
-                  >
-                    <Copy className="w-4 h-4" />
-                    <span>{copiedReferral ? 'Đã chép' : 'Sao chép'}</span>
-                  </button>
-                </div>
-                <p className="text-purple-900 text-[11px]">Giới thiệu bạn bè đăng ký và hoàn thành đơn hàng đầu tiên để cả 2 cùng nhận +5.000 Xu Thường!</p>
-              </div>
-            </div>
-          )}
-
-          {/* 14. BOOKINGS MODULE */}
-          {activeTab === 'booking' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <span>Quản Lý Đặt Lịch Booking Dịch Vụ</span>
-              </h2>
-
-              <div className="space-y-2 text-xs">
-                {myBookings.map((bk) => (
-                  <div key={bk.id} className="p-4 bg-white border border-gray-200 rounded-2xl flex items-center justify-between">
-                    <div>
-                      <strong className="text-gray-900 font-extrabold block">{bk.service_name}</strong>
-                      <span className="text-gray-500 text-[11px]">{bk.shop_name} • Thời gian: {bk.booking_date}</span>
-                    </div>
-                    <span className="bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-1 rounded-full text-[10px]">
-                      ✓ Đã xác nhận
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 15. ACTIVE RENTALS MODULE */}
-          {activeTab === 'rentals' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <Store className="w-5 h-5 text-orange-500" />
-                <span>Theo Dõi Đồ Đang Thuê</span>
-              </h2>
-
-              <div className="space-y-2 text-xs">
-                {activeRentals.map((rnt) => (
-                  <div key={rnt.id} className="p-4 bg-orange-50/60 border border-orange-200 rounded-2xl flex items-center justify-between">
-                    <div>
-                      <strong className="text-orange-950 font-extrabold block">{rnt.item_name}</strong>
-                      <span className="text-orange-900 text-[11px]">Bên cho thuê: {rnt.shop_name} • Thời hạn: {rnt.rental_period}</span>
-                    </div>
-                    <span className="bg-orange-500 text-white font-extrabold px-2.5 py-1 rounded-full text-[10px]">
-                      Đang trong thời hạn thuê
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 16. SUPPORT MODULE */}
-          {activeTab === 'support' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <HelpCircle className="w-5 h-5 text-teal-600" />
-                <span>Trung Tâm Hỗ Trợ Khách Hàng</span>
-              </h2>
-
-              <div className="p-4 bg-teal-50 border border-teal-200 rounded-2xl space-y-2 text-xs text-teal-950">
-                <strong className="block text-sm">Tổng đài CSKH Siêu Tiện Ích: 1900 6889</strong>
-                <p>Email hỗ trợ giải đáp khiếu nại: support@sieutienich.vn</p>
-                <p>Thời gian làm việc: 08:00 - 22:00 tất cả các ngày trong tuần.</p>
-              </div>
-            </div>
-          )}
-
-          {/* 17. SETTINGS & SECURITY MODULE */}
+          {/* TAB 7: SETTINGS & PRIVACY */}
           {activeTab === 'settings' && (
             <div className="space-y-4">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
-                <KeyRound className="w-5 h-5 text-yellow-500" />
-                <span>Cài Đặt & Bảo Mật Tài Khoản</span>
+              <h2 className="text-base font-black text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
+                <KeyRound className="w-5 h-5 text-slate-700" />
+                <span>Cài Đặt Bảo Mật & Tài Khoản</span>
               </h2>
 
-              <div className="space-y-3 text-xs">
-                <div className="p-4 bg-white border border-gray-200 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <strong className="text-gray-900 font-extrabold block">Đổi mật khẩu tài khoản</strong>
-                    <span className="text-gray-500 text-[11px]">Tăng cường độ an toàn bảo mật</span>
-                  </div>
-                  <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 font-bold rounded-xl cursor-pointer">
-                    Đổi mật khẩu
-                  </button>
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-800">Bảo mật 2 Lớp (2FA):</span>
+                  <span className="text-emerald-600 font-extrabold">✓ Đã bật</span>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* 18. ACCOUNT DELETION REQUEST MODULE (WITH 30-DAY GRACE PERIOD) */}
-          {activeTab === 'delete_account' && (
-            <div className="space-y-4">
-              <div className="p-4 bg-rose-50 border border-rose-300 rounded-2xl space-y-3 text-xs">
-                <h2 className="text-base font-black text-rose-950 flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-rose-600" />
-                  <span>Yêu Cầu Xóa Tài Khoản (Bắt Buộc Theo Luật Bảo Vệ Dữ Liệu Cá Nhân)</span>
-                </h2>
-                <p className="text-rose-900 leading-relaxed">
-                  Theo <strong>Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân (PDPD)</strong>, bạn có quyền yêu cầu xóa toàn bộ dữ liệu cá nhân khỏi hệ thống.
-                </p>
-                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 font-bold">
-                  ⏱️ <strong>Quy định Ân Hạn 30 Ngày:</strong> Sau khi bấm gửi yêu cầu, bạn có <strong>30 ngày ân hạn</strong> để đổi ý và bấm khôi phục lại tài khoản. Hết 30 ngày hệ thống mới tiến hành cắt hẳn.
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-800">Quyền riêng tư dữ liệu (PDPD):</span>
+                  <span className="text-indigo-600 font-extrabold">Chuẩn NĐ 13/2023/NĐ-CP</span>
                 </div>
-
-                <form onSubmit={handleAccountDeletionRequest} className="space-y-3 pt-2">
-                  <div>
-                    <label className="block font-bold text-rose-950 mb-1">Vui lòng nhập lý do bạn muốn xóa tài khoản *</label>
-                    <textarea
-                      rows={3}
-                      value={deleteReason}
-                      onChange={(e) => setDeleteReason(e.target.value)}
-                      placeholder="Nhập chi tiết lý do..."
-                      className="w-full p-2.5 bg-white border border-rose-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500"
-                      required
-                    ></textarea>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl shadow-md transition cursor-pointer"
-                  >
-                    Gửi Yêu Cầu Xóa (Ân Hạn 30 Ngày Để Đổi Ý)
-                  </button>
-                </form>
               </div>
             </div>
           )}
