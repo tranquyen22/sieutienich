@@ -13,7 +13,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ onSelectProduct }) => 
 
   if (loadingProducts) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-pulse">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 animate-pulse">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="bg-gray-200 rounded-2xl h-72 w-full"></div>
         ))}
@@ -38,7 +38,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ onSelectProduct }) => 
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div id="products" className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
       {filteredProducts.map((product) => (
         <ProductCard key={product.id} product={product} onSelectProduct={onSelectProduct} />
       ))}

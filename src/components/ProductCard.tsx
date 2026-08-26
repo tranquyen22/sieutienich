@@ -85,7 +85,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
           : 'border-gray-100'
       }`}
     >
-      <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+      <div className="relative h-36 sm:h-48 w-full overflow-hidden bg-gray-100">
         <img 
           src={product.img} 
           alt={product.name} 
