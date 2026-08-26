@@ -25,6 +25,7 @@ import { AdminUserManagementModal } from './components/AdminUserManagementModal'
 import { AdminDashboardPortalModal } from './components/AdminDashboardPortalModal';
 import { PublicDirectoryModal } from './components/PublicDirectoryModal';
 import { AdminPlatformAnalyticsModal } from './components/AdminPlatformAnalyticsModal';
+import { FloatingQuickChatButton } from './components/FloatingQuickChatButton';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
 import { PWAInstallPromptBar } from './components/PWAInstallPromptBar';
 import { CartDrawer } from './components/CartDrawer';
@@ -236,6 +237,9 @@ function AppContent() {
           setDirectMessagingModalOpen(true);
         }}
       />
+
+      {/* FLOATING QUICK CHAT BUTTON (NÚT BẤM NHẮN TIN NHANH NỔI Ở MÀN HÌNH) */}
+      <FloatingQuickChatButton onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)} />
 
       {/* PWA INSTALL PROMPT BAR (CÀI APP LÊN MÀN HÌNH CHÍNH ĐIỆN THOẠI) */}
       <PWAInstallPromptBar />
