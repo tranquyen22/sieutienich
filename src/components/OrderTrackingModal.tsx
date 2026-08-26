@@ -8,9 +8,10 @@ interface OrderTrackingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenInvoiceModal?: (order: Order) => void;
+  onOpenReviewModal?: (order: Order) => void;
 }
 
-export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose, onOpenInvoiceModal }) => {
+export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose, onOpenInvoiceModal, onOpenReviewModal }) => {
   const { orders, updateOrderStatus } = useShop();
   const { user, userRole, canManageOrders } = useAuth();
 
@@ -432,6 +433,17 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
                           title="Tạo & Xuất hóa đơn (Tự động lưu vào doanh số shop)"
                         >
                           <span>🧾 In/Xuất Hóa Đơn</span>
+                        </button>
+                      )}
+
+                      {/* REVIEW & CLAIM COIN BUTTON FOR COMPLETED ORDERS */}
+                      {isCompleted && onOpenReviewModal && (
+                        <button
+                          onClick={() => onOpenReviewModal(order)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black rounded-xl text-xs shadow-sm transition flex items-center gap-1 cursor-pointer"
+                          title="Đánh giá nhận +100 xu (Yêu cầu có chữ & ảnh từ thư viện)"
+                        >
+                          <span>⭐ Đánh Giá Nhận +100 Xu</span>
                         </button>
                       )}
 

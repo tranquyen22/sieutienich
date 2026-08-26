@@ -27,6 +27,7 @@ import { PublicDirectoryModal } from './components/PublicDirectoryModal';
 import { AdminPlatformAnalyticsModal } from './components/AdminPlatformAnalyticsModal';
 import { FloatingQuickChatButton } from './components/FloatingQuickChatButton';
 import { OrderInvoiceModal } from './components/OrderInvoiceModal';
+import { OrderReviewModal } from './components/OrderReviewModal';
 import { MobileBottomNavBar } from './components/MobileBottomNavBar';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
 import { PWAInstallPromptBar } from './components/PWAInstallPromptBar';
@@ -56,6 +57,8 @@ function AppContent() {
 
   // Merchant Invoice Generation States
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
 
   // Messaging Auto Product Asking Target Info
@@ -176,11 +179,22 @@ function AppContent() {
       <CoinWalletModal isOpen={coinWalletModalOpen} onClose={() => setCoinWalletModalOpen(false)} />
       <OrderTrackingModal 
         isOpen={orderTrackingModalOpen} 
-        onClose={() => setOrderTrackingModalOpen(false)}
-        onOpenInvoiceModal={(ord) => {
-          setInvoiceOrder(ord);
+        onClose={() => setOrderTrackingModalOpen(false)} 
+        onOpenInvoiceModal={(order) => {
+          setInvoiceOrder(order);
           setInvoiceModalOpen(true);
         }}
+        onOpenReviewModal={(order) => {
+          setReviewOrder(order);
+          setReviewModalOpen(true);
+        }}
+      />
+
+      {/* CUSTOMER ORDER REVIEW & REWARD COIN MODAL */}
+      <OrderReviewModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        order={reviewOrder}
       />
       <StaffPermissionModal isOpen={staffPermissionModalOpen} onClose={() => setStaffPermissionModalOpen(false)} />
       <MerchantReconciliationModal isOpen={merchantReconciliationModalOpen} onClose={() => setMerchantReconciliationModalOpen(false)} />
