@@ -16,6 +16,7 @@ import { StaffPermissionModal } from './components/StaffPermissionModal';
 import { MerchantReconciliationModal } from './components/MerchantReconciliationModal';
 import { CustomerAddressBookModal } from './components/CustomerAddressBookModal';
 import { DirectMessagingModal } from './components/DirectMessagingModal';
+import { BuyerDashboardModal } from './components/BuyerDashboardModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import type { Product, CustomerAddress } from './types';
@@ -30,6 +31,7 @@ function AppContent() {
   const [merchantReconciliationModalOpen, setMerchantReconciliationModalOpen] = useState(false);
   const [customerAddressBookModalOpen, setCustomerAddressBookModalOpen] = useState(false);
   const [directMessagingModalOpen, setDirectMessagingModalOpen] = useState(false);
+  const [buyerDashboardModalOpen, setBuyerDashboardModalOpen] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
 
   // Customer Saved Addresses State
@@ -94,9 +96,10 @@ function AppContent() {
         onOpenMerchantReconciliationModal={() => setMerchantReconciliationModalOpen(true)}
         onOpenCustomerAddressBookModal={() => setCustomerAddressBookModalOpen(true)}
         onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)}
+        onOpenBuyerDashboardModal={() => setBuyerDashboardModalOpen(true)}
       />
 
-      {/* BANNER Carousel & Side Cards */}
+      {/* BANNER Carousel & Side Cards & Homepage Daily Check-in */}
       <Banner />
 
       {/* THANH LỌC & ĐỊNH VỊ GPS (BÊN DƯỚI BANNER) */}
@@ -187,6 +190,24 @@ function AppContent() {
       <DirectMessagingModal
         isOpen={directMessagingModalOpen}
         onClose={() => setDirectMessagingModalOpen(false)}
+      />
+
+      <BuyerDashboardModal
+        isOpen={buyerDashboardModalOpen}
+        onClose={() => setBuyerDashboardModalOpen(false)}
+        addresses={customerAddresses}
+        onOpenAddressBook={() => {
+          setBuyerDashboardModalOpen(false);
+          setCustomerAddressBookModalOpen(true);
+        }}
+        onOpenMessaging={() => {
+          setBuyerDashboardModalOpen(false);
+          setDirectMessagingModalOpen(true);
+        }}
+        onOpenOrderTracking={() => {
+          setBuyerDashboardModalOpen(false);
+          setOrderTrackingModalOpen(true);
+        }}
       />
 
       <ProductDetailModal 

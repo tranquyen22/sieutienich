@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowRight, Briefcase, Utensils, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, ArrowRight, Briefcase, Utensils, ChevronLeft, ChevronRight, Flame, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 export const Banner: React.FC = () => {
-  const { setSelectedCategory } = useShop();
+  const { setSelectedCategory, dailyCheckIn, hasCheckedInToday, checkInStreak } = useShop();
+  const { userRole } = useAuth();
+  const [checkInMsg, setCheckInMsg] = useState<{ success: boolean; text: string } | null>(null);
 
   const slides = [
     {
@@ -48,83 +51,149 @@ export const Banner: React.FC = () => {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
-  const activeSlide = slides[currentSlide];
+  const handleHomepageCheckIn = async () => {
+    const res = await dailyCheckIn();
+    setCheckInMsg({ success: res.success, text: res.message });
+    setTimeout(() => setCheckInMsg(null), 5000);
+  };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
-        
-        {/* KHU VỰC BANNER QUẢNG CÁO LỚN CHÍNH (BÊN TRÁI) */}
-        <div className="lg:col-span-2 relative rounded-3xl overflow-hidden shadow-xl border border-gray-100 min-h-[300px] sm:min-h-[340px] flex flex-col justify-between group">
-          {/* Background Image Carousel with Overlay */}
-          <div className="absolute inset-0 z-0">
-            <img 
-              src={activeSlide.img} 
-              alt={activeSlide.title} 
-              className="w-full h-full object-cover transition-all duration-700 scale-105 group-hover:scale-100"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-950/90 via-indigo-900/80 to-transparent"></div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 space-y-4">
+      
+      {/* PROMINENT DAILY CHECK-IN WIDGET ON HOMEPAGE */}
+      <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 text-white rounded-3xl p-3.5 sm:p-4 shadow-lg border border-amber-300/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-3 text-center sm:text-left">
+          <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-yellow-200 shrink-0">
+            <Flame className="w-6 h-6 text-yellow-300 animate-bounce" />
           </div>
-
-          {/* Banner Content */}
-          <div className="relative z-10 p-6 sm:p-8 flex flex-col justify-between h-full">
-            <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md text-white rounded-full text-[11px] font-extrabold uppercase tracking-wider mb-3 border border-white/20">
-                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-                {activeSlide.badge}
+          <div>
+            <div className="flex items-center gap-2 justify-center sm:justify-start">
+              <span className="font-black text-sm text-white">🎁 ĐIỂM DANH HÀNG NGÀY TRÊN TRANG CHỦ</span>
+              <span className="bg-orange-950/60 text-yellow-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-yellow-300/30">
+                Day {checkInStreak}/7
               </span>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight max-w-xl drop-shadow-sm">
-                {activeSlide.title}
-              </h1>
-              <p className="mt-2 text-indigo-100 text-xs sm:text-sm max-w-lg leading-relaxed line-clamp-2">
-                {activeSlide.subtitle}
-              </p>
             </div>
+            <p className="text-xs text-amber-100 mt-0.5">
+              Tích lũy N1-6: 50 xu/ngày • N7 thưởng +300 xu (1 Xu = 1 VNĐ).
+            </p>
+          </div>
+        </div>
 
-            <div className="mt-6 flex items-center gap-4">
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+          <button
+            onClick={handleHomepageCheckIn}
+            disabled={hasCheckedInToday || userRole === 'merchant'}
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-2xl font-black text-xs shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
+              userRole === 'merchant'
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : hasCheckedInToday
+                ? 'bg-emerald-600 text-white shadow-emerald-200'
+                : 'bg-white text-amber-900 hover:bg-amber-50 shadow-amber-200 hover:scale-105'
+            }`}
+          >
+            {hasCheckedInToday ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-white" />
+                <span>Đã Điểm Danh Hôm Nay</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>Điểm Danh Ngay (+{checkInStreak === 7 ? '300' : '50'} Xu)</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {checkInMsg && (
+        <div className={`p-3 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-sm ${
+          checkInMsg.success ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-rose-100 text-rose-900 border border-rose-300'
+        }`}>
+          {checkInMsg.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
+          <span>{checkInMsg.text}</span>
+        </div>
+      )}
+
+      {/* MAIN BANNER GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        
+        {/* KHỐI SLIDER CHÍNH (BÊN TRÁI 2 CỘT) */}
+        <div className="lg:col-span-2 relative rounded-3xl overflow-hidden shadow-xl min-h-[260px] sm:min-h-[340px] flex flex-col justify-end group">
+          
+          {/* Background Image Carousel */}
+          {slides.map((slide, index) => (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                index === currentSlide ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              <img 
+                src={slide.img} 
+                alt={slide.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent" />
+            </div>
+          ))}
+
+          {/* Slide Content Overlay */}
+          <div className="relative z-10 p-6 sm:p-8 space-y-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/90 text-white rounded-full text-xs font-extrabold shadow-sm backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5" />
+              {slides[currentSlide].badge}
+            </span>
+            
+            <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight tracking-tight max-w-xl">
+              {slides[currentSlide].title}
+            </h1>
+            
+            <p className="text-gray-200 text-xs sm:text-sm max-w-lg leading-relaxed line-clamp-2">
+              {slides[currentSlide].subtitle}
+            </p>
+
+            <div className="pt-2 flex items-center gap-4">
               <button 
                 onClick={() => {
-                  setSelectedCategory(activeSlide.catId);
+                  setSelectedCategory(slides[currentSlide].catId);
                   document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-900 font-bold rounded-2xl text-xs sm:text-sm shadow-lg hover:bg-indigo-50 transition-all transform hover:-translate-y-0.5 group/btn"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-2xl text-xs sm:text-sm shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 cursor-pointer"
               >
-                <span>{activeSlide.ctaText}</span>
-                <ArrowRight className="w-4 h-4 text-indigo-600 group-hover/btn:translate-x-1 transition-transform" />
+                <span>{slides[currentSlide].ctaText}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Left/Right Manual Arrow Controls */}
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button 
-              onClick={prevSlide}
-              className="p-2 bg-white/30 hover:bg-white/80 text-white hover:text-gray-900 backdrop-blur-md rounded-full transition shadow"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button 
-              onClick={nextSlide}
-              className="p-2 bg-white/30 hover:bg-white/80 text-white hover:text-gray-900 backdrop-blur-md rounded-full transition shadow"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
+          {/* Navigation Controls */}
+          <button 
+            onClick={prevSlide}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/70 backdrop-blur-sm transition opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+            title="Trượt sang trái"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <button 
+            onClick={nextSlide}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/70 backdrop-blur-sm transition opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+            title="Trượt sang phải"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
 
-          {/* Dots Indicator góc dưới Banner (Slide Pagination Dots) */}
-          <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 flex items-center gap-2 z-20 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-            {slides.map((_, index) => (
-              <button 
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                title={`Chuyển sang slide ${index + 1}`}
-                className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  index === currentSlide 
-                    ? 'w-7 bg-white shadow-md' 
-                    : 'w-2.5 bg-white/50 hover:bg-white/80'
+          {/* Slide Indicator Dots */}
+          <div className="absolute bottom-3 right-4 z-20 flex items-center gap-1.5">
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentSlide(idx)}
+                className={`h-2 rounded-full transition-all cursor-pointer ${
+                  idx === currentSlide ? 'w-6 bg-amber-400' : 'w-2 bg-white/50 hover:bg-white/80'
                 }`}
+                title={`Chuyển đến Slide ${idx + 1}`}
               />
             ))}
           </div>
@@ -133,7 +202,7 @@ export const Banner: React.FC = () => {
         {/* KHỐI KHUYẾN MÃI LỐI TẮT BÊN CẠNH BANNER (BÊN PHẢI) */}
         <div className="flex flex-col gap-4 sm:gap-5 justify-between">
           
-          {/* THẺ XANH (BÊN PHẢI TRÊN) - TIÊU ĐỀ: "Việc làm", NÚT: "Tìm việc ngay" */}
+          {/* THẺ XANH (BÊN PHẢI TRÊN) */}
           <div className="flex-1 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 text-white p-5 sm:p-6 rounded-3xl shadow-md flex flex-col justify-between relative overflow-hidden group hover:shadow-xl transition-all border border-emerald-500/20">
             <Briefcase className="w-24 h-24 text-white/10 absolute -right-2 -bottom-2 shrink-0 pointer-events-none group-hover:scale-110 transition-transform duration-500" />
             <div>
@@ -157,7 +226,7 @@ export const Banner: React.FC = () => {
             </button>
           </div>
 
-          {/* THẺ CAM (BÊN PHẢI DƯỚI) - TIÊU ĐỀ: "Giao ngay" - Đồ ăn-Đồ uống, NÚT: "Đặt món ngay" */}
+          {/* THẺ CAM (BÊN PHẢI DƯỚI) */}
           <div className="flex-1 bg-gradient-to-br from-orange-500 via-amber-600 to-orange-700 text-white p-5 sm:p-6 rounded-3xl shadow-md flex flex-col justify-between relative overflow-hidden group hover:shadow-xl transition-all border border-orange-400/20">
             <Utensils className="w-24 h-24 text-white/10 absolute -right-2 -bottom-2 shrink-0 pointer-events-none group-hover:scale-110 transition-transform duration-500" />
             <div>
@@ -186,6 +255,6 @@ export const Banner: React.FC = () => {
         </div>
 
       </div>
-    </section>
+    </div>
   );
 };

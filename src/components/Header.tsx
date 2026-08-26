@@ -15,6 +15,7 @@ interface HeaderProps {
   onOpenMerchantReconciliationModal: () => void;
   onOpenCustomerAddressBookModal: () => void;
   onOpenDirectMessagingModal: () => void;
+  onOpenBuyerDashboardModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMerchantReconciliationModal,
   onOpenCustomerAddressBookModal,
   onOpenDirectMessagingModal,
+  onOpenBuyerDashboardModal,
 }) => {
   const { 
     user, 
@@ -225,7 +227,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="text-xs text-gray-500">Tài khoản xác thực</p>
                       <p className="text-xs font-bold text-gray-800 truncate">{user.email}</p>
@@ -233,6 +235,18 @@ export const Header: React.FC<HeaderProps> = ({
                         {getRoleLabel(userRole)}
                       </span>
                     </div>
+
+                    {/* BUYER PROFILE & DASHBOARD PORTAL LINK */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenBuyerDashboardModal();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-black text-indigo-900 bg-indigo-50/80 hover:bg-indigo-100 flex items-center gap-2 border-b border-indigo-100 cursor-pointer"
+                    >
+                      <UserIcon className="w-4 h-4 text-indigo-600" />
+                      <span>👤 Quản Lý Tài Khoản Khách (18 Mục)</span>
+                    </button>
 
                     {/* Ví Xu Item in User Menu */}
                     <button
