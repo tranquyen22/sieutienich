@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { Header } from './components/Header';
 import { Banner } from './components/Banner';
@@ -22,12 +22,15 @@ import { ShopDetailPortalModal } from './components/ShopDetailPortalModal';
 import { ShopStatusToggleModal } from './components/ShopStatusToggleModal';
 import { AccountRoleAccessMatrixModal } from './components/AccountRoleAccessMatrixModal';
 import { AdminUserManagementModal } from './components/AdminUserManagementModal';
+import { AdminDashboardPortalModal } from './components/AdminDashboardPortalModal';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import type { Product, CustomerAddress } from './types';
 
 function AppContent() {
+  const { userRole } = useAuth();
+
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
   const [adminReviewModalOpen, setAdminReviewModalOpen] = useState(false);
@@ -43,6 +46,9 @@ function AppContent() {
   const [shopStatusToggleModalOpen, setShopStatusToggleModalOpen] = useState(false);
   const [accountRoleMatrixModalOpen, setAccountRoleMatrixModalOpen] = useState(false);
   const [adminUserManagementModalOpen, setAdminUserManagementModalOpen] = useState(false);
+
+  // Admin Dashboard Portal Landing Modal (Openable by default for Admin)
+  const [adminDashboardModalOpen, setAdminDashboardModalOpen] = useState(userRole === 'admin');
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -115,6 +121,7 @@ function AppContent() {
         onOpenShopStatusToggleModal={() => setShopStatusToggleModalOpen(true)}
         onOpenAccountRoleAccessMatrixModal={() => setAccountRoleMatrixModalOpen(true)}
         onOpenAdminUserManagementModal={() => setAdminUserManagementModalOpen(true)}
+        onOpenAdminDashboardModal={() => setAdminDashboardModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards & Homepage Daily Check-in */}
@@ -252,6 +259,16 @@ function AppContent() {
       <ShopStatusToggleModal isOpen={shopStatusToggleModalOpen} onClose={() => setShopStatusToggleModalOpen(false)} />
       <AccountRoleAccessMatrixModal isOpen={accountRoleMatrixModalOpen} onClose={() => setAccountRoleMatrixModalOpen(false)} />
       <AdminUserManagementModal isOpen={adminUserManagementModalOpen} onClose={() => setAdminUserManagementModalOpen(false)} />
+
+      {/* SUPER ADMIN LANDING DASHBOARD MODAL (HÔM NAY CÓ GÌ CẦN LÀM & SÀN ĐANG CHẠY RA SAO) */}
+      <AdminDashboardPortalModal
+        isOpen={adminDashboardModalOpen}
+        onClose={() => setAdminDashboardModalOpen(false)}
+        onOpenAdminReviewModal={() => setAdminReviewModalOpen(true)}
+        onOpenAdminUserManagementModal={() => setAdminUserManagementModalOpen(true)}
+        onOpenMerchantReconciliationModal={() => setMerchantReconciliationModalOpen(true)}
+        onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)}
+      />
 
       <ProductDetailModal 
         product={selectedProduct} 
