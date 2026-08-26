@@ -815,7 +815,7 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
             </div>
           )}
 
-          {/* 18. ACCOUNT DELETION REQUEST MODULE (MANDATORY BY PDPD LAW) */}
+          {/* 18. ACCOUNT DELETION REQUEST MODULE (WITH 30-DAY GRACE PERIOD) */}
           {activeTab === 'delete_account' && (
             <div className="space-y-4">
               <div className="p-4 bg-rose-50 border border-rose-300 rounded-2xl space-y-3 text-xs">
@@ -824,8 +824,11 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
                   <span>Yêu Cầu Xóa Tài Khoản (Bắt Buộc Theo Luật Bảo Vệ Dữ Liệu Cá Nhân)</span>
                 </h2>
                 <p className="text-rose-900 leading-relaxed">
-                  Theo <strong>Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân (PDPD)</strong>, bạn có quyền yêu cầu xóa vĩnh viễn toàn bộ dữ liệu cá nhân, thông tin liên hệ và lịch sử giao dịch trên hệ thống Siêu Tiện Ích.
+                  Theo <strong>Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân (PDPD)</strong>, bạn có quyền yêu cầu xóa toàn bộ dữ liệu cá nhân khỏi hệ thống.
                 </p>
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 font-bold">
+                  ⏱️ <strong>Quy định Ân Hạn 30 Ngày:</strong> Sau khi bấm gửi yêu cầu, bạn có <strong>30 ngày ân hạn</strong> để đổi ý và bấm khôi phục lại tài khoản. Hết 30 ngày hệ thống mới tiến hành cắt hẳn.
+                </div>
 
                 <form onSubmit={handleAccountDeletionRequest} className="space-y-3 pt-2">
                   <div>
@@ -844,7 +847,7 @@ export const BuyerDashboardModal: React.FC<BuyerDashboardModalProps> = ({
                     type="submit"
                     className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl shadow-md transition cursor-pointer"
                   >
-                    Gửi Yêu Cầu Xóa Tài Khoản Vĩnh Viễn
+                    Gửi Yêu Cầu Xóa (Ân Hạn 30 Ngày Để Đổi Ý)
                   </button>
                 </form>
               </div>

@@ -178,40 +178,38 @@ export interface Order {
 
 // 22-Granular Permission Matrix (Tài khoản, Danh bạ, Gian hàng, Xu/Ads, Tài chính, Hệ thống)
 export interface StaffPermissions {
-  // 1. Tài khoản và phân quyền
   can_manage_users: boolean;                 // Thêm, sửa tài khoản
   can_lock_unlock_users: boolean;            // Khoá và mở lại tài khoản
   can_reset_passwords: boolean;              // Bấm gửi mã đặt lại mật khẩu
-
-  // 2. Danh bạ tiện ích
   can_manage_directory_items: boolean;       // Thêm, sửa, xoá mục danh bạ
   can_toggle_verified_badge: boolean;        // Gắn và gỡ nhãn đã xác minh
   can_manage_categories_and_regions: boolean;// Thêm danh mục và sửa cây địa giới
-
-  // 3. Gian hàng và sản phẩm
   can_approve_shop_phase1: boolean;          // Duyệt hồ sơ mở shop — khâu 1
   can_approve_shop_phase2: boolean;          // Duyệt xác minh shop — khâu 2
   can_revoke_verification_badge: boolean;    // Thu hồi nhãn đã xác minh của shop
   can_takedown_violating_products: boolean;  // Gỡ sản phẩm vi phạm
-  can_view_dispute_messages: boolean;        // Xem tin nhắn giữa khách và shop (khi có khiếu nại, ghi nhật ký)
-
-  // 4. Xu, voucher, quảng cáo
+  can_view_dispute_messages: boolean;        // Xem tin nhắn giữa khách và shop
   can_scan_qr_approve_pending_coins: boolean;// Quét mã tại quầy, duyệt xu chờ
   can_manage_vouchers_and_banners: boolean;  // Tạo voucher và đặt banner
-  can_manually_adjust_coins: boolean;        // Tặng hoặc trừ xu bằng tay (bắt buộc ghi lý do)
-
-  // 5. Tiền và báo cáo
+  can_manually_adjust_coins: boolean;        // Tặng hoặc trừ xu bằng tay
   can_view_merchant_ledger: boolean;         // Xem sổ công nợ của shop
   can_record_shop_payments: boolean;         // Ghi nhận đã nhận tiền của shop
-  can_settle_monthly_ledger: boolean;        // Chốt sổ công nợ hằng tháng (cần người thứ hai duyệt)
+  can_settle_monthly_ledger: boolean;        // Chốt sổ công nợ hằng tháng
   can_export_financial_reports: boolean;     // Xem và xuất báo cáo thu chi
 
-  // Aliases for backward compatibility
   canApproveShops?: boolean;
   canManageProducts?: boolean;
   canManageOrders?: boolean;
   canManageCoins?: boolean;
 }
+
+// 5 Standard Account Lifecycle States
+export type AccountLifecycleStatus = 
+  | 'active'                            // 1. Đang hoạt động (Bình thường)
+  | 'locked_temp'                       // 2. Tạm khoá (Admin/Staff khóa kèm lý do + chỗ khiếu nại)
+  | 'locked_debt'                       // 3. Khoá do nợ phí (Hệ thống tự ngắt shop nợ > 1tr)
+  | 'deleted_by_user_pending'           // 4. Đã xoá theo yêu cầu (Chính chủ bấm, ân hạn 30 ngày)
+  | 'deleted_by_admin_permanently';     // 5. Đã xoá do vi phạm (Chỉ Admin tổng, cắt hẳn, không thể khôi phục)
 
 export interface UserProfile {
   id: string;
@@ -254,7 +252,6 @@ export interface MerchantApplication {
   created_at: string;
 }
 
-// Merchant Financial Ledger & Settlement System (Công nợ giữa sàn và shop)
 export interface MerchantFinancials {
   shop_id: string;
   shop_name: string;
@@ -302,8 +299,9 @@ export interface AdminManagedUser {
   address?: string;
   avatar_url?: string;
   roles: UserRole[]; // Can hold multiple roles e.g. ['buyer', 'merchant']
-  status: 'active' | 'locked' | 'soft_deleted';
+  status: AccountLifecycleStatus;
   lock_reason?: string;
+  user_delete_grace_period_ends_at?: string; // Ân hạn 30 ngày khi chính chủ yêu cầu xóa
   internal_notes?: string;
   must_change_password_on_first_login?: boolean;
   orders_count: number;
