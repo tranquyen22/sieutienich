@@ -7,9 +7,10 @@ import { useAuth } from '../context/AuthContext';
 interface OrderTrackingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenInvoiceModal?: (order: Order) => void;
 }
 
-export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose }) => {
+export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose, onOpenInvoiceModal }) => {
   const { orders, updateOrderStatus } = useShop();
   const { user, userRole, canManageOrders } = useAuth();
 
@@ -422,8 +423,20 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
                     </div>
 
                     {/* DYNAMIC ROLE ACTIONS */}
-                    {!isCompleted && !isCancelled ? (
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      {/* INVOICE GENERATION BUTTON */}
+                      {onOpenInvoiceModal && (
+                        <button
+                          onClick={() => onOpenInvoiceModal(order)}
+                          className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold rounded-xl text-xs border border-emerald-200 transition cursor-pointer"
+                          title="Tạo & Xuất hóa đơn (Tự động lưu vào doanh số shop)"
+                        >
+                          <span>🧾 In/Xuất Hóa Đơn</span>
+                        </button>
+                      )}
+
+                      {!isCompleted && !isCancelled && (
+                        <>
                         {/* HỦY ĐƠN BUTTON */}
                         <button
                           onClick={() => handleCancelOrderPrompt(order, !isMerchantControl)}
@@ -459,19 +472,22 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
                             <span>Khách bấm đã nhận</span>
                           </button>
                         )}
-                      </div>
-                    ) : isCancelled ? (
-                      <div className="px-3 py-1 bg-rose-100 text-rose-900 font-extrabold rounded-xl text-[11px] border border-rose-200">
-                        ❌ Đã hủy ({order.cancelled_by === 'buyer' ? 'Bởi Khách' : 'Bởi Shop'})
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
+                      </>
+                      )}
+
+                      {isCancelled && (
+                        <div className="px-3 py-1 bg-rose-100 text-rose-900 font-extrabold rounded-xl text-[11px] border border-rose-200">
+                          ❌ Đã hủy ({order.cancelled_by === 'buyer' ? 'Bởi Khách' : 'Bởi Shop'})
+                        </div>
+                      )}
+
+                      {isCompleted && (
                         <span className="text-emerald-700 font-extrabold text-[11px] flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Hoàn thành • Mở Đánh giá & +10k Xu</span>
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               );

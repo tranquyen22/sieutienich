@@ -26,11 +26,12 @@ import { AdminDashboardPortalModal } from './components/AdminDashboardPortalModa
 import { PublicDirectoryModal } from './components/PublicDirectoryModal';
 import { AdminPlatformAnalyticsModal } from './components/AdminPlatformAnalyticsModal';
 import { FloatingQuickChatButton } from './components/FloatingQuickChatButton';
+import { OrderInvoiceModal } from './components/OrderInvoiceModal';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
 import { PWAInstallPromptBar } from './components/PWAInstallPromptBar';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap } from 'lucide-react';
-import type { Product, CustomerAddress } from './types';
+import type { Product, CustomerAddress, Order } from './types';
 
 function AppContent() {
   const { userRole } = useAuth();
@@ -52,6 +53,10 @@ function AppContent() {
   const [adminUserManagementModalOpen, setAdminUserManagementModalOpen] = useState(false);
   const [publicDirectoryModalOpen, setPublicDirectoryModalOpen] = useState(false);
   const [adminAnalyticsModalOpen, setAdminAnalyticsModalOpen] = useState(false);
+
+  // Merchant Invoice Generation States
+  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
 
   // Messaging Auto Product Asking Target Info
   const [messagingTargetInfo, setMessagingTargetInfo] = useState<{
@@ -169,7 +174,14 @@ function AppContent() {
         onClose={() => setAdminReviewModalOpen(false)}
       />
       <CoinWalletModal isOpen={coinWalletModalOpen} onClose={() => setCoinWalletModalOpen(false)} />
-      <OrderTrackingModal isOpen={orderTrackingModalOpen} onClose={() => setOrderTrackingModalOpen(false)} />
+      <OrderTrackingModal 
+        isOpen={orderTrackingModalOpen} 
+        onClose={() => setOrderTrackingModalOpen(false)}
+        onOpenInvoiceModal={(ord) => {
+          setInvoiceOrder(ord);
+          setInvoiceModalOpen(true);
+        }}
+      />
       <StaffPermissionModal isOpen={staffPermissionModalOpen} onClose={() => setStaffPermissionModalOpen(false)} />
       <MerchantReconciliationModal isOpen={merchantReconciliationModalOpen} onClose={() => setMerchantReconciliationModalOpen(false)} />
       <CustomerAddressBookModal 
@@ -216,6 +228,13 @@ function AppContent() {
 
       {/* SUPER ADMIN PLATFORM ANALYTICS & ADVANCED EXCEL EXPORT MODAL */}
       <AdminPlatformAnalyticsModal isOpen={adminAnalyticsModalOpen} onClose={() => setAdminAnalyticsModalOpen(false)} />
+
+      {/* SHOP ORDER INVOICE PRINT & SALES RECORDING MODAL */}
+      <OrderInvoiceModal
+        isOpen={invoiceModalOpen}
+        onClose={() => setInvoiceModalOpen(false)}
+        order={invoiceOrder}
+      />
 
       {/* SUPER ADMIN LANDING DASHBOARD MODAL (HÔM NAY CÓ GÌ CẦN LÀM & SÀN ĐANG CHẠY RA SAO) */}
       <AdminDashboardPortalModal
