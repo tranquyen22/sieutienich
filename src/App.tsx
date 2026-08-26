@@ -27,6 +27,7 @@ import { PublicDirectoryModal } from './components/PublicDirectoryModal';
 import { AdminPlatformAnalyticsModal } from './components/AdminPlatformAnalyticsModal';
 import { FloatingQuickChatButton } from './components/FloatingQuickChatButton';
 import { OrderInvoiceModal } from './components/OrderInvoiceModal';
+import { MobileBottomNavBar } from './components/MobileBottomNavBar';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
 import { PWAInstallPromptBar } from './components/PWAInstallPromptBar';
 import { CartDrawer } from './components/CartDrawer';
@@ -95,7 +96,7 @@ function AppContent() {
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-16 sm:pb-0">
       {/* Top Impersonation Warning Banner (If Super Admin is viewing as Shop) */}
       <ImpersonationBannerBar />
 
@@ -119,7 +120,7 @@ function AppContent() {
         onOpenAdminPlatformAnalyticsModal={() => setAdminAnalyticsModalOpen(true)}
       />
       
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <Banner />
         <LocationFilterBar />
         <CategoryFilter />
@@ -258,6 +259,15 @@ function AppContent() {
 
       {/* FLOATING QUICK CHAT BUTTON (NÚT BẤM NHẮN TIN NHANH NỔI Ở MÀN HÌNH) */}
       <FloatingQuickChatButton onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)} />
+
+      {/* MOBILE BOTTOM NAVIGATION BAR (THANH ĐIỀU HƯỚNG DÁY MÀN HÌNH ĐIỆN THOẠI) */}
+      <MobileBottomNavBar 
+        onOpenPublicDirectoryModal={() => setPublicDirectoryModalOpen(true)}
+        onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)}
+        onOpenOrderTrackingModal={() => setOrderTrackingModalOpen(true)}
+        onOpenBuyerDashboardModal={() => setBuyerDashboardModalOpen(true)}
+        onOpenAuthModal={() => setAuthModalOpen(true)}
+      />
 
       {/* PWA INSTALL PROMPT BAR (CÀI APP LÊN MÀN HÌNH CHÍNH ĐIỆN THOẠI) */}
       <PWAInstallPromptBar />
