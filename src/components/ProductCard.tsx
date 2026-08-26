@@ -79,7 +79,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
           }}
         />
 
-        {/* Top Badges (Giao diện tối ưu cực kỳ gọn gàng) */}
+        {/* Top Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1 max-w-[85%]">
           <span className="inline-block px-2.5 py-1 bg-white/95 backdrop-blur-md rounded-lg text-[10px] uppercase font-extrabold text-indigo-700 tracking-wider shadow-sm border border-indigo-100 truncate max-w-full">
             {getCategoryBadge(product.category)}
@@ -131,25 +131,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
       <div className="p-4 flex flex-col flex-1 justify-between space-y-3 min-w-0">
         <div className="min-w-0">
           
-          {/* Rating Stars & Reviews Count */}
-          {!isUnverified ? (
-            <div className="flex items-center gap-1.5 mb-1 text-xs">
-              <div className="flex items-center text-amber-400">
-                <Star className="w-3.5 h-3.5 fill-amber-400" />
-                <span className="ml-1 font-black text-gray-900 text-xs">
-                  {product.rating ? product.rating.toFixed(1) : '5.0'}
+          {/* Rating Stars & Reviews Count & Total Sales Count */}
+          <div className="flex items-center justify-between gap-1 mb-1 text-xs">
+            {!isUnverified ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center text-amber-400">
+                  <Star className="w-3.5 h-3.5 fill-amber-400" />
+                  <span className="ml-1 font-black text-gray-900 text-xs">
+                    {product.rating ? product.rating.toFixed(1) : '5.0'}
+                  </span>
+                </div>
+                <span className="text-gray-400 text-[11px]">
+                  ({product.reviewCount || 48})
                 </span>
               </div>
-              <span className="text-gray-400 text-[11px]">
-                ({product.reviewCount || 48} đánh giá)
-              </span>
-            </div>
-          ) : (
-            <div className="mb-1 text-[11px] font-bold text-gray-400 flex items-center gap-1">
-              <Lock className="w-3 h-3 text-gray-400" />
-              <span>Chưa xác minh • Chưa mở đánh giá</span>
-            </div>
-          )}
+            ) : (
+              <div className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
+                <Lock className="w-3 h-3 text-gray-400" />
+                <span>Chưa xác minh</span>
+              </div>
+            )}
+
+            {/* Total Units Sold Badge */}
+            <span className="text-[11px] font-extrabold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full shrink-0 border border-slate-200/80">
+              🛒 Đã bán {product.soldCount !== undefined ? (product.soldCount >= 1000 ? `${(product.soldCount / 1000).toFixed(1)}k+` : product.soldCount) : '150+'}
+            </span>
+          </div>
 
           <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors break-words">
             {product.name}

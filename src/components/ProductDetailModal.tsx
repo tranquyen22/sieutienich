@@ -155,26 +155,33 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
           {/* Details Body */}
           <div className="p-5 sm:p-6 space-y-5">
             
-            {/* Title & Rating */}
+            {/* Title & Rating & Total Sales Count */}
             <div>
-              {isEligibleShopForReview ? (
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex items-center text-amber-400">
-                    <Star className="w-4 h-4 fill-amber-400" />
-                    <span className="ml-1 font-black text-gray-900 text-sm">
-                      {product.rating ? product.rating.toFixed(1) : '5.0'}
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {isEligibleShopForReview ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center text-amber-400">
+                      <Star className="w-4 h-4 fill-amber-400" />
+                      <span className="ml-1 font-black text-gray-900 text-sm">
+                        {product.rating ? product.rating.toFixed(1) : '5.0'}
+                      </span>
+                    </div>
+                    <span className="text-gray-400 text-xs font-semibold">
+                      ({product.reviewCount || reviewsList.length} đánh giá từ người mua)
                     </span>
                   </div>
-                  <span className="text-gray-400 text-xs font-semibold">
-                    ({product.reviewCount || reviewsList.length} đánh giá từ người mua)
-                  </span>
-                </div>
-              ) : (
-                <div className="mb-2 text-xs font-bold text-gray-400 flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Chưa xác minh • Không mở lượt đánh giá</span>
-                </div>
-              )}
+                ) : (
+                  <div className="text-xs font-bold text-gray-400 flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Chưa xác minh • Không mở lượt đánh giá</span>
+                  </div>
+                )}
+
+                <span className="text-gray-300">|</span>
+                <span className="text-xs font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                  🛒 Đã bán {product.soldCount !== undefined ? product.soldCount.toLocaleString('vi-VN') : '150'} lượt
+                </span>
+              </div>
 
               <h2 className="text-xl sm:text-2xl font-black text-gray-900 leading-snug">
                 {product.name}

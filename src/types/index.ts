@@ -34,10 +34,11 @@ export interface Product {
   licenseNo?: string;
   contactName?: string;
   phone?: string;
-  // Ratings & Reviews
+  // Ratings & Reviews & Sales Volume
   rating?: number;
   reviewCount?: number;
   reviews?: ProductReview[];
+  soldCount?: number; // Tổng số lượt đã bán / đã phục vụ
   // Vietnam post-merger location fields
   province?: string;
   district?: string;
