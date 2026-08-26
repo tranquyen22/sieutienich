@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck, Plus, Minus, CheckSquare, Square, Truck, Ticket, Percent } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck, Plus, Minus, CheckSquare, Square, Truck, Ticket, Percent, ArrowLeft } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import type { DeliveryMethod } from '../types';
 
@@ -126,22 +126,31 @@ export const CartDrawer: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 flex justify-end">
+      <div className="w-full h-full sm:w-screen sm:max-w-md bg-white shadow-2xl flex flex-col min-w-0 animate-in slide-in-from-bottom sm:slide-in-from-right duration-300">
           
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-lg font-bold text-gray-900">Giỏ hàng của bạn</h2>
-              <span className="bg-indigo-100 text-indigo-700 text-xs font-extrabold px-2 py-0.5 rounded-full">
-                {cartCount}
-              </span>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-800 bg-slate-900 text-white shrink-0">
+            <div className="flex items-center gap-2.5">
+              <button 
+                onClick={() => setIsCartOpen(false)}
+                className="p-1.5 text-slate-300 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
+                title="Quay lại"
+              >
+                <ArrowLeft className="w-5 h-5 text-indigo-400" />
+              </button>
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-indigo-400" />
+                <h2 className="text-base font-black text-white">Giỏ Hàng Của Bạn</h2>
+                <span className="bg-indigo-600 text-white text-xs font-extrabold px-2 py-0.5 rounded-full">
+                  {cartCount}
+                </span>
+              </div>
             </div>
+            
             <button 
               onClick={() => setIsCartOpen(false)}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -434,7 +443,6 @@ export const CartDrawer: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
     </div>
   );
 };
