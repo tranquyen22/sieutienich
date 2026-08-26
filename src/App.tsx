@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { Header } from './components/Header';
 import { Banner } from './components/Banner';
@@ -34,7 +34,6 @@ import { ShieldCheck, Zap } from 'lucide-react';
 import type { Product, CustomerAddress, Order } from './types';
 
 function AppContent() {
-  const { userRole } = useAuth();
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
@@ -66,8 +65,8 @@ function AppContent() {
     productPrice?: number;
   }>({});
 
-  // Admin Dashboard Portal Landing Modal (Openable by default for Admin)
-  const [adminDashboardModalOpen, setAdminDashboardModalOpen] = useState(userRole === 'admin');
+  // Admin Dashboard Portal Landing Modal (Openable by Admin)
+  const [adminDashboardModalOpen, setAdminDashboardModalOpen] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
