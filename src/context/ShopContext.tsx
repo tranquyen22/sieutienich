@@ -319,6 +319,53 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: false, message: 'Không thể điểm danh do hệ thống đã đạt trần thưởng toàn sàn tháng này.' };
   };
 
+  // AUTOMATICALLY GET & UPDATE CUSTOMER'S LATEST GPS LOCATION UPON ACCESSING WEB APP
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setUserCoords({ lat, lng });
+
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=vi`
+            );
+            const data = await response.json();
+            if (data && data.address) {
+              const addr = data.address;
+              const prov = addr.state || addr.city || addr.province || 'Hà Nội';
+              const dist = addr.county || addr.district || addr.suburb || addr.city_district || addr.town || 'Cầu Giấy';
+              const road = addr.road || addr.quarter || addr.suburb || '';
+
+              const cleanProv = prov.replace(/Tỉnh |Thành phố |TP\. /g, '').trim();
+              const cleanDist = dist.replace(/Quận |Huyện |Thị xã |TP\. /g, '').trim();
+
+              setSelectedProvince(cleanProv);
+              setSelectedDistrict(cleanDist);
+              setUserLocationText(`${road ? `${road}, ` : ''}${cleanDist}, ${cleanProv}`);
+            } else {
+              setUserLocationText(`GPS (${lat.toFixed(5)}°, ${lng.toFixed(5)}°)`);
+            }
+          } catch {
+            setUserLocationText(`GPS chuẩn (${lat.toFixed(5)}°, ${lng.toFixed(5)}°)`);
+          }
+
+          setSelectedDistance(5);
+        },
+        (error) => {
+          console.warn('Auto GPS location error on load:', error.message);
+        },
+        { 
+          enableHighAccuracy: true, 
+          timeout: 15000, 
+          maximumAge: 0 
+        }
+      );
+    }
+  }, []);
+
   const handleGetGPSLocation = () => {
     if (!navigator.geolocation) {
       alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
