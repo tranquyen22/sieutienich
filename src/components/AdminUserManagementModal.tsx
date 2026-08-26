@@ -11,8 +11,39 @@ interface AdminUserManagementModalProps {
 export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> = ({ isOpen, onClose }) => {
   const { isAdmin } = useAuth();
 
-  // Initial Sample Managed Users Database
+  // Initial Managed Users Database (Trần Văn Quyền is the SOLE Super Admin)
   const [usersList, setUsersList] = useState<AdminManagedUser[]>([
+    {
+      id: 'USR-ADMIN-001',
+      full_name: 'Trần Văn Quyền',
+      phone: '0367818343',
+      email: 'tranvanquyen2211@gmail.com',
+      address: 'Chủ sàn tối cao — Toàn quyền quản trị hệ thống',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80',
+      roles: ['admin'],
+      status: 'active',
+      internal_notes: '👑 Tài khoản Admin tổng DUY NHẤT của Chủ sàn. Bất tử: Không ai khóa hay xóa được!',
+      must_change_password_on_first_login: false,
+      orders_count: 50,
+      regular_coins: 999999,
+      tq_coins: 999999,
+      reviews_written_count: 20,
+      report_count: 0,
+      active_devices: ['iPhone 16 Pro Max (Hà Nội)', 'MacBook Pro M3 Max'],
+      created_at: new Date(Date.now() - 86400000 * 365).toISOString(),
+      audit_logs: [
+        {
+          id: 'log-0',
+          user_id: 'USR-ADMIN-001',
+          admin_name: 'Hệ Thống',
+          action_type: 'create',
+          before_state: 'Khởi tạo hệ thống',
+          after_state: 'Khởi tạo tài khoản Admin Tổng DUY NHẤT (Trần Văn Quyền)',
+          reason: 'Khởi tạo tài khoản chủ sàn tối cao',
+          timestamp: new Date(Date.now() - 86400000 * 365).toISOString(),
+        },
+      ],
+    },
     {
       id: 'USR-8801',
       full_name: 'Nguyễn Văn Hùng',
@@ -31,18 +62,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
       report_count: 0,
       active_devices: ['iPhone 15 Pro (Hà Nội)', 'MacBook Pro M2'],
       created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
-      audit_logs: [
-        {
-          id: 'log-1',
-          user_id: 'USR-8801',
-          admin_name: 'Admin Tổng',
-          action_type: 'change_roles',
-          before_state: 'Vai trò: [buyer]',
-          after_state: 'Vai trò: [buyer, merchant]',
-          reason: 'Cấp thêm quyền Chủ shop sau khi nộp đủ GPKD',
-          timestamp: new Date(Date.now() - 86400000 * 10).toISOString(),
-        },
-      ],
+      audit_logs: [],
     },
     {
       id: 'USR-8802',

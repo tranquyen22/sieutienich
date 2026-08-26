@@ -3,6 +3,9 @@ import type { User, Session } from '@supabase/supabase-js';
 import type { MerchantApplication, UserRole, StaffPermissions } from '../types';
 import { supabase } from '../lib/supabase';
 
+export const SUPER_ADMIN_EMAIL = 'tranvanquyen2211@gmail.com';
+export const SUPER_ADMIN_PHONE = '0367818343';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -89,11 +92,23 @@ export const validateVietnamesePhone = (phone: string): boolean => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Default User initialized as Trần Văn Quyền (Super Admin Tổng DUY NHẤT)
+  const [user, setUser] = useState<User | null>({
+    id: 'USR-ADMIN-001',
+    email: SUPER_ADMIN_EMAIL,
+    user_metadata: {
+      full_name: 'Trần Văn Quyền',
+      phone: SUPER_ADMIN_PHONE,
+    },
+    app_metadata: {},
+    aud: 'authenticated',
+    created_at: new Date().toISOString(),
+  } as any);
 
-  // Default demo role set to admin to allow testing full administrative power
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // User Role initialized as Super Admin ('admin') for tranvanquyen2211@gmail.com / 0367818343
   const [userRole, setUserRole] = useState<UserRole>('admin');
 
   // Staff Permissions (Admin can modify dynamically per staff member)
@@ -157,14 +172,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        setSession(session);
+        setUser(session.user);
+        
+        // Auto grant Super Admin role ONLY if email or phone matches tranvanquyen2211@gmail.com / 0367818343
+        const userEmail = session.user.email?.toLowerCase() || '';
+        const userPhone = session.user.user_metadata?.phone || '';
+        if (userEmail === SUPER_ADMIN_EMAIL || userPhone === SUPER_ADMIN_PHONE || userEmail.includes(SUPER_ADMIN_PHONE)) {
+          setUserRole('admin');
+        }
+      }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        setSession(session);
+        setUser(session.user);
+
+        // Auto grant Super Admin role ONLY if email or phone matches tranvanquyen2211@gmail.com / 0367818343
+        const userEmail = session.user.email?.toLowerCase() || '';
+        const userPhone = session.user.user_metadata?.phone || '';
+        if (userEmail === SUPER_ADMIN_EMAIL || userPhone === SUPER_ADMIN_PHONE || userEmail.includes(SUPER_ADMIN_PHONE)) {
+          setUserRole('admin');
+        }
+      }
       setLoading(false);
     });
 
@@ -194,6 +227,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let loginEmail = identifier.trim();
       if (validateVietnamesePhone(identifier)) {
         loginEmail = `${identifier.replace(/[\s\-\.]/g, '')}@sieutienich.vn`;
+      }
+
+      // Check if logging in as Super Admin
+      if (loginEmail === SUPER_ADMIN_EMAIL || identifier.replace(/[\s\-\.]/g, '') === SUPER_ADMIN_PHONE) {
+        setUserRole('admin');
       }
 
       const { error } = await supabase.auth.signInWithPassword({
