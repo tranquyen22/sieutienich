@@ -28,7 +28,7 @@ export const AdminDashboardPortalModal: React.FC<AdminDashboardPortalModalProps>
 
   // Action Queue Pending Item Counts
   const [pendingItems] = useState({
-    shopOpeningQueue: allApplications.filter((a) => a.status === 'pending_review').length || 2,
+    shopOpeningQueue: (allApplications || []).filter((a) => a.status === 'pending_review').length || 2,
     shopVerificationQueue: 2,
     passwordResetRequests: 1,
     directoryReports: 2,

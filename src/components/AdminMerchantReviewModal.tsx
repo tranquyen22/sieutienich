@@ -124,12 +124,12 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
           {/* TAB 1: PHASE 1 OPENING SHOP REVIEW QUEUE */}
           {activeReviewTab === 'phase_1' && (
             <div className="space-y-4">
-              {allApplications.length === 0 ? (
+              {(allApplications || []).length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   Chưa có hồ sơ đăng ký mở Shop nào trong hàng đợi.
                 </div>
               ) : (
-                allApplications.map((app) => {
+                (allApplications || []).map((app) => {
                   const isPending = app.status === 'pending_review';
 
                   return (

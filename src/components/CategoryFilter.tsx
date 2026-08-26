@@ -57,7 +57,7 @@ export const CategoryFilter: React.FC = () => {
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500">
         <span>Danh mục dịch vụ tiện ích phong phú</span>
         <span>
-          Hiển thị <strong className="text-gray-900 font-bold">{filteredProducts.length}</strong> kết quả
+          Hiển thị <strong className="text-gray-900 font-bold">{(filteredProducts || []).length}</strong> kết quả
         </span>
       </div>
     </div>
