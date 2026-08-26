@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, Check, Settings, ShieldAlert, Crown } from 'lucide-react';
+import { X, ShieldCheck, Check, Settings, ShieldAlert, Crown, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { StaffPermissions } from '../types';
 
@@ -17,10 +17,51 @@ interface PermissionRow {
   restrictionReason?: string;
 }
 
+export interface PermissionTemplate {
+  id: string;
+  name: string;
+  targetRoleDesc: string;
+  enabledKeys: (keyof StaffPermissions)[];
+}
+
+export const STAFF_PERMISSION_TEMPLATES: PermissionTemplate[] = [
+  {
+    id: 'pos_counter',
+    name: '🏪 Mẫu 1: Trực quầy',
+    targetRoleDesc: 'Dùng cho người đứng bán ở cửa hàng TQ (Bật: Quét mã tại quầy, duyệt xu chờ)',
+    enabledKeys: ['can_scan_qr_approve_pending_coins'],
+  },
+  {
+    id: 'directory_entry',
+    name: '📇 Mẫu 2: Nhập liệu danh bạ',
+    targetRoleDesc: 'Dùng cho người đi gom số thợ, quán, taxi (Bật: Thêm sửa xóa mục danh bạ, gắn nhãn xác minh, sửa cây địa giới)',
+    enabledKeys: ['can_manage_directory_items', 'can_toggle_verified_badge', 'can_manage_categories_and_regions'],
+  },
+  {
+    id: 'audit_reviewer',
+    name: '📋 Mẫu 3: Duyệt hồ sơ',
+    targetRoleDesc: 'Dùng cho người xử lý hàng đợi hồ sơ (Bật: Duyệt mở shop khâu 1 & 2, thu hồi nhãn, gỡ SP. KHÔNG thấy phần tiền!)',
+    enabledKeys: ['can_approve_shop_phase1', 'can_approve_shop_phase2', 'can_revoke_verification_badge', 'can_takedown_violating_products'],
+  },
+  {
+    id: 'customer_support',
+    name: '🎧 Mẫu 4: Hỗ trợ khách',
+    targetRoleDesc: 'Dùng cho người trả lời khách & shop (Bật: Gửi mã reset MK, khóa tài khoản phá phách, xem tin nhắn. KHÔNG sửa xu/công nợ!)',
+    enabledKeys: ['can_reset_passwords', 'can_lock_unlock_users', 'can_view_dispute_messages'],
+  },
+  {
+    id: 'finance_accounting',
+    name: '💰 Mẫu 5: Sổ sách',
+    targetRoleDesc: 'Dùng cho người làm thu chi (Bật: Xem công nợ, ghi nhận tiền shop, xuất báo cáo. KHÔNG tự chốt sổ 1 mình!)',
+    enabledKeys: ['can_view_merchant_ledger', 'can_record_shop_payments', 'can_export_financial_reports'],
+  },
+];
+
 export const StaffPermissionModal: React.FC<StaffPermissionModalProps> = ({ isOpen, onClose }) => {
   const { staffPermissions, setStaffPermissions } = useAuth();
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -68,6 +109,34 @@ export const StaffPermissionModal: React.FC<StaffPermissionModalProps> = ({ isOp
 
   const categories = Array.from(new Set(permissionMatrix.map((p) => p.category)));
 
+  const handleApplyTemplate = (template: PermissionTemplate) => {
+    setActiveTemplateId(template.id);
+    
+    // Create new permissions object with all togglable items set to false except enabledKeys
+    const newPerms: StaffPermissions = {
+      can_manage_users: template.enabledKeys.includes('can_manage_users'),
+      can_lock_unlock_users: template.enabledKeys.includes('can_lock_unlock_users'),
+      can_reset_passwords: template.enabledKeys.includes('can_reset_passwords'),
+      can_manage_directory_items: template.enabledKeys.includes('can_manage_directory_items'),
+      can_toggle_verified_badge: template.enabledKeys.includes('can_toggle_verified_badge'),
+      can_manage_categories_and_regions: template.enabledKeys.includes('can_manage_categories_and_regions'),
+      can_approve_shop_phase1: template.enabledKeys.includes('can_approve_shop_phase1'),
+      can_approve_shop_phase2: template.enabledKeys.includes('can_approve_shop_phase2'),
+      can_revoke_verification_badge: template.enabledKeys.includes('can_revoke_verification_badge'),
+      can_takedown_violating_products: template.enabledKeys.includes('can_takedown_violating_products'),
+      can_view_dispute_messages: template.enabledKeys.includes('can_view_dispute_messages'),
+      can_scan_qr_approve_pending_coins: template.enabledKeys.includes('can_scan_qr_approve_pending_coins'),
+      can_manage_vouchers_and_banners: template.enabledKeys.includes('can_manage_vouchers_and_banners'),
+      can_manually_adjust_coins: template.enabledKeys.includes('can_manually_adjust_coins'),
+      can_view_merchant_ledger: template.enabledKeys.includes('can_view_merchant_ledger'),
+      can_record_shop_payments: template.enabledKeys.includes('can_record_shop_payments'),
+      can_settle_monthly_ledger: template.enabledKeys.includes('can_settle_monthly_ledger'),
+      can_export_financial_reports: template.enabledKeys.includes('can_export_financial_reports'),
+    };
+
+    setStaffPermissions(newPerms);
+  };
+
   const handleToggle = (key: keyof StaffPermissions) => {
     setStaffPermissions((prev) => ({
       ...prev,
@@ -101,11 +170,45 @@ export const StaffPermissionModal: React.FC<StaffPermissionModalProps> = ({ isOp
             <span>Phân Quyền Nhân Viên Chi Tiết Từng Mục (Admin Phân Quyền)</span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black text-white">Bảng Phân Quyền Đầy Đủ (Admin Tổng vs. Nhân Viên)</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-white">Bảng Phân Quyền Đầy Đủ & 5 Mẫu Đặt Sẵn</h2>
+        </div>
+
+        {/* 5 PRESET TEMPLATES SELECTION BAR */}
+        <div className="bg-slate-900 text-white p-4 border-b border-slate-800 shrink-0 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-amber-400 font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
+              <span>Năm Mẫu Nhân Viên Đặt Sẵn (Áp Dụng 1-Click Không Phải Tick Từng Ô):</span>
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold">Chọn mẫu rồi tùy chỉnh thêm bớt</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {STAFF_PERMISSION_TEMPLATES.map((tmpl) => {
+              const isSelected = activeTemplateId === tmpl.id;
+
+              return (
+                <button
+                  key={tmpl.id}
+                  type="button"
+                  onClick={() => handleApplyTemplate(tmpl)}
+                  className={`p-2 rounded-xl text-left transition cursor-pointer border font-bold text-[11px] flex flex-col justify-between ${
+                    isSelected 
+                      ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white border-white shadow-md' 
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                  }`}
+                  title={tmpl.targetRoleDesc}
+                >
+                  <div className="font-extrabold truncate">{tmpl.name}</div>
+                  <div className="text-[9px] opacity-80 line-clamp-1 mt-0.5">{tmpl.targetRoleDesc}</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Rule Banner Notice */}
-        <div className="bg-amber-500 text-white px-5 py-2.5 text-xs font-bold flex items-center gap-2 shadow-inner shrink-0">
+        <div className="bg-amber-500 text-white px-5 py-2 text-xs font-bold flex items-center gap-2 shadow-inner shrink-0">
           <ShieldAlert className="w-4 h-4 text-yellow-200 shrink-0" />
           <span>📌 Nguyên tắc: Chỉ có DUY NHẤT 1 Admin tổng. Bên dưới là Nhân viên do Admin tổng tạo, bật tắt TỪNG QUYỀN MỘT chứ không cấp trọn gói — Giao được việc mà không phải giao chìa khóa nhà!</span>
         </div>
