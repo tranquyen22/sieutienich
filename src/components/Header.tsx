@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store, Key, Users, LayoutDashboard, Building2 } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store, Key, Users, LayoutDashboard, Building2, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import { NotificationBell } from './NotificationBell';
@@ -22,6 +22,7 @@ interface HeaderProps {
   onOpenAdminUserManagementModal: () => void;
   onOpenAdminDashboardModal?: () => void;
   onOpenPublicDirectoryModal?: () => void;
+  onOpenAdminPlatformAnalyticsModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -41,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdminUserManagementModal,
   onOpenAdminDashboardModal,
   onOpenPublicDirectoryModal,
+  onOpenAdminPlatformAnalyticsModal,
 }) => {
   const { user, userRole, signOut, canApproveShops, canManageProducts, isAdmin } = useAuth();
   const { cartItems, setIsCartOpen } = useShop();
@@ -219,6 +221,20 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <LayoutDashboard className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>📊 Dashboard Quản Trị Sàn (Màn hình chính)</span>
+                    </button>
+                  )}
+
+                  {/* SUPER ADMIN PLATFORM ANALYTICS & EXCEL EXPORT */}
+                  {isAdmin && onOpenAdminPlatformAnalyticsModal && (
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenAdminPlatformAnalyticsModal();
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-black text-emerald-950 bg-emerald-50/80 hover:bg-emerald-100 border-b border-emerald-200 flex items-center gap-2 cursor-pointer"
+                    >
+                      <BarChart3 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>📈 Thống Kê Số Liệu Toàn Sàn (Xuất Excel)</span>
                     </button>
                   )}
 

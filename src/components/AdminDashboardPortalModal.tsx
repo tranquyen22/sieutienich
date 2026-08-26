@@ -12,6 +12,7 @@ interface AdminDashboardPortalModalProps {
   onOpenAdminUserManagementModal: () => void;
   onOpenMerchantReconciliationModal: () => void;
   onOpenDirectMessagingModal: () => void;
+  onOpenAdminPlatformAnalyticsModal?: () => void;
 }
 
 export const AdminDashboardPortalModal: React.FC<AdminDashboardPortalModalProps> = ({
@@ -21,6 +22,7 @@ export const AdminDashboardPortalModal: React.FC<AdminDashboardPortalModalProps>
   onOpenAdminUserManagementModal,
   onOpenMerchantReconciliationModal,
   onOpenDirectMessagingModal,
+  onOpenAdminPlatformAnalyticsModal,
 }) => {
   const { allApplications } = useAuth();
 
@@ -229,12 +231,24 @@ export const AdminDashboardPortalModal: React.FC<AdminDashboardPortalModalProps>
 
           {/* SECTION 2: SỐ LIỆU SÀN (LIVE PLATFORM METRICS & ANALYTICS) */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1">
               <h3 className="font-black text-sm text-gray-900 flex items-center gap-2 uppercase tracking-wider">
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
                 <span>SỐ LIỆU VẬN HÀNH SÀN THỜI GIAN THỰC</span>
               </h3>
-              <span className="text-[10px] text-gray-400 font-bold">Cập nhật tự động 5s/lần</span>
+              
+              {onOpenAdminPlatformAnalyticsModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenAdminPlatformAnalyticsModal();
+                  }}
+                  className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>📊 Xem Chi Tiết Thống Kê & Xuất Excel</span>
+                </button>
+              )}
             </div>
 
             {/* KPI Cards Grid */}

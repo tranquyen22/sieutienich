@@ -24,6 +24,7 @@ import { AccountRoleAccessMatrixModal } from './components/AccountRoleAccessMatr
 import { AdminUserManagementModal } from './components/AdminUserManagementModal';
 import { AdminDashboardPortalModal } from './components/AdminDashboardPortalModal';
 import { PublicDirectoryModal } from './components/PublicDirectoryModal';
+import { AdminPlatformAnalyticsModal } from './components/AdminPlatformAnalyticsModal';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
 import { PWAInstallPromptBar } from './components/PWAInstallPromptBar';
 import { CartDrawer } from './components/CartDrawer';
@@ -49,6 +50,7 @@ function AppContent() {
   const [accountRoleMatrixModalOpen, setAccountRoleMatrixModalOpen] = useState(false);
   const [adminUserManagementModalOpen, setAdminUserManagementModalOpen] = useState(false);
   const [publicDirectoryModalOpen, setPublicDirectoryModalOpen] = useState(false);
+  const [adminAnalyticsModalOpen, setAdminAnalyticsModalOpen] = useState(false);
 
   // Messaging Auto Product Asking Target Info
   const [messagingTargetInfo, setMessagingTargetInfo] = useState<{
@@ -109,6 +111,7 @@ function AppContent() {
         onOpenAdminUserManagementModal={() => setAdminUserManagementModalOpen(true)}
         onOpenAdminDashboardModal={() => setAdminDashboardModalOpen(true)}
         onOpenPublicDirectoryModal={() => setPublicDirectoryModalOpen(true)}
+        onOpenAdminPlatformAnalyticsModal={() => setAdminAnalyticsModalOpen(true)}
       />
       
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 space-y-6">
@@ -210,6 +213,9 @@ function AppContent() {
       {/* PUBLIC UTILITIES & SERVICES DIRECTORY MODAL */}
       <PublicDirectoryModal isOpen={publicDirectoryModalOpen} onClose={() => setPublicDirectoryModalOpen(false)} />
 
+      {/* SUPER ADMIN PLATFORM ANALYTICS & ADVANCED EXCEL EXPORT MODAL */}
+      <AdminPlatformAnalyticsModal isOpen={adminAnalyticsModalOpen} onClose={() => setAdminAnalyticsModalOpen(false)} />
+
       {/* SUPER ADMIN LANDING DASHBOARD MODAL (HÔM NAY CÓ GÌ CẦN LÀM & SÀN ĐANG CHẠY RA SAO) */}
       <AdminDashboardPortalModal
         isOpen={adminDashboardModalOpen}
@@ -218,6 +224,7 @@ function AppContent() {
         onOpenAdminUserManagementModal={() => setAdminUserManagementModalOpen(true)}
         onOpenMerchantReconciliationModal={() => setMerchantReconciliationModalOpen(true)}
         onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)}
+        onOpenAdminPlatformAnalyticsModal={() => setAdminAnalyticsModalOpen(true)}
       />
 
       {/* PRODUCT DETAIL MODAL (WITH AUTO MESSAGING WITH PRODUCT) */}
