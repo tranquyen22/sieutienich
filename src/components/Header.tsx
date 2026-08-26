@@ -44,7 +44,6 @@ export const Header: React.FC<HeaderProps> = ({
     user, 
     signOut, 
     userRole, 
-    setUserRole, 
     isAdmin, 
     canApproveShops, 
     canManageProducts 
@@ -74,62 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
       
-      {/* 4-TIER RBAC QUICK DEMO ROLE SWITCHER BAR */}
-      <div className="bg-slate-900 text-white px-4 py-1 text-[11px] font-semibold flex items-center justify-between gap-2 overflow-x-auto">
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Mô hình phân quyền 4 Cấp:</span>
-          <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black text-[10px]">
-            {getRoleLabel(userRole)}
-          </span>
-          <button
-            onClick={onOpenAccountRoleAccessMatrixModal}
-            className="text-[10px] text-amber-400 hover:underline font-extrabold flex items-center gap-1 cursor-pointer"
-          >
-            <Key className="w-3 h-3" />
-            <span>[Xem ma trận phân quyền 4 loại TK]</span>
-          </button>
-        </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-slate-400 text-[10px] hidden sm:inline">Thử nghiệm vai trò:</span>
-          <button
-            onClick={() => setUserRole('admin')}
-            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
-              userRole === 'admin' ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-            title="Admin tổng — Chủ sàn (Duy nhất 1 TK tối cao, không ai khóa/xóa được)"
-          >
-            👑 Admin tổng
-          </button>
-          <button
-            onClick={() => setUserRole('staff')}
-            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
-              userRole === 'staff' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-            title="Nhân viên — Người chủ sàn thuê giúp việc (Trang quản trị đúng mục được cấp)"
-          >
-            💼 Nhân viên
-          </button>
-          <button
-            onClick={() => setUserRole('merchant')}
-            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
-              userRole === 'merchant' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-            title="Chủ shop — Người đăng ký gian hàng (Trang shop: hàng, đơn, công nợ)"
-          >
-            🏪 Chủ shop
-          </button>
-          <button
-            onClick={() => setUserRole('buyer')}
-            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
-              userRole === 'buyer' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-            title="Khách — Người mua, người tra danh bạ (Trang khách: đơn, xu, tin nhắn)"
-          >
-            👤 Khách
-          </button>
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
