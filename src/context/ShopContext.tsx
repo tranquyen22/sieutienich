@@ -321,26 +321,48 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         setUserCoords({ lat, lng });
-        setUserLocationText(`GPS (${lat.toFixed(4)}°, ${lng.toFixed(4)}°)`);
-        setSelectedProvince('Hà Nội');
-        setSelectedDistrict('Cầu Giấy');
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=vi`
+          );
+          const data = await response.json();
+          if (data && data.address) {
+            const addr = data.address;
+            const prov = addr.state || addr.city || addr.province || 'Hà Nội';
+            const dist = addr.county || addr.district || addr.suburb || addr.city_district || addr.town || 'Cầu Giấy';
+            const road = addr.road || addr.quarter || addr.suburb || '';
+
+            const cleanProv = prov.replace(/Tỉnh |Thành phố |TP\. /g, '').trim();
+            const cleanDist = dist.replace(/Quận |Huyện |Thị xã |TP\. /g, '').trim();
+
+            setSelectedProvince(cleanProv);
+            setSelectedDistrict(cleanDist);
+            setUserLocationText(`${road ? `${road}, ` : ''}${cleanDist}, ${cleanProv}`);
+          } else {
+            setUserLocationText(`GPS (${lat.toFixed(5)}°, ${lng.toFixed(5)}°)`);
+          }
+        } catch {
+          setUserLocationText(`GPS chuẩn (${lat.toFixed(5)}°, ${lng.toFixed(5)}°)`);
+        }
+
         setSelectedDistance(5);
         setIsLocating(false);
       },
       (error) => {
         console.warn('GPS location error:', error);
-        setUserCoords({ lat: 21.0285, lng: 105.8542 });
-        setUserLocationText('Cầu Giấy, Hà Nội (GPS Đã kích hoạt)');
-        setSelectedProvince('Hà Nội');
-        setSelectedDistrict('Cầu Giấy');
-        setSelectedDistance(3);
+        alert(`Không thể xác định vị trí vệ tinh GPS chính xác (${error.message}). Vui lòng chọn Tỉnh/Thành thủ công!`);
         setIsLocating(false);
       },
-      { timeout: 8000 }
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000, 
+        maximumAge: 0 
+      }
     );
   };
 

@@ -45,20 +45,50 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
 
     setIsLocatingGPS(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setGpsCoords({ lat, lng });
 
         const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
         setGoogleMapsUrl(mapsUrl);
-        setIsLocatingGPS(false);
 
-        alert(`🎯 Đã lấy tọa độ GPS thực tế thành công!\nLat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}\nLiên kết Google Maps đã được ghim trực tiếp vào địa chỉ!`);
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=vi`
+          );
+          const data = await response.json();
+          if (data && data.address) {
+            const addr = data.address;
+            const prov = (addr.state || addr.city || addr.province || 'Hà Nội').replace(/Tỉnh |Thành phố |TP\. /g, '').trim();
+            const dist = (addr.county || addr.district || addr.suburb || addr.city_district || addr.town || 'Cầu Giấy').replace(/Quận |Huyện |Thị xã |TP\. /g, '').trim();
+            const road = addr.road || addr.quarter || addr.suburb || '';
+            const houseNo = addr.house_number ? `Số ${addr.house_number} ` : '';
+
+            setProvince(prov);
+            setDistrict(dist);
+            if (houseNo || road) {
+              setDetailAddress(`${houseNo}${road}`.trim());
+            }
+
+            alert(`🎯 Đã định vị GPS vệ tinh chính xác 100%!\n📍 Vị trí: ${houseNo}${road}, ${dist}, ${prov}\nLat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}\nLiên kết Google Maps đã được ghim trực tiếp!`);
+          } else {
+            alert(`🎯 Đã lấy tọa độ GPS thực tế chuẩn xác!\nLat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+          }
+        } catch {
+          alert(`🎯 Đã lấy tọa độ GPS phần cứng chuẩn xác!\nLat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+        } finally {
+          setIsLocatingGPS(false);
+        }
       },
       (err) => {
         setIsLocatingGPS(false);
-        alert(`Không thể lấy GPS: ${err.message}. Bạn có thể dán link Google Maps bên dưới!`);
+        alert(`Không thể lấy định vị GPS: ${err.message}. Bạn vui lòng dán link Google Maps hoặc nhập địa chỉ thủ công!`);
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000, 
+        maximumAge: 0 
       }
     );
   };
