@@ -65,6 +65,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const currentDistricts = useMemo(() => {
+    const found = VIETNAM_PROVINCES.find((p) => p.id === province);
+    if (found) {
+      return found.districts.filter((d) => !d.includes('Tất cả'));
+    }
+    return ['Trung tâm'];
+  }, [province]);
+
   if (!isOpen) return null;
 
   const isVerifiedShop = merchantApplication?.status === 'approved';
@@ -79,14 +87,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   const isLodging = category === 'lodging';
   const isTransport = category === 'transport';
-
-  const currentDistricts = useMemo(() => {
-    const found = VIETNAM_PROVINCES.find((p) => p.id === province);
-    if (found) {
-      return found.districts.filter((d) => !d.includes('Tất cả'));
-    }
-    return ['Trung tâm'];
-  }, [province]);
 
   const handleAddImageField = () => {
     if (images.length < maxImagesLimit) {
