@@ -176,11 +176,41 @@ export interface Order {
   updated_at?: string;
 }
 
+// 22-Granular Permission Matrix (Tài khoản, Danh bạ, Gian hàng, Xu/Ads, Tài chính, Hệ thống)
 export interface StaffPermissions {
-  canApproveShops: boolean;
-  canManageProducts: boolean;
-  canManageOrders: boolean;
-  canManageCoins: boolean;
+  // 1. Tài khoản và phân quyền
+  can_manage_users: boolean;                 // Thêm, sửa tài khoản
+  can_lock_unlock_users: boolean;            // Khoá và mở lại tài khoản
+  can_reset_passwords: boolean;              // Bấm gửi mã đặt lại mật khẩu
+
+  // 2. Danh bạ tiện ích
+  can_manage_directory_items: boolean;       // Thêm, sửa, xoá mục danh bạ
+  can_toggle_verified_badge: boolean;        // Gắn và gỡ nhãn đã xác minh
+  can_manage_categories_and_regions: boolean;// Thêm danh mục và sửa cây địa giới
+
+  // 3. Gian hàng và sản phẩm
+  can_approve_shop_phase1: boolean;          // Duyệt hồ sơ mở shop — khâu 1
+  can_approve_shop_phase2: boolean;          // Duyệt xác minh shop — khâu 2
+  can_revoke_verification_badge: boolean;    // Thu hồi nhãn đã xác minh của shop
+  can_takedown_violating_products: boolean;  // Gỡ sản phẩm vi phạm
+  can_view_dispute_messages: boolean;        // Xem tin nhắn giữa khách và shop (khi có khiếu nại, ghi nhật ký)
+
+  // 4. Xu, voucher, quảng cáo
+  can_scan_qr_approve_pending_coins: boolean;// Quét mã tại quầy, duyệt xu chờ
+  can_manage_vouchers_and_banners: boolean;  // Tạo voucher và đặt banner
+  can_manually_adjust_coins: boolean;        // Tặng hoặc trừ xu bằng tay (bắt buộc ghi lý do)
+
+  // 5. Tiền và báo cáo
+  can_view_merchant_ledger: boolean;         // Xem sổ công nợ của shop
+  can_record_shop_payments: boolean;         // Ghi nhận đã nhận tiền của shop
+  can_settle_monthly_ledger: boolean;        // Chốt sổ công nợ hằng tháng (cần người thứ hai duyệt)
+  can_export_financial_reports: boolean;     // Xem và xuất báo cáo thu chi
+
+  // Aliases for backward compatibility
+  canApproveShops?: boolean;
+  canManageProducts?: boolean;
+  canManageOrders?: boolean;
+  canManageCoins?: boolean;
 }
 
 export interface UserProfile {

@@ -45,6 +45,35 @@ interface AuthContextType {
 }
 
 const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
+  // 1. Tài khoản và phân quyền
+  can_manage_users: true,
+  can_lock_unlock_users: true,
+  can_reset_passwords: true,
+
+  // 2. Danh bạ tiện ích
+  can_manage_directory_items: true,
+  can_toggle_verified_badge: true,
+  can_manage_categories_and_regions: true,
+
+  // 3. Gian hàng và sản phẩm
+  can_approve_shop_phase1: true,
+  can_approve_shop_phase2: true,
+  can_revoke_verification_badge: true,
+  can_takedown_violating_products: true,
+  can_view_dispute_messages: true,
+
+  // 4. Xu, voucher, quảng cáo
+  can_scan_qr_approve_pending_coins: true,
+  can_manage_vouchers_and_banners: true,
+  can_manually_adjust_coins: true,
+
+  // 5. Tiền và báo cáo
+  can_view_merchant_ledger: true,
+  can_record_shop_payments: true,
+  can_settle_monthly_ledger: true,
+  can_export_financial_reports: true,
+
+  // Aliases for backward compatibility
   canApproveShops: true,
   canManageProducts: true,
   canManageOrders: true,
@@ -102,10 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isBuyer = userRole === 'buyer';
 
   // Granular Action Permissions
-  const canApproveShops = isAdmin || (isStaff && staffPermissions.canApproveShops);
-  const canManageProducts = isAdmin || isMerchant || (isStaff && staffPermissions.canManageProducts);
-  const canManageOrders = isAdmin || isMerchant || (isStaff && staffPermissions.canManageOrders);
-  const canManageCoins = isAdmin || (isStaff && staffPermissions.canManageCoins);
+  const canApproveShops = isAdmin || (isStaff && (staffPermissions.can_approve_shop_phase1 || staffPermissions.canApproveShops || false));
+  const canManageProducts = isAdmin || isMerchant || (isStaff && (staffPermissions.can_takedown_violating_products || staffPermissions.canManageProducts || false));
+  const canManageOrders = isAdmin || isMerchant || (isStaff && (staffPermissions.can_view_dispute_messages || staffPermissions.canManageOrders || false));
+  const canManageCoins = isAdmin || (isStaff && (staffPermissions.can_manually_adjust_coins || staffPermissions.canManageCoins || false));
 
   const fetchApplications = useCallback(async () => {
     try {
@@ -148,56 +177,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, fetchApplications]);
 
-  const updateStaffPermissions = async (_staffUserId: string, newPermissions: StaffPermissions) => {
+  const updateStaffPermissions = async (staffUserId: string, newPermissions: StaffPermissions) => {
     setStaffPermissions(newPermissions);
-  };
-
-  const applyForMerchantAccount = async (details: { full_name: string; phone: string; shop_name?: string }) => {
-    const newApp: MerchantApplication = {
-      id: `app-${Date.now()}`,
-      user_id: user?.id || 'demo-user',
-      user_email: user?.email || 'user@example.com',
-      full_name: details.full_name,
-      phone: details.phone,
-      shop_name: details.shop_name,
-      status: 'pending_review',
-      verification_phase: 'phase_1_opening',
-      created_at: new Date().toISOString(),
-    };
-
-    setAllApplications((prev) => [newApp, ...prev]);
-    setMerchantApplication(newApp);
-
     try {
-      if (user) {
-        await supabase.from('merchant_applications').insert([{
-          user_id: user.id,
-          user_email: user.email,
-          full_name: details.full_name,
-          phone: details.phone,
-          shop_name: details.shop_name,
-          status: 'pending_review',
-        }]);
-      }
-    } catch (e) {
-      console.warn('Inserted application locally:', e);
+      await supabase
+        .from('profiles')
+        .update({ staff_permissions: newPermissions })
+        .eq('id', staffUserId);
+    } catch (err) {
+      console.warn('Updated staff permissions locally:', err);
     }
-
-    return { error: null };
   };
 
-  const signInWithIdentifier = async (identifier: string, password: string) => {
-    let emailToUse = identifier;
-    if (validateVietnamesePhone(identifier)) {
-      emailToUse = `${identifier.replace(/\s+/g, '')}@sieutienich.internal`;
+  const signInWithIdentifier = async (identifier: string, password: string): Promise<{ error: Error | null }> => {
+    try {
+      let loginEmail = identifier.trim();
+      if (validateVietnamesePhone(identifier)) {
+        loginEmail = `${identifier.replace(/[\s\-\.]/g, '')}@sieutienich.vn`;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password,
+      });
+
+      if (error) throw error;
+      return { error: null };
+    } catch (err: any) {
+      return { error: err };
     }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: emailToUse,
-      password,
-    });
-
-    return { error };
   };
 
   const signUpWithDetails = async (
@@ -206,82 +214,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     wantOpenShop: boolean = false
-  ) => {
-    let emailToUse = email.trim();
-    if (!emailToUse && validateVietnamesePhone(phone)) {
-      emailToUse = `${phone.replace(/\s+/g, '')}@sieutienich.internal`;
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email: emailToUse,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          phone,
-          want_open_shop: wantOpenShop,
-        },
-      },
-    });
-
-    if (error) return { error };
-
-    if (data.user && wantOpenShop) {
-      await applyForMerchantAccount({
-        full_name: fullName,
-        phone,
-        shop_name: `Shop của ${fullName}`,
-      });
-      return { error: null, applicationCreated: true };
-    }
-
-    return { error: null };
-  };
-
-  const approveMerchantApplication = async (applicationId: string) => {
+  ): Promise<{ error: Error | null; applicationCreated?: boolean }> => {
     try {
-      setAllApplications((prev) =>
-        prev.map((a) => (a.id === applicationId ? { ...a, status: 'approved' } : a))
-      );
+      if (!validateVietnamesePhone(phone)) {
+        return { error: new Error('Số điện thoại không hợp lệ (Phải là SĐT Việt Nam 10 chữ số).') };
+      }
 
-      const app = allApplications.find((a) => a.id === applicationId);
+      const registeredEmail = email.trim() || `${phone.replace(/[\s\-\.]/g, '')}@sieutienich.vn`;
 
-      if (app) {
-        await supabase
-          .from('merchant_applications')
-          .update({ status: 'approved' })
-          .eq('id', applicationId);
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: registeredEmail,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone: phone,
+          },
+        },
+      });
 
-        await supabase
-          .from('profiles')
-          .update({ role: 'merchant' })
-          .eq('id', app.user_id);
+      if (authError) throw authError;
 
-        if (user && user.id === app.user_id) {
-          setUserRole('merchant');
+      const createdUserId = authData.user?.id || `user-demo-${Date.now()}`;
+      let appCreated = false;
+
+      if (wantOpenShop) {
+        const newApp: MerchantApplication = {
+          id: `app-${Date.now()}`,
+          user_id: createdUserId,
+          user_email: registeredEmail,
+          full_name: fullName,
+          phone: phone,
+          status: 'pending_review',
+          verification_phase: 'phase_1_opening',
+          created_at: new Date().toISOString(),
+        };
+
+        setAllApplications((prev) => [newApp, ...prev]);
+        setMerchantApplication(newApp);
+        appCreated = true;
+
+        try {
+          await supabase.from('merchant_applications').insert([newApp]);
+        } catch (e) {
+          console.warn('Application saved to local state:', e);
         }
       }
 
-      await fetchApplications();
+      return { error: null, applicationCreated: appCreated };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
+  const applyForMerchantAccount = async (details: { full_name: string; phone: string; shop_name?: string }): Promise<{ error: Error | null }> => {
+    try {
+      const newApp: MerchantApplication = {
+        id: `app-${Date.now()}`,
+        user_id: user?.id || 'guest',
+        user_email: user?.email || `${details.phone}@sieutienich.vn`,
+        full_name: details.full_name,
+        phone: details.phone,
+        shop_name: details.shop_name,
+        status: 'pending_review',
+        verification_phase: 'phase_1_opening',
+        created_at: new Date().toISOString(),
+      };
+
+      setAllApplications((prev) => [newApp, ...prev]);
+      setMerchantApplication(newApp);
+
+      if (user) {
+        await supabase.from('merchant_applications').insert([newApp]);
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
+  const approveMerchantApplication = async (applicationId: string) => {
+    setAllApplications((prev) =>
+      prev.map((app) =>
+        app.id === applicationId ? { ...app, status: 'approved' } : app
+      )
+    );
+
+    if (merchantApplication?.id === applicationId) {
+      setMerchantApplication((prev) => (prev ? { ...prev, status: 'approved' } : null));
+    }
+
+    try {
+      await supabase
+        .from('merchant_applications')
+        .update({ status: 'approved' })
+        .eq('id', applicationId);
     } catch (err) {
-      console.warn('Error approving application:', err);
+      console.warn('Approved locally:', err);
     }
   };
 
   const rejectMerchantApplication = async (applicationId: string) => {
-    try {
-      setAllApplications((prev) =>
-        prev.map((a) => (a.id === applicationId ? { ...a, status: 'rejected' } : a))
-      );
+    setAllApplications((prev) =>
+      prev.map((app) =>
+        app.id === applicationId ? { ...app, status: 'rejected' } : app
+      )
+    );
 
+    if (merchantApplication?.id === applicationId) {
+      setMerchantApplication((prev) => (prev ? { ...prev, status: 'rejected' } : null));
+    }
+
+    try {
       await supabase
         .from('merchant_applications')
         .update({ status: 'rejected' })
         .eq('id', applicationId);
-
-      await fetchApplications();
     } catch (err) {
-      console.warn('Error rejecting application:', err);
+      console.warn('Rejected locally:', err);
     }
   };
 
@@ -289,8 +340,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-    setUserRole('admin');
-    setMerchantApplication(null);
+    setUserRole('buyer');
   };
 
   return (
@@ -331,6 +381,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };
