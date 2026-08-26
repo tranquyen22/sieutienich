@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* BRAND LOGO */}
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-md">
-            <span className="text-white font-black text-lg tracking-tighter">STÍ</span>
+            <span className="text-white font-black text-lg tracking-tighter">TQ</span>
           </div>
 
           <div className="hidden sm:block">
