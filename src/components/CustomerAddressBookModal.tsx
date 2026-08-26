@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, MapPin, Plus, Trash2, Home } from 'lucide-react';
+import { X, MapPin, Plus, Trash2, Navigation, ExternalLink, Compass } from 'lucide-react';
 import type { CustomerAddress } from '../types';
 
 interface CustomerAddressBookModalProps {
@@ -29,7 +29,39 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
   const [detailAddress, setDetailAddress] = useState('');
   const [isDefault, setIsDefault] = useState(false);
 
+  // GPS Auto-Pinning & Google Maps Link States
+  const [isLocatingGPS, setIsLocatingGPS] = useState(false);
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('');
+
   if (!isOpen) return null;
+
+  // GPS Auto-location trigger
+  const handleTriggerGPS = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt không hỗ trợ xin quyền GPS!');
+      return;
+    }
+
+    setIsLocatingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setGpsCoords({ lat, lng });
+
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        setGoogleMapsUrl(mapsUrl);
+        setIsLocatingGPS(false);
+
+        alert(`🎯 Đã lấy tọa độ GPS thực tế thành công!\nLat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}\nLiên kết Google Maps đã được ghim trực tiếp vào địa chỉ!`);
+      },
+      (err) => {
+        setIsLocatingGPS(false);
+        alert(`Không thể lấy GPS: ${err.message}. Bạn có thể dán link Google Maps bên dưới!`);
+      }
+    );
+  };
 
   const handleSubmitNewAddress = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +69,11 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
       alert('Vui lòng nhập đầy đủ Tên người nhận, Số điện thoại và Địa chỉ chi tiết!');
       return;
     }
+
+    const generatedMapsUrl = googleMapsUrl.trim() || 
+      (gpsCoords 
+        ? `https://www.google.com/maps/search/?api=1&query=${gpsCoords.lat},${gpsCoords.lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${detailAddress}, ${district}, ${province}`)}`);
 
     onAddAddress?.({
       user_id: 'current-user',
@@ -46,12 +83,17 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
       district,
       detail_address: detailAddress,
       is_default: addresses.length === 0 ? true : isDefault,
+      latitude: gpsCoords?.lat,
+      longitude: gpsCoords?.lng,
+      google_maps_url: generatedMapsUrl,
     });
 
     // Reset form
     setRecipientName('');
     setPhone('');
     setDetailAddress('');
+    setGpsCoords(null);
+    setGoogleMapsUrl('');
     setIsDefault(false);
     setIsAdding(false);
   };
@@ -63,7 +105,7 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white p-5 relative shrink-0">
+        <div className="bg-gradient-to-r from-indigo-600 via-indigo-900 to-purple-800 text-white p-4 relative shrink-0">
           <button 
             type="button"
             onClick={onClose} 
@@ -72,33 +114,37 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2 text-indigo-300 text-xs font-extrabold uppercase tracking-wider mb-1">
-            <MapPin className="w-4 h-4 text-indigo-400" />
-            <span>Sổ Địa Chỉ Giao Hàng Của Khách</span>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-white">Sổ Địa Chỉ Giao Hàng & Ghim Vị Trí Google Maps</h3>
+              <p className="text-[11px] text-indigo-200">
+                Ghim định vị GPS chính xác để Shop & Shipper giao tới tận tay.
+              </p>
+            </div>
           </div>
-
-          <h2 className="text-xl font-black text-white flex items-center justify-between">
-            <span>Sổ Địa Chỉ Nhận Hàng</span>
-            <button
-              onClick={() => setIsAdding(!isAdding)}
-              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{isAdding ? 'Hủy' : 'Thêm mới'}</span>
-            </button>
-          </h2>
         </div>
 
-        {/* Scrollable Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        {/* Modal Scrollable Body */}
+        <div className="p-4 overflow-y-auto flex-1 space-y-4 text-xs">
           
-          {/* Add New Address Form */}
+          <div className="flex items-center justify-between">
+            <h4 className="font-black text-gray-900 text-xs uppercase tracking-wider">Danh Sách Địa Chỉ Đã Lưu ({addresses.length})</h4>
+            <button
+              onClick={() => setIsAdding(!isAdding)}
+              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl border border-indigo-200 transition flex items-center gap-1 cursor-pointer text-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isAdding ? 'Hủy Thêm' : '+ Thêm Địa Chỉ Mới'}</span>
+            </button>
+          </div>
+
+          {/* ADD NEW ADDRESS FORM */}
           {isAdding && (
-            <form onSubmit={handleSubmitNewAddress} className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3 text-xs">
-              <h3 className="font-extrabold text-indigo-950 text-xs flex items-center gap-1.5">
-                <Home className="w-4 h-4 text-indigo-600" />
-                <span>Thêm Địa Chỉ Giao Hàng Mới</span>
-              </h3>
+            <form onSubmit={handleSubmitNewAddress} className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
+              <h5 className="font-black text-indigo-950 text-xs">Khai Báo Địa Chỉ Mới & Ghim GPS Google Maps:</h5>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -108,7 +154,7 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
                     placeholder="Nguyễn Văn A"
-                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-bold"
                     required
                   />
                 </div>
@@ -116,11 +162,11 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
                 <div>
                   <label className="block text-gray-700 font-bold mb-1">Số điện thoại *</label>
                   <input
-                    type="tel"
+                    type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="0987654321"
-                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-bold"
                     required
                   />
                 </div>
@@ -129,16 +175,12 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-gray-700 font-bold mb-1">Tỉnh / Thành phố</label>
-                  <select
+                  <input
+                    type="text"
                     value={province}
                     onChange={(e) => setProvince(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  >
-                    <option value="Hà Nội">Hà Nội</option>
-                    <option value="Hưng Yên">Hưng Yên</option>
-                    <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                    <option value="Hải Phòng">Hải Phòng</option>
-                  </select>
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl font-bold"
+                  />
                 </div>
 
                 <div>
@@ -148,7 +190,7 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     placeholder="Cầu Giấy / Khoái Châu..."
-                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl font-bold"
                   />
                 </div>
               </div>
@@ -160,9 +202,43 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
                   value={detailAddress}
                   onChange={(e) => setDetailAddress(e.target.value)}
                   placeholder="Số 12 ngõ 45 đường Trần Thái Tông"
-                  className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl font-bold"
                   required
                 />
+              </div>
+
+              {/* 📌 GOOGLE MAPS DIRECT GPS PINNING FEATURE */}
+              <div className="p-3 bg-white border border-indigo-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-black text-indigo-950 text-[11px] flex items-center gap-1">
+                    <Compass className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Định Vị Google Maps Trực Tiếp:</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleTriggerGPS}
+                    disabled={isLocatingGPS}
+                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <Navigation className={`w-3 h-3 ${isLocatingGPS ? 'animate-spin' : ''}`} />
+                    <span>{isLocatingGPS ? 'Đang lấy GPS...' : '📡 Định vị vị trí hiện tại (GPS)'}</span>
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  value={googleMapsUrl}
+                  onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                  placeholder="Hoặc dán liên kết Google Maps / Tọa độ (Lat, Lng)..."
+                  className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-[11px] font-medium"
+                />
+
+                {gpsCoords && (
+                  <span className="text-[10px] text-emerald-700 font-extrabold block">
+                    ✓ Đã ghim tọa độ thực: Lat {gpsCoords.lat.toFixed(5)}, Lng {gpsCoords.lng.toFixed(5)}
+                  </span>
+                )}
               </div>
 
               <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700">
@@ -179,7 +255,7 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
                 type="submit"
                 className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-md transition cursor-pointer"
               >
-                Lưu Địa Chỉ Mới
+                Lưu Địa Chỉ Kèm Vị Trí Maps
               </button>
             </form>
           )}
@@ -188,69 +264,103 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
           <div className="space-y-3">
             {addresses.length === 0 ? (
               <div className="text-center py-8 text-gray-400 text-xs">
-                Chưa có địa chỉ nào trong sổ địa chỉ. Hãy thêm địa chỉ mới để đặt hàng nhanh chóng!
+                Chưa có địa chỉ nào trong sổ địa chỉ. Hãy thêm địa chỉ mới để ghim định vị Maps!
               </div>
             ) : (
-              addresses.map((addr) => (
-                <div
-                  key={addr.id}
-                  className={`p-4 rounded-2xl border transition relative space-y-2 text-xs ${
-                    addr.is_default
-                      ? 'border-indigo-500 bg-indigo-50/40 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-sm text-gray-900">{addr.recipient_name}</span>
-                      <span className="text-gray-500 text-xs">({addr.phone})</span>
-                      {addr.is_default && (
-                        <span className="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                          Mặc định
-                        </span>
-                      )}
+              addresses.map((addr) => {
+                const mapsLink = addr.google_maps_url || 
+                  (addr.latitude && addr.longitude 
+                    ? `https://www.google.com/maps/search/?api=1&query=${addr.latitude},${addr.longitude}`
+                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addr.detail_address}, ${addr.district}, ${addr.province}`)}`);
+
+                return (
+                  <div
+                    key={addr.id}
+                    className={`p-4 rounded-2xl border transition relative space-y-2 text-xs ${
+                      addr.is_default
+                        ? 'border-indigo-500 bg-indigo-50/40 shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-gray-900 font-extrabold text-xs">{addr.recipient_name}</strong>
+                          <span className="text-gray-500 font-bold">({addr.phone})</span>
+                          {addr.is_default && (
+                            <span className="px-2 py-0.5 bg-indigo-600 text-white font-black text-[9px] rounded-full">
+                              Mặc định
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-gray-600 mt-1 font-medium flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          <span>{addr.detail_address}, {addr.district}, {addr.province}</span>
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => onDeleteAddress?.(addr.id)}
+                        className="text-gray-400 hover:text-rose-600 p-1 transition cursor-pointer"
+                        title="Xóa địa chỉ này"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    {/* GOOGLE MAPS DIRECT PIN LINK BUTTON */}
+                    <div className="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 font-extrabold">
+                      <a
+                        href={mapsLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl transition flex items-center gap-1 text-[11px] border border-rose-200"
+                      >
+                        <ExternalLink className="w-3 h-3 text-rose-600" />
+                        <span>🗺️ Xem định vị Google Maps trực tiếp</span>
+                      </a>
+
+                      {!addr.is_default && (
+                        <button
+                          onClick={() => onSetDefaultAddress?.(addr.id)}
+                          className="text-indigo-600 hover:text-indigo-800 text-[11px] font-bold cursor-pointer"
+                        >
+                          Thiết lập làm mặc định
+                        </button>
+                      )}
+
                       {onSelectAddress && (
                         <button
                           onClick={() => {
                             onSelectAddress(addr);
                             onClose();
                           }}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] cursor-pointer"
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] shadow-sm cursor-pointer"
                         >
-                          Chọn địa chỉ này
+                          Giao tới địa chỉ này
                         </button>
                       )}
-                      <button
-                        onClick={() => onDeleteAddress?.(addr.id)}
-                        className="p-1 text-gray-400 hover:text-rose-600 transition cursor-pointer"
-                        title="Xóa địa chỉ"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
+
                   </div>
-
-                  <p className="text-gray-700 font-medium">
-                    {addr.detail_address}, {addr.district}, {addr.province}
-                  </p>
-
-                  {!addr.is_default && (
-                    <button
-                      onClick={() => onSetDefaultAddress?.(addr.id)}
-                      className="text-indigo-600 hover:underline text-[11px] font-bold cursor-pointer"
-                    >
-                      Thiết lập làm mặc định
-                    </button>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
         </div>
+
+        {/* Footer */}
+        <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end shrink-0 text-xs font-extrabold">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 bg-slate-900 text-white rounded-xl shadow-md cursor-pointer"
+          >
+            Đóng Hộp Thoại
+          </button>
+        </div>
+
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Store, ShieldCheck, ShoppingBag, Package, DollarSign, MessageSquare, FileText, History, Clock, AlertTriangle } from 'lucide-react';
+import { X, Store, ShieldCheck, ShoppingBag, Package, DollarSign, MessageSquare, FileText, History, Clock, AlertTriangle, MapPin, ExternalLink } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import type { OperatingHours, CategoryDocument } from '../types';
 
@@ -202,6 +202,32 @@ export const ShopDetailPortalModal: React.FC<ShopDetailPortalModalProps> = ({
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
                   <span className="text-gray-500 font-bold block">Tỷ lệ phản hồi tin nhắn:</span>
                   <span className="text-xl font-black text-amber-700">100% (trong 5 phút)</span>
+                </div>
+              </div>
+
+              {/* GOOGLE MAPS SHOP LOCATION SETTING */}
+              <div className="p-4 bg-white border border-indigo-200 rounded-2xl space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-indigo-950 flex items-center gap-1.5 text-xs">
+                    <MapPin className="w-4 h-4 text-rose-500" />
+                    <span>Định Vị Google Maps Trực Tiếp Gian Hàng:</span>
+                  </h4>
+
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Số 18 Thị trấn Khoái Châu, Hưng Yên')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-xl border border-rose-200 text-[11px] flex items-center gap-1 cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>🗺️ Mở Google Maps Gian Hàng</span>
+                  </a>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-xl text-[11px] text-gray-700 space-y-1">
+                  <p><strong>Địa chỉ đăng ký:</strong> Số 18 Thị trấn Khoái Châu, Huyện Khoái Châu, Tỉnh Hưng Yên</p>
+                  <p className="text-emerald-700 font-bold">✓ Tọa độ GPS đã ghim: 20.83512, 105.97231 (Tâm Thị trấn Khoái Châu)</p>
+                  <p className="text-gray-500 italic">Khách mua hàng bấm vào chỉ đường sẽ mở ngay ứng dụng Google Maps dẫn tới tận cửa hàng của bạn!</p>
                 </div>
               </div>
 

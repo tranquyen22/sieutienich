@@ -103,6 +103,9 @@ export interface CustomerAddress {
   district: string;
   detail_address: string;
   is_default: boolean;
+  latitude?: number;
+  longitude?: number;
+  google_maps_url?: string;
 }
 
 export type UserRole = 'admin' | 'staff' | 'merchant' | 'buyer';
