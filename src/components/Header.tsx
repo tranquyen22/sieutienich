@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store, Clock } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store, Clock, Key } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import { NotificationBell } from './NotificationBell';
@@ -19,6 +19,7 @@ interface HeaderProps {
   onOpenMultiStepOnboardingModal: () => void;
   onOpenShopDetailPortalModal: () => void;
   onOpenShopStatusToggleModal: () => void;
+  onOpenAccountRoleAccessMatrixModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMultiStepOnboardingModal,
   onOpenShopDetailPortalModal,
   onOpenShopStatusToggleModal,
+  onOpenAccountRoleAccessMatrixModal,
 }) => {
   const { 
     user, 
@@ -55,13 +57,13 @@ export const Header: React.FC<HeaderProps> = ({
   const getRoleLabel = (role: UserRole) => {
     switch (role) {
       case 'admin':
-        return '👑 Admin tối cao';
+        return '👑 Admin tổng (Tối cao)';
       case 'staff':
         return '💼 Nhân viên (Staff)';
       case 'merchant':
         return '🏪 Shop (Merchant)';
       case 'buyer':
-        return '👤 Người dùng (Buyer)';
+        return '👤 Khách (Buyer)';
       default:
         return role;
     }
@@ -77,6 +79,13 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black text-[10px]">
             {getRoleLabel(userRole)}
           </span>
+          <button
+            onClick={onOpenAccountRoleAccessMatrixModal}
+            className="text-[10px] text-amber-400 hover:underline font-extrabold flex items-center gap-1 cursor-pointer"
+          >
+            <Key className="w-3 h-3" />
+            <span>[Xem ma trận phân quyền 4 loại TK]</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -86,36 +95,36 @@ export const Header: React.FC<HeaderProps> = ({
             className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
               userRole === 'admin' ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
             }`}
-            title="Quyền Admin tối cao"
+            title="Admin tổng — Chủ sàn (Duy nhất 1 TK tối cao, không ai khóa/xóa được)"
           >
-            👑 Admin
+            👑 Admin tổng
           </button>
           <button
             onClick={() => setUserRole('staff')}
             className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
               userRole === 'staff' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
             }`}
-            title="Quyền Nhân viên cấp dưới (Admin phân quyền)"
+            title="Nhân viên — Người chủ sàn thuê giúp việc (Trang quản trị đúng mục được cấp)"
           >
-            💼 Staff
+            💼 Nhân viên
           </button>
           <button
             onClick={() => setUserRole('merchant')}
             className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
               userRole === 'merchant' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
             }`}
-            title="Quyền Shop (Đăng tiện ích + Quản lý đơn hàng)"
+            title="Chủ shop — Người đăng ký gian hàng (Trang shop: hàng, đơn, công nợ)"
           >
-            🏪 Shop
+            🏪 Chủ shop
           </button>
           <button
             onClick={() => setUserRole('buyer')}
             className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
               userRole === 'buyer' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
             }`}
-            title="Quyền Người dùng (Mua sắm & sử dụng dịch vụ)"
+            title="Khách — Người mua, người tra danh bạ (Trang khách: đơn, xu, tin nhắn)"
           >
-            👤 Buyer
+            👤 Khách
           </button>
         </div>
       </div>
@@ -271,45 +280,47 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </div>
 
-                    {/* SHOP OPEN / PAUSE SELF TOGGLE SWITCH LINK */}
+                    {/* RBAC 4 ACCOUNTS MATRIX LINK */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenAccountRoleAccessMatrixModal();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-black text-amber-900 bg-amber-50 hover:bg-amber-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                    >
+                      <Key className="w-4 h-4 text-amber-600" />
+                      <span>🛡️ Bốn Loại Tài Khoản & Ma Trận Phân Quyền</span>
+                    </button>
+
+                    {/* SHOP OPEN / PAUSE SELF TOGGLE SWITCH LINK (CHỦ SHOP / STAFF / ADMIN) */}
                     {(userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && (
                       <button
                         onClick={() => {
                           setShowDropdown(false);
                           onOpenShopStatusToggleModal();
                         }}
-                        className="w-full text-left px-4 py-2.5 text-xs font-black text-amber-900 bg-amber-50 hover:bg-amber-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                        className="w-full text-left px-4 py-2.5 text-xs font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
                       >
-                        <Clock className="w-4 h-4 text-amber-600" />
-                        <span>🏪 Bật/Tắt Trạng Thái Đang Mở & Tạm Nghỉ</span>
+                        <Clock className="w-4 h-4 text-emerald-600" />
+                        <span>🏪 Trang Shop: Bật/Tắt Trạng Thái Đang Mở & Tạm Nghỉ</span>
                       </button>
                     )}
 
-                    {/* MULTI-STEP SHOP ONBOARDING WIZARD LINK */}
-                    <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        onOpenMultiStepOnboardingModal();
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
-                    >
-                      <Store className="w-4 h-4 text-emerald-600" />
-                      <span>🏪 Đăng Ký Mở Shop 4 Bước (Wizard)</span>
-                    </button>
+                    {/* SHOP DETAIL & PORTAL (8 TABS) LINK (CHỦ SHOP / STAFF / ADMIN) */}
+                    {(userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && (
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenShopDetailPortalModal();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-indigo-900 bg-indigo-50/70 hover:bg-indigo-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                      >
+                        <Store className="w-4 h-4 text-indigo-600" />
+                        <span>🏪 Trang Shop: Hàng, Đơn & Công Nợ (8 Thẻ)</span>
+                      </button>
+                    )}
 
-                    {/* SHOP DETAIL & PORTAL (8 TABS) LINK */}
-                    <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        onOpenShopDetailPortalModal();
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-indigo-900 bg-indigo-50/70 hover:bg-indigo-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
-                    >
-                      <Store className="w-4 h-4 text-indigo-600" />
-                      <span>🏪 Trang Chi Tiết Gian Hàng (8 Thẻ)</span>
-                    </button>
-
-                    {/* BUYER PROFILE & DASHBOARD PORTAL LINK */}
+                    {/* BUYER PROFILE & DASHBOARD PORTAL LINK (DÀNH CHO KHÁCH & TẤT CẢ TÀI KHOẢN) */}
                     <button
                       onClick={() => {
                         setShowDropdown(false);
@@ -318,7 +329,19 @@ export const Header: React.FC<HeaderProps> = ({
                       className="w-full text-left px-4 py-2.5 text-xs font-black text-indigo-900 hover:bg-indigo-50 flex items-center gap-2 border-b border-indigo-100 cursor-pointer"
                     >
                       <UserIcon className="w-4 h-4 text-indigo-600" />
-                      <span>👤 Quản Lý Tài Khoản Khách (18 Mục)</span>
+                      <span>👤 Trang Khách: Đơn, Xu & Tin Nhắn (18 Mục)</span>
+                    </button>
+
+                    {/* MULTI-STEP SHOP ONBOARDING WIZARD LINK */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenMultiStepOnboardingModal();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-emerald-800 hover:bg-emerald-50 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                    >
+                      <Store className="w-4 h-4 text-emerald-600" />
+                      <span>🏪 Đăng Ký Mở Shop 4 Bước (Wizard)</span>
                     </button>
 
                     {/* Ví Xu Item in User Menu */}
