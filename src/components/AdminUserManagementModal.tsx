@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { 
   X, ShieldCheck, UserCheck, Lock, Unlock, Key, RotateCcw, 
-  Eye, Search, Trash2, Edit3, Filter, Clock
+  Eye, Search, Trash2, Edit3, Filter, Clock, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import type { AdminManagedUser, UserAccountAuditLog, UserRole, AccountLifecycleStatus } from '../types';
+import type { AdminManagedUser, UserAccountAuditLog, UserRole, AccountLifecycleStatus, StaffPermissions } from '../types';
 
 interface AdminUserManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+export type StaffDepartmentKey = 'pos_counter' | 'directory_entry' | 'audit_reviewer' | 'customer_support' | 'finance_accounting';
 
 export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> = ({ isOpen, onClose }) => {
   const { isAdmin } = useAuth();
@@ -164,6 +166,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('buyer');
+  const [newStaffDepartment, setNewStaffDepartment] = useState<StaffDepartmentKey>('pos_counter');
 
   // Edit Form State
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -204,12 +207,50 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
     }
   };
 
-  // HANDLE 1: CREATE USER MANUALLY
+  // Department Label Generator
+  const getDepartmentLabel = (key: StaffDepartmentKey) => {
+    switch (key) {
+      case 'pos_counter': return '🏪 Trực Quầy TQ';
+      case 'directory_entry': return '📇 Nhập Liệu Danh Bạ';
+      case 'audit_reviewer': return '📋 Duyệt Hồ Sơ Shop';
+      case 'customer_support': return '🎧 Hỗ Trợ Khách & CSKH';
+      case 'finance_accounting': return '💰 Sổ Sách Kế Toán';
+    }
+  };
+
+  // HANDLE 1: CREATE USER MANUALLY WITH STAFF DEPARTMENT TEMPLATE SELECTION
   const handleCreateUser = () => {
     if (!newFullName || !newPhone || !newPassword) {
       alert('Vui lòng điền đầy đủ Tên, Số điện thoại và Mật khẩu ban đầu!');
       return;
     }
+
+    let staffPerms: StaffPermissions | undefined;
+
+    if (newRole === 'staff') {
+      staffPerms = {
+        can_manage_users: false,
+        can_lock_unlock_users: newStaffDepartment === 'customer_support',
+        can_reset_passwords: newStaffDepartment === 'customer_support',
+        can_manage_directory_items: newStaffDepartment === 'directory_entry',
+        can_toggle_verified_badge: newStaffDepartment === 'directory_entry',
+        can_manage_categories_and_regions: newStaffDepartment === 'directory_entry',
+        can_approve_shop_phase1: newStaffDepartment === 'audit_reviewer',
+        can_approve_shop_phase2: newStaffDepartment === 'audit_reviewer',
+        can_revoke_verification_badge: newStaffDepartment === 'audit_reviewer',
+        can_takedown_violating_products: newStaffDepartment === 'audit_reviewer',
+        can_view_dispute_messages: newStaffDepartment === 'customer_support',
+        can_scan_qr_approve_pending_coins: newStaffDepartment === 'pos_counter',
+        can_manage_vouchers_and_banners: false,
+        can_manually_adjust_coins: false,
+        can_view_merchant_ledger: newStaffDepartment === 'finance_accounting',
+        can_record_shop_payments: newStaffDepartment === 'finance_accounting',
+        can_settle_monthly_ledger: false,
+        can_export_financial_reports: newStaffDepartment === 'finance_accounting',
+      };
+    }
+
+    const deptName = getDepartmentLabel(newStaffDepartment);
 
     const newUser: AdminManagedUser = {
       id: `USR-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -218,6 +259,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
       email: newEmail || `${newPhone}@sieutienich.vn`,
       roles: [newRole],
       status: 'active',
+      internal_notes: newRole === 'staff' ? `Bộ phận: ${deptName} (${Object.keys(staffPerms || {}).filter(k => (staffPerms as any)[k]).length} quyền)` : undefined,
       must_change_password_on_first_login: true,
       orders_count: 0,
       regular_coins: 0,
@@ -234,7 +276,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
           admin_name: isAdmin ? 'Admin Tổng' : 'Nhân Viên Staff',
           action_type: 'create',
           before_state: 'Chưa khởi tạo',
-          after_state: `Tạo tài khoản thủ công [${newRole}]`,
+          after_state: `Tạo tài khoản thủ công [${newRole}] ${newRole === 'staff' ? `- Bộ phận: ${deptName}` : ''}`,
           reason: 'Tạo tài khoản thủ công không qua đăng ký công khai',
           timestamp: new Date().toISOString(),
         },
@@ -248,7 +290,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
     setNewEmail('');
     setNewPassword('');
 
-    alert(`🎉 Đã tạo thành công tài khoản cho "${newUser.full_name}"!\nLần đăng nhập đầu tiên bắt buộc đổi mật khẩu.`);
+    alert(`🎉 Đã tạo thành công tài khoản cho "${newUser.full_name}"!\n${newRole === 'staff' ? `⚡ Đã gán Bộ phận: ${deptName} & tự động bật bộ quyền hạn tương ứng!` : ''}\nLần đăng nhập đầu tiên bắt buộc đổi mật khẩu.`);
   };
 
   // HANDLE 2: EDIT PROFILE WITH AUDIT LOG
@@ -409,7 +451,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
 
           <div className="flex items-center gap-2 text-indigo-300 text-xs font-extrabold uppercase tracking-wider mb-1">
             <ShieldCheck className="w-4 h-4 text-indigo-400" />
-            <span>Phân Hệ Admin Quản Lý Tài Khoản (5 Trạng Thái Vòng Đời)</span>
+            <span>Phân Hệ Admin Quản Lý Tài Khoản & Phân Vai Nhân Viên</span>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -558,6 +600,13 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
                         </span>
                       </div>
 
+                      {/* Internal Notes / Department Badge */}
+                      {u.internal_notes && (
+                        <div className="text-[10px] text-indigo-900 bg-indigo-50 p-1.5 rounded-lg border border-indigo-200 font-bold inline-block">
+                          📌 {u.internal_notes}
+                        </div>
+                      )}
+
                       {/* Lock Reason Warning Notice */}
                       {u.lock_reason && (
                         <div className="text-[10px] text-amber-800 bg-amber-50 p-1.5 rounded-lg border border-amber-200 mt-1 font-semibold">
@@ -582,7 +631,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
                     <button
                       onClick={() => {
                         setSelectedUser(u);
-                        alert(`👁️ Đang mở Hồ Sơ Chi Tiết (Chế Độ Chỉ Xem Read-Only) của user "${u.full_name}"...\n\n• Đơn đã đặt: ${u.orders_count}\n• Ví xu: ${u.regular_coins.toLocaleString()} Xu Thường | ${u.tq_coins.toLocaleString()} Xu TQ\n• Thiết bị đang dùng: ${u.active_devices.join(', ')}`);
+                        alert(`👁️ Đang mở Hồ Sơ Chi Tiết (Chế Độ Chỉ Xem Read-Only) của user "${u.full_name}"...\n\n• Vai trò: [${u.roles.join(', ')}]\n• Đơn đã đặt: ${u.orders_count}\n• Ví xu: ${u.regular_coins.toLocaleString()} Xu Thường | ${u.tq_coins.toLocaleString()} Xu TQ\n• Thiết bị đang dùng: ${u.active_devices.join(', ')}`);
                       }}
                       className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-extrabold text-xs flex items-center gap-1 cursor-pointer"
                       title="Xem hồ sơ đầy đủ (Chế độ chỉ xem Read-only)"
@@ -686,7 +735,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
         </div>
       </div>
 
-      {/* SUB-MODAL 1: ADD ACCOUNT MANUALLY */}
+      {/* SUB-MODAL 1: ADD ACCOUNT MANUALLY (WITH STAFF DEPARTMENT SELECTOR) */}
       {addAccountModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 text-xs font-medium shadow-2xl border border-indigo-100">
@@ -702,7 +751,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
                   type="text"
                   value={newFullName}
                   onChange={(e) => setNewFullName(e.target.value)}
-                  placeholder="VD: Trần Văn Hùng"
+                  placeholder="VD: Nguyễn Thị Mai"
                   className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
                 />
               </div>
@@ -749,14 +798,39 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
                 >
                   <option value="buyer">👤 Khách hàng</option>
                   <option value="merchant">🏪 Chủ shop (Chờ duyệt khâu 1)</option>
-                  <option value="staff">💼 Nhân viên</option>
+                  <option value="staff">💼 Nhân viên (Chọn bộ phận bên dưới)</option>
                 </select>
               </div>
+
+              {/* STAFF DEPARTMENT TEMPLATE SELECTION DROPDOWN */}
+              {newRole === 'staff' && (
+                <div className="p-3.5 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl space-y-2">
+                  <label className="block font-extrabold text-indigo-950 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-indigo-600 fill-indigo-600" />
+                    <span>Chọn Bộ Phận / Mẫu Nhân Viên Cấu Hình Sẵn:</span>
+                  </label>
+                  <select
+                    value={newStaffDepartment}
+                    onChange={(e) => setNewStaffDepartment(e.target.value as StaffDepartmentKey)}
+                    className="w-full p-2.5 bg-white border border-indigo-300 rounded-xl font-black text-xs text-indigo-950 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="pos_counter">🏪 1. Trực quầy (Quét mã tại quầy, duyệt xu chờ)</option>
+                    <option value="directory_entry">📇 2. Nhập liệu danh bạ (Thêm/Sửa/Xóa danh bạ, xác minh, địa giới)</option>
+                    <option value="audit_reviewer">📋 3. Duyệt hồ sơ (Duyệt mở shop 1 & 2, gỡ SP. Không thấy tiền!)</option>
+                    <option value="customer_support">🎧 4. Hỗ trợ khách (Reset MK, khóa tài khoản phá. Không sửa xu/nợ!)</option>
+                    <option value="finance_accounting">💰 5. Sổ sách (Xem công nợ, ghi nhận tiền shop, xuất báo cáo)</option>
+                  </select>
+                  <span className="text-[10px] text-indigo-800 font-bold block">
+                    ✨ Bộ quyền tương ứng của bộ phận này sẽ được gán tự động khi tạo!
+                  </span>
+                </div>
+              )}
+
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 font-extrabold">
               <button onClick={() => setAddAccountModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-xl">Hủy</button>
-              <button onClick={handleCreateUser} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow-md">Tạo Tài Khoản</button>
+              <button onClick={handleCreateUser} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow-md cursor-pointer">Tạo Tài Khoản</button>
             </div>
           </div>
         </div>
@@ -825,7 +899,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
 
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 font-extrabold">
               <button onClick={() => setEditModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-xl">Hủy</button>
-              <button onClick={handleSaveEdit} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow-md">Lưu & Lưu Vết Lịch Sử</button>
+              <button onClick={handleSaveEdit} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow-md cursor-pointer">Lưu & Lưu Vết Lịch Sử</button>
             </div>
           </div>
         </div>
