@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [headerSearchTerm, setHeaderSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const cartCount = (cartItems || []).reduce((acc, item) => acc + item.quantity, 0);
 
   const getRoleBadgeStyle = (role: UserRole) => {
     switch (role) {
@@ -176,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition cursor-pointer border border-gray-200"
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-xs shadow-sm">
-                  {user.email?.[0].toUpperCase() || 'U'}
+                  {user.email?.[0]?.toUpperCase() || user.user_metadata?.full_name?.[0]?.toUpperCase() || 'U'}
                 </div>
 
                 <span className={`text-[10px] font-black px-2 py-0.5 rounded-full hidden sm:inline ${getRoleBadgeStyle(userRole)}`}>

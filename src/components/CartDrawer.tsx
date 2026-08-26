@@ -22,23 +22,23 @@ export const CartDrawer: React.FC = () => {
   const [usePlatformVoucher, setUsePlatformVoucher] = useState(false); // Rule 7
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('seller_delivery');
 
-  // Selected item IDs state for combined checkout selection
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const safeCartItems = cartItems || [];
 
   useEffect(() => {
-    setSelectedItemIds(cartItems.map((item) => item.id));
+    setSelectedItemIds(safeCartItems.map((item) => item.id));
   }, [cartItems]);
 
   if (!isCartOpen) return null;
 
-  const selectedCartItems = cartItems.filter((item) => selectedItemIds.includes(item.id));
-  const isAllSelected = cartItems.length > 0 && selectedItemIds.length === cartItems.length;
+  const selectedCartItems = safeCartItems.filter((item) => selectedItemIds.includes(item.id));
+  const isAllSelected = safeCartItems.length > 0 && selectedItemIds.length === safeCartItems.length;
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedItemIds([]);
     } else {
-      setSelectedItemIds(cartItems.map((item) => item.id));
+      setSelectedItemIds(safeCartItems.map((item) => item.id));
     }
   };
 

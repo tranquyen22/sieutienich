@@ -241,11 +241,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (savedUserData) {
         try {
           const parsed = JSON.parse(savedUserData);
-          if (parsed.orders) setOrders(parsed.orders);
-          if (parsed.regularCoins !== undefined) setRegularCoins(parsed.regularCoins);
-          if (parsed.tqCoins !== undefined) setTQCoins(parsed.tqCoins);
-          if (parsed.coinTransactions) setCoinTransactions(parsed.coinTransactions);
-          if (parsed.cartItems) setCartItems(parsed.cartItems);
+          if (Array.isArray(parsed.orders)) setOrders(parsed.orders);
+          if (typeof parsed.regularCoins === 'number') setRegularCoins(parsed.regularCoins);
+          if (typeof parsed.tqCoins === 'number') setTQCoins(parsed.tqCoins);
+          if (Array.isArray(parsed.coinTransactions)) setCoinTransactions(parsed.coinTransactions);
+          if (Array.isArray(parsed.cartItems)) setCartItems(parsed.cartItems);
         } catch (e) {
           console.warn('Failed to parse per-user isolated data:', e);
         }

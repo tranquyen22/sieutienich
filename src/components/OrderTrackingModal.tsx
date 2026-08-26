@@ -22,7 +22,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
   const isMerchantControl = (userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && canManageOrders;
 
   // 1. ROLE-BASED ORDER SCOPE FILTERING
-  const scopeFilteredOrders = orders.filter((ord) => {
+  const scopeFilteredOrders = (orders || []).filter((ord) => {
     if (userRole === 'admin' || userRole === 'staff') {
       return true; // Admin & Staff: Xem toàn bộ đơn hàng
     }
