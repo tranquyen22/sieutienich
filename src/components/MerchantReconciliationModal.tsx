@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { X, DollarSign, ShieldCheck, AlertTriangle, Settings, CheckCircle2, Clock, Ban, Building2 } from 'lucide-react';
+import { 
+  X, DollarSign, AlertTriangle, Settings, CheckCircle2, Clock, 
+  Unlock, Lock, Edit3, History
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import type { MerchantFinancials, SettlementRecord } from '../types';
+import type { MerchantFinancials, SettlementRecord, MerchantDebtLockLog } from '../types';
 
 interface MerchantReconciliationModalProps {
   isOpen: boolean;
@@ -9,12 +12,12 @@ interface MerchantReconciliationModalProps {
 }
 
 export const MerchantReconciliationModal: React.FC<MerchantReconciliationModalProps> = ({ isOpen, onClose }) => {
-  const { isAdmin, userRole } = useAuth();
+  const { isAdmin } = useAuth();
 
   const [settlementCycle, setSettlementCycle] = useState<'monthly_1st' | 'biweekly_15th' | 'weekly_monday'>('monthly_1st');
-  const [activeTab, setActiveTab] = useState<'summary' | 'history' | 'admin_config'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'history' | 'audit_logs' | 'admin_config'>('summary');
 
-  // Sample Merchant Financial Ledgers
+  // Sample Merchant Financial Ledgers with 5-Step Debt Engine Features
   const [merchantsFinancials, setMerchantsFinancials] = useState<MerchantFinancials[]>([
     {
       shop_id: 'shop-1',
@@ -24,23 +27,35 @@ export const MerchantReconciliationModal: React.FC<MerchantReconciliationModalPr
       shop_debt_fee: 1035000, // 3% of sales = 1.035.000đ
       platform_debt_reimburse: 450000, // Sàn nợ shop = 450.000đ
       net_balance: 585000, // Shop nợ Sàn = 585.000đ
-      debt_limit: 1000000,
+      debt_limit: 1000000, // Mốc trần 1tr
       is_suspended: false,
+      warning_issued: false,
       last_settled_at: '2026-08-01T00:00:00.000Z',
       settlement_status: 'pending_payment',
+      lock_logs: [
+        {
+          id: 'log-101',
+          timestamp: '2026-08-01T08:00:00.000Z',
+          action: 'auto_unlock_payment',
+          reason: 'Chủ sàn ghi nhận đã nhận chuyển khoản 450.000đ ➔ Shop tự mở lại ngay.',
+          actor: 'Hệ Thống (Ghi nhận thanh toán)',
+        },
+      ],
     },
     {
       shop_id: 'shop-2',
       shop_name: 'Thời Trang Nam TQ Flagship Store',
       is_verified: true,
       total_sales: 58000000,
-      shop_debt_fee: 1740000, // 3% = 1.740.000đ
-      platform_debt_reimburse: 2100000, // Sàn bù voucher = 2.100.000đ
+      shop_debt_fee: 1740000,
+      platform_debt_reimburse: 2100000,
       net_balance: -360000, // Sàn nợ Shop = 360.000đ
-      debt_limit: 1500000,
+      debt_limit: 5000000, // Shop quen nới mốc nợ 5 triệu
       is_suspended: false,
+      warning_issued: false,
       last_settled_at: '2026-08-01T00:00:00.000Z',
       settlement_status: 'settled',
+      lock_logs: [],
     },
     {
       shop_id: 'shop-3',
@@ -48,53 +63,45 @@ export const MerchantReconciliationModal: React.FC<MerchantReconciliationModalPr
       is_verified: true,
       total_sales: 42000000,
       shop_debt_fee: 1260000,
-      platform_debt_reimburse: 150000,
-      net_balance: 1110000, // 1.110.000đ > 1M ➔ Nợ quá trần!
+      platform_debt_reimburse: 0,
+      net_balance: 1260000, // Shop nợ Sàn 1.260.000đ (Vượt trần 1.000.000đ)
       debt_limit: 1000000,
-      is_suspended: true, // TẠM DỪNG SHOP DO NỢ QUÁ TRẦN!
+      is_suspended: true, // TỰ KHÓA BỞI HỆ THỐNG
+      warning_issued: true,
+      warning_deadline_date: '2026-08-25T23:59:59.000Z',
       last_settled_at: '2026-08-01T00:00:00.000Z',
       settlement_status: 'overdue',
-    },
-    {
-      shop_id: 'shop-4',
-      shop_name: 'Gội Đầu Thảo Dược Đông Y (Chưa xác minh)',
-      is_verified: false,
-      total_sales: 12500000,
-      shop_debt_fee: 0, // 0% phí sàn!
-      platform_debt_reimburse: 0,
-      net_balance: 0,
-      debt_limit: 1000000,
-      is_suspended: false,
-      last_settled_at: '2026-08-01T00:00:00.000Z',
-      settlement_status: 'settled',
+      lock_logs: [
+        {
+          id: 'log-102',
+          timestamp: '2026-08-22T09:00:00.000Z',
+          action: 'auto_warning',
+          reason: 'Cảnh báo nợ phí gửi trước 3 ngày (Nợ 920.000đ / Trần 1.000.000đ) qua Web & Email.',
+          actor: 'Hệ Thống Tự Động Cảnh Báo',
+        },
+        {
+          id: 'log-103',
+          timestamp: '2026-08-25T23:59:59.000Z',
+          action: 'auto_lock',
+          reason: 'Chạm mốc trần nợ phí (1.260.000đ > 1.000.000đ) mà chưa trả ➔ Tự khóa không cần ai bấm.',
+          actor: 'Hệ Thống Tự Động Khóa',
+        },
+      ],
     },
   ]);
 
-  // Settlement records history
-  const [settlementRecords, setSettlementRecords] = useState<SettlementRecord[]>([
+  // Settlement Records History List
+  const [settlementHistory] = useState<SettlementRecord[]>([
     {
-      id: 'SETTLE-2026-07',
+      id: 'SET-2026-07',
       shop_id: 'shop-1',
       shop_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
       period: 'Tháng 07/2026',
-      shop_debt_fee: 920000,
-      platform_debt_reimburse: 300000,
-      net_amount: 620000,
+      shop_debt_fee: 980000,
+      platform_debt_reimburse: 320000,
+      net_amount: 660000,
       who_pays: 'shop_pays_platform',
-      deadline_date: '2026-08-08',
-      status: 'completed',
-      created_at: '2026-08-01T00:00:00.000Z',
-    },
-    {
-      id: 'SETTLE-2026-07-2',
-      shop_id: 'shop-2',
-      shop_name: 'Thời Trang Nam TQ Flagship Store',
-      period: 'Tháng 07/2026',
-      shop_debt_fee: 1400000,
-      platform_debt_reimburse: 1800000,
-      net_amount: 400000,
-      who_pays: 'platform_pays_shop',
-      deadline_date: '2026-08-08',
+      deadline_date: '2026-08-07T00:00:00.000Z',
       status: 'completed',
       created_at: '2026-08-01T00:00:00.000Z',
     },
@@ -102,75 +109,108 @@ export const MerchantReconciliationModal: React.FC<MerchantReconciliationModalPr
 
   if (!isOpen) return null;
 
-  // Filter current user's shop if merchant
-  const displayedFinancials = userRole === 'merchant'
-    ? merchantsFinancials.filter((m) => m.shop_id === 'shop-1' || m.shop_name.includes('Khoái Châu'))
-    : merchantsFinancials;
+  // Total Platform Fees and Debt Summary
+  const totalShopDebtFees = merchantsFinancials.reduce((sum, m) => sum + (m.net_balance > 0 ? m.net_balance : 0), 0);
+  const totalPlatformReimburse = merchantsFinancials.reduce((sum, m) => sum + (m.net_balance < 0 ? Math.abs(m.net_balance) : 0), 0);
 
-  const handleUpdateDebtLimit = (shopId: string, newLimit: number) => {
+  // 1. RECORD PAYMENT & AUTO-UNLOCK SHOP INSTANTLY
+  const handleRecordPayment = (shopId: string, shopName: string) => {
+    const paymentAmount = prompt(`Nhập số tiền chuyển khoản shop "${shopName}" đã thanh toán cho sàn (đ):`, '585000');
+    if (!paymentAmount || isNaN(Number(paymentAmount))) return;
+
+    const amountNum = Number(paymentAmount);
+
     setMerchantsFinancials((prev) =>
-      prev.map((item) => {
-        if (item.shop_id === shopId) {
-          const updatedLimit = newLimit;
-          const updatedSuspended = item.net_balance > updatedLimit;
+      prev.map((m) => {
+        if (m.shop_id === shopId) {
+          const newNetBalance = Math.max(0, m.net_balance - amountNum);
+          const wasSuspended = m.is_suspended;
+          const autoUnlocked = wasSuspended && newNetBalance < m.debt_limit;
+
+          const newLog: MerchantDebtLockLog = {
+            id: `log-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            action: 'auto_unlock_payment',
+            reason: `Chủ sàn ghi nhận đã nhận chuyển khoản ${amountNum.toLocaleString()} đ ${autoUnlocked ? '➔ SHOP TỰ MỞ LẠI NGAY LẬP TỨC!' : ''}`,
+            actor: isAdmin ? 'Admin Tổng (Chủ sàn)' : 'Nhân Viên Thu Chi',
+          };
+
           return {
-            ...item,
-            debt_limit: updatedLimit,
-            is_suspended: updatedSuspended,
+            ...m,
+            net_balance: newNetBalance,
+            is_suspended: autoUnlocked ? false : m.is_suspended,
+            settlement_status: newNetBalance === 0 ? 'settled' : 'pending_payment',
+            lock_logs: [newLog, ...(m.lock_logs || [])],
           };
         }
-        return item;
+        return m;
       })
     );
+
+    alert(`✅ Đã ghi nhận nhận thanh toán ${amountNum.toLocaleString()} đ của Shop "${shopName}"!\n⚡ Shop tự động mở lại ngay lập tức tại thời điểm bấm, không phải chờ hôm sau!`);
   };
 
-  const handleRunMonthlySettlement = () => {
-    if (!isAdmin) return;
+  // 2. EDIT DEBT LIMIT PER SHOP (SHOP QUEN CHO NỚI, SHOP MỚI SIẾT)
+  const handleEditDebtLimit = (shop: MerchantFinancials) => {
+    const newLimit = prompt(`Đặt Mốc Trần Nợ Phí Riêng cho Shop "${shop.shop_name}" (đ):\n(Mẹo: Shop quen cho nới 5.000.000đ, Shop mới siết 500.000đ)`, shop.debt_limit.toString());
+    if (!newLimit || isNaN(Number(newLimit))) return;
 
-    if (window.confirm('Bạn có chắc chắn muốn thực hiện CHỐT SỔ & CẤN TRỪ HAI CHIỀU ngày 1 tháng này không?')) {
-      const today = new Date();
-      const deadline = new Date(Date.now() + 3600000 * 24 * 7).toISOString().split('T')[0];
+    const limitNum = Number(newLimit);
 
-      const newRecords: SettlementRecord[] = merchantsFinancials.map((shop) => {
-        const net = shop.net_balance;
-        let who: 'shop_pays_platform' | 'platform_pays_shop' | 'balanced' = 'balanced';
-        if (net > 0) who = 'shop_pays_platform';
-        else if (net < 0) who = 'platform_pays_shop';
-
-        return {
-          id: `SETTLE-${today.getFullYear()}-${today.getMonth() + 1}-${shop.shop_id}`,
-          shop_id: shop.shop_id,
-          shop_name: shop.shop_name,
-          period: `Tháng ${today.getMonth() + 1}/${today.getFullYear()}`,
-          shop_debt_fee: shop.shop_debt_fee,
-          platform_debt_reimburse: shop.platform_debt_reimburse,
-          net_amount: Math.abs(net),
-          who_pays: who,
-          deadline_date: deadline,
-          status: 'pending',
-          created_at: new Date().toISOString(),
-        };
-      });
-
-      setSettlementRecords([...newRecords, ...settlementRecords]);
-      alert(`🎉 Đã chốt sổ cấn trừ hai chiều thành công!\n- Thời hạn chuyển khoản cấn trừ: 7 ngày (đến ngày ${deadline}).\n- Các shop nợ quá mốc trần đã tự động tạm dừng hoạt động.`);
-    }
-  };
-
-  const handleMarkPaymentCompleted = (recordId: string) => {
-    setSettlementRecords((prev) =>
-      prev.map((rec) => (rec.id === recordId ? { ...rec, status: 'completed' } : rec))
+    setMerchantsFinancials((prev) =>
+      prev.map((m) => (m.shop_id === shop.shop_id ? { ...m, debt_limit: limitNum } : m))
     );
+
+    alert(`⚙️ Đã cập nhật Mốc Trần Nợ cho Shop "${shop.shop_name}" thành: ${limitNum.toLocaleString()} đ`);
+  };
+
+  // 3. MANUAL FORCE OPEN (EXTEND DEBT FOR LOYAL SHOP) OR FORCE LOCK
+  const handleForceToggleLock = (shop: MerchantFinancials, action: 'force_open' | 'force_lock') => {
+    const isForceOpen = action === 'force_open';
+
+    const reason = prompt(
+      isForceOpen 
+        ? `Nhập lý do ÉP MỞ TAY gia hạn nợ cho Shop quen "${shop.shop_name}":` 
+        : `Nhập lý do ÉP KHÓA TAY Shop "${shop.shop_name}":`,
+      isForceOpen ? 'Gia hạn nợ thêm 7 ngày cho Shop quen uy tín.' : 'Ép khóa tay để rà soát công nợ.'
+    );
+
+    if (!reason) return;
+
+    const newLog: MerchantDebtLockLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      action: isForceOpen ? 'manual_force_open' : 'manual_force_lock',
+      reason: reason,
+      actor: isAdmin ? 'Admin Tổng (Chủ sàn)' : 'Nhân Viên Quản Trị',
+    };
+
+    setMerchantsFinancials((prev) =>
+      prev.map((m) => {
+        if (m.shop_id === shop.shop_id) {
+          return {
+            ...m,
+            is_suspended: !isForceOpen,
+            lock_logs: [newLog, ...(m.lock_logs || [])],
+          };
+        }
+        return m;
+      })
+    );
+
+    alert(isForceOpen 
+      ? `🔓 Đã ÉP MỜ TAY gia hạn nợ thành công cho Shop "${shop.shop_name}"!` 
+      : `🔒 Đã ÉP KHÓA TAY Shop "${shop.shop_name}".`);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden relative border border-emerald-100 max-h-[90vh] flex flex-col min-w-0"
+        className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 max-h-[92vh] flex flex-col min-w-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 sm:p-6 relative overflow-hidden shrink-0 border-b border-indigo-900/50">
+        <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white p-5 relative shrink-0">
           <button 
             type="button"
             onClick={onClose} 
@@ -179,206 +219,222 @@ export const MerchantReconciliationModal: React.FC<MerchantReconciliationModalPr
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2 text-indigo-300 text-xs font-extrabold uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-emerald-300 text-xs font-extrabold uppercase tracking-wider mb-1">
             <DollarSign className="w-4 h-4 text-emerald-400" />
-            <span>Đối Soát Công Nợ & Cấn Trừ Hai Chiều (Sàn ⇄ Shop)</span>
+            <span>Hệ Thống Quản Lý & Tự Động Khóa/Mở Công Nợ Phí Sàn</span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-            <span>Chốt Sổ Công Nợ Ngày 1 Hàng Tháng</span>
-            <span className="text-xs bg-emerald-600 text-white px-2.5 py-0.5 rounded-full font-bold">
-              Chuyển khoản 7 ngày
-            </span>
-          </h2>
-          <p className="text-xs text-slate-300 mt-1">
-            Shop nợ sàn phí % • Sàn nợ shop bù Xu & Voucher • Cấn trừ hai chiều ra 1 số dư duy nhất.
-          </p>
+          <h2 className="text-xl sm:text-2xl font-black text-white">Sổ Công Nợ Hai Chiều (Sàn ⇄ Shop)</h2>
         </div>
 
-        {/* TOP SUMMARY STATS */}
-        <div className="bg-slate-800 text-white p-3 text-xs shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-2 border-b border-slate-700">
-          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-            <span className="text-slate-400 text-[10px] block uppercase font-bold">Shop Nợ Sàn (Phí %):</span>
-            <span className="text-rose-400 font-black text-sm">
-              {displayedFinancials.reduce((sum, m) => sum + m.shop_debt_fee, 0).toLocaleString('vi-VN')} đ
-            </span>
-          </div>
-
-          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-            <span className="text-slate-400 text-[10px] block uppercase font-bold">Sàn Nợ Shop (Bù Xu/Voucher):</span>
-            <span className="text-emerald-400 font-black text-sm">
-              {displayedFinancials.reduce((sum, m) => sum + m.platform_debt_reimburse, 0).toLocaleString('vi-VN')} đ
-            </span>
-          </div>
-
-          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-            <span className="text-slate-400 text-[10px] block uppercase font-bold">Chu kỳ chốt sổ hiện tại:</span>
-            <span className="text-amber-300 font-extrabold text-xs">
-              {settlementCycle === 'monthly_1st' ? '📅 Ngày 1 hàng tháng' : settlementCycle === 'biweekly_15th' ? '📅 Ngày 15 hàng tháng' : '📅 Thứ 2 hàng tuần'}
-            </span>
-          </div>
-        </div>
-
-        {/* Modal Navigation Tabs */}
-        <div className="flex border-b border-gray-100 bg-gray-50/70 p-2 gap-1.5 shrink-0">
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-1 p-2 bg-gray-100 border-b border-gray-200 text-xs font-extrabold shrink-0">
           <button
             onClick={() => setActiveTab('summary')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'summary' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-200' : 'text-gray-500 hover:text-gray-800'
+            className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'summary' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
             }`}
           >
-            <Building2 className="w-4 h-4 text-indigo-600" />
-            <span>Sổ Sách Cấn Trừ Shop ({displayedFinancials.length})</span>
+            <DollarSign className="w-4 h-4" />
+            <span>Sổ Công Nợ & Tự Động Khóa/Mở</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('audit_logs')}
+            className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'audit_logs' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span>Nhật Ký Khóa & Mở (Dùng Chung 2 Bên)</span>
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'history' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-200' : 'text-gray-500 hover:text-gray-800'
+            className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'history' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
             }`}
           >
-            <Clock className="w-4 h-4 text-indigo-600" />
-            <span>Lịch Sử Chốt Sổ ({settlementRecords.length})</span>
+            <Clock className="w-4 h-4" />
+            <span>Lịch Sử Chốt Sổ Hằng Tháng</span>
           </button>
 
           {isAdmin && (
             <button
               onClick={() => setActiveTab('admin_config')}
-              className={`flex-1 py-2 text-xs font-extrabold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                activeTab === 'admin_config' ? 'bg-amber-600 text-white shadow-sm' : 'bg-amber-50 text-amber-900 border border-amber-200'
+              className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'admin_config' ? 'bg-slate-900 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span>👑 Admin Cài Đặt Chu Kỳ</span>
+              <span>Cấu Hình Chu Kỳ Chốt Sổ</span>
             </button>
           )}
         </div>
 
-        {/* Modal Scrollable Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        {/* Modal Content Body */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-5 text-xs">
           
-          {/* TAB 1: SHOP FINANCIAL LEDGERS */}
+          {/* TAB 1: LEDGER SUMMARY & AUTOMATED LOCK/UNLOCK SYSTEM */}
           {activeTab === 'summary' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               
-              {/* Trigger Settlement Button for Admin */}
-              {isAdmin && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-                  <div className="leading-snug">
-                    <span className="font-extrabold text-emerald-900 block">👑 Nút Chốt Sổ & Cấn Trừ Hai Chiều Dành Cho Admin</span>
-                    <span className="text-emerald-700 text-[11px]">Bấm chốt sổ để xuất biên bản công nợ 7 ngày chuyển khoản và kiểm soát mốc trần nợ 1 triệu.</span>
-                  </div>
-                  <button
-                    onClick={handleRunMonthlySettlement}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow-md transition shrink-0 cursor-pointer flex items-center gap-1"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>⚡ Chốt Sổ Ngay</span>
-                  </button>
+              {/* Rule Summary Banner */}
+              <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-2">
+                <div className="flex items-center justify-between text-xs font-black text-amber-400">
+                  <span>⚡ Quy Tắc Khóa / Mở Shop Tự Động Theo Phí Sàn (Phần Mềm Tự Xử Lý):</span>
+                  <span>Chủ sàn không phải mở lời đòi!</span>
                 </div>
-              )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-slate-300">
+                  <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+                    <strong className="text-white block">1. Mốc nợ riêng từng shop:</strong>
+                    Shop quen cho nới (5tr), shop mới siết chặt (500k).
+                  </div>
+                  <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+                    <strong className="text-white block">2. Cảnh báo trước 3 ngày:</strong>
+                    Thông báo Web & Email kèm ngày giờ tự ngắt.
+                  </div>
+                  <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+                    <strong className="text-white block">3. Nhận chuyển khoản = Tự mở ngay:</strong>
+                    Bấm nhận tiền là shop tự mở lại tức thì!
+                  </div>
+                </div>
+              </div>
 
-              {/* Financials List */}
+              {/* Ledger Totals Overview */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl space-y-1">
+                  <span className="text-rose-700 font-extrabold text-[11px] block">Shop nợ sàn (Phí % các đơn):</span>
+                  <strong className="text-lg font-black text-rose-900">{totalShopDebtFees.toLocaleString()} đ</strong>
+                  <span className="text-[10px] text-rose-600 font-bold block">Chỉ áp dụng với Shop đã xác minh</span>
+                </div>
+
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-1">
+                  <span className="text-emerald-700 font-extrabold text-[11px] block">Sàn nợ shop (Bù tiền xu & voucher):</span>
+                  <strong className="text-lg font-black text-emerald-900">{totalPlatformReimburse.toLocaleString()} đ</strong>
+                  <span className="text-[10px] text-emerald-600 font-bold block">Hoàn lại tiền cho shop khi khách dùng Xu</span>
+                </div>
+              </div>
+
+              {/* Merchants Ledger List */}
               <div className="space-y-3">
-                {displayedFinancials.map((shop) => {
-                  const isShopDebt = shop.net_balance > 0;
-                  const isPlatformDebt = shop.net_balance < 0;
+                <span className="font-black text-gray-900 block text-xs">Danh sách gian hàng & Trạng thái Công nợ hai chiều:</span>
+
+                {merchantsFinancials.map((m) => {
+                  const shopPays = m.net_balance > 0;
+                  const platformPays = m.net_balance < 0;
 
                   return (
-                    <div 
-                      key={shop.shop_id}
-                      className={`bg-white border rounded-2xl p-4 shadow-sm transition space-y-3 ${
-                        shop.is_suspended ? 'border-rose-300 bg-rose-50/20' : 'border-gray-200 hover:border-indigo-200'
-                      }`}
-                    >
-                      {/* Shop Header */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
+                    <div key={m.shop_id} className="p-4 bg-white border border-gray-200 rounded-2xl shadow-sm space-y-3">
+                      
+                      {/* Top Header Row */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                        <div>
+                          <strong className="text-sm font-extrabold text-gray-900 block">{m.shop_name}</strong>
+                          <span className="text-[11px] text-gray-400">Trần nợ riêng shop này: <strong className="text-gray-800">{m.debt_limit.toLocaleString()} đ</strong></span>
+                        </div>
+
                         <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-sm text-gray-900">{shop.shop_name}</span>
-                          {shop.is_verified ? (
-                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                              <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                              <span>✓ Đã xác minh (3% phí)</span>
+                          {/* Edit Debt Limit Button */}
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleEditDebtLimit(m)}
+                              className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-extrabold flex items-center gap-1 cursor-pointer"
+                              title="Chỉnh mốc nợ riêng cho shop quen/mới"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Đổi mốc trần nợ</span>
+                            </button>
+                          )}
+
+                          {/* Suspended or Active Badge */}
+                          {m.is_suspended ? (
+                            <span className="bg-rose-100 text-rose-900 px-2.5 py-1 rounded-full font-black text-[10px]">
+                              🔴 ĐÃ TỰ KHÓA (Nợ quá trần {m.debt_limit.toLocaleString()}đ)
                             </span>
                           ) : (
-                            <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                              🔒 Chưa xác minh (0% phí)
+                            <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-black text-[10px]">
+                              🟢 Đang hoạt động
                             </span>
                           )}
                         </div>
+                      </div>
 
-                        {shop.is_suspended && (
-                          <span className="bg-rose-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                            <Ban className="w-3 h-3" />
-                            <span>❌ TẠM DỪNG SHOP (Nợ &gt; {shop.debt_limit.toLocaleString()}đ)</span>
-                          </span>
+                      {/* Financial Math Balance Row */}
+                      <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                        <div className="p-2 bg-slate-50 rounded-xl border border-slate-200">
+                          <span className="text-gray-500 block">Phí sàn theo % (3%):</span>
+                          <strong className="text-rose-600 font-extrabold">+{m.shop_debt_fee.toLocaleString()} đ</strong>
+                        </div>
+
+                        <div className="p-2 bg-slate-50 rounded-xl border border-slate-200">
+                          <span className="text-gray-500 block">Sàn bù xu & voucher:</span>
+                          <strong className="text-emerald-600 font-extrabold">-{m.platform_debt_reimburse.toLocaleString()} đ</strong>
+                        </div>
+
+                        <div className="p-2 bg-indigo-50 rounded-xl border border-indigo-200">
+                          <span className="text-indigo-950 font-extrabold block">Số dư cấn trừ 2 chiều:</span>
+                          <strong className={`font-black text-xs ${shopPays ? 'text-rose-600' : platformPays ? 'text-emerald-600' : 'text-gray-700'}`}>
+                            {shopPays ? `Shop nợ Sàn: ${m.net_balance.toLocaleString()} đ` : platformPays ? `Sàn nợ Shop: ${Math.abs(m.net_balance).toLocaleString()} đ` : 'Cân bằng (0 đ)'}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {/* 3-Day Warning Alert Box if nearing limit */}
+                      {shopPays && m.net_balance >= m.debt_limit * 0.8 && (
+                        <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl font-bold flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-1.5">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>⚠️ Cảnh báo nợ phí trước 3 ngày đã gửi qua Web & Email (Nợ {m.net_balance.toLocaleString()} đ / Trần {m.debt_limit.toLocaleString()} đ).</span>
+                          </div>
+                          <span className="text-[10px] text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-md shrink-0">Hạn khóa: 23:59 hôm nay</span>
+                        </div>
+                      )}
+
+                      {/* Action Buttons: Record Payment & Force Open / Lock */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 font-extrabold">
+                        {shopPays ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRecordPayment(m.shop_id, m.shop_name)}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer text-xs"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>✓ Ghi Nhận Nhận Tiền (Tự Mở Lại Shop Ngay)</span>
+                          </button>
+                        ) : (
+                          <span className="text-emerald-700 text-xs font-bold">✓ Sàn đã thanh toán tiền bù xu cho shop</span>
+                        )}
+
+                        {/* Admin Force Override Buttons */}
+                        {isAdmin && (
+                          <div className="flex items-center gap-2">
+                            {m.is_suspended ? (
+                              <button
+                                type="button"
+                                onClick={() => handleForceToggleLock(m, 'force_open')}
+                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs flex items-center gap-1 cursor-pointer"
+                                title="Ép mở tay gia hạn cho shop quen"
+                              >
+                                <Unlock className="w-3.5 h-3.5" />
+                                <span>🔓 Ép mở tay (Gia hạn shop quen)</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleForceToggleLock(m, 'force_lock')}
+                                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs flex items-center gap-1 cursor-pointer"
+                                title="Ép khóa tay khi cần thiết"
+                              >
+                                <Lock className="w-3.5 h-3.5" />
+                                <span>🔒 Ép khóa tay</span>
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
 
-                      {/* Financial Metrics Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                        
-                        {/* Metric 1: Shop Debt Fee */}
-                        <div className="p-2.5 bg-rose-50/70 rounded-xl border border-rose-100">
-                          <span className="text-[10px] text-rose-700 font-bold block uppercase">Shop nợ sàn (Phí %):</span>
-                          <span className="text-rose-600 font-black text-sm">
-                            {shop.shop_debt_fee.toLocaleString('vi-VN')} đ
-                          </span>
-                          <span className="text-[10px] text-gray-400 block mt-0.5">3% trên doanh số ban đầu</span>
-                        </div>
-
-                        {/* Metric 2: Platform Debt Reimburse */}
-                        <div className="p-2.5 bg-emerald-50/70 rounded-xl border border-emerald-100">
-                          <span className="text-[10px] text-emerald-700 font-bold block uppercase">Sàn nợ shop (Bù Xu/Voucher):</span>
-                          <span className="text-emerald-600 font-black text-sm">
-                            {shop.platform_debt_reimburse.toLocaleString('vi-VN')} đ
-                          </span>
-                          <span className="text-[10px] text-gray-400 block mt-0.5">Sàn hoàn tiền khách giảm xu</span>
-                        </div>
-
-                        {/* Metric 3: Net Balance after Two-Way Net Off */}
-                        <div className={`p-2.5 rounded-xl border ${
-                          isShopDebt ? 'bg-amber-50 border-amber-200' : isPlatformDebt ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
-                        }`}>
-                          <span className="text-[10px] text-gray-600 font-bold block uppercase">Số dư cấn trừ 2 chiều:</span>
-                          <span className={`font-black text-sm ${
-                            isShopDebt ? 'text-amber-800' : isPlatformDebt ? 'text-blue-800' : 'text-gray-700'
-                          }`}>
-                            {isShopDebt 
-                              ? `Shop nợ Sàn: ${shop.net_balance.toLocaleString('vi-VN')} đ` 
-                              : isPlatformDebt 
-                              ? `Sàn nợ Shop: ${Math.abs(shop.net_balance).toLocaleString('vi-VN')} đ` 
-                              : '0 đ (Cân bằng)'}
-                          </span>
-                          <span className="text-[10px] text-gray-500 block mt-0.5">Chuyển khoản trong 7 ngày</span>
-                        </div>
-                      </div>
-
-                      {/* Admin Debt Limit Configuration & Suspension Warning */}
-                      {isAdmin && (
-                        <div className="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600 font-bold text-[11px]">Trần nợ shop (Admin chỉnh):</span>
-                            <select
-                              value={shop.debt_limit}
-                              onChange={(e) => handleUpdateDebtLimit(shop.shop_id, Number(e.target.value))}
-                              className="px-2 py-1 bg-gray-100 border border-gray-300 rounded-lg text-xs font-bold text-gray-800"
-                            >
-                              <option value={500000}>500.000 đ</option>
-                              <option value={1000000}>1.000.000 đ (Mặc định)</option>
-                              <option value={2000000}>2.000.000 đ</option>
-                              <option value={5000000}>5.000.000 đ</option>
-                            </select>
-                          </div>
-
-                          {shop.is_suspended && (
-                            <span className="text-rose-600 font-bold text-[11px] flex items-center gap-1">
-                              <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-                              <span>Nợ vượt {shop.debt_limit.toLocaleString()}đ ➔ Khóa quyền đăng bài mới</span>
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -387,136 +443,128 @@ export const MerchantReconciliationModal: React.FC<MerchantReconciliationModalPr
             </div>
           )}
 
-          {/* TAB 2: SETTLEMENT RECORDS HISTORY */}
-          {activeTab === 'history' && (
-            <div className="space-y-3 text-xs">
+          {/* TAB 2: AUDIT LOGS FOR DEBT LOCK/UNLOCK (SHARED 2-WAY LEDGER) */}
+          {activeTab === 'audit_logs' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-1 text-indigo-950">
+                <strong className="font-extrabold text-sm block flex items-center gap-1.5">
+                  <History className="w-4 h-4 text-indigo-600" />
+                  <span>Nhật Ký Khóa & Mở Công Nợ Phí Sàn (Hai Bên Cùng Nhìn 1 Bản Minh Bạch)</span>
+                </strong>
+                <p className="text-[11px]">Mọi lần phần mềm tự khóa/mở hoặc Admin ép mở/khóa tay đều ghi lại vết audit log công khai.</p>
+              </div>
+
               <div className="space-y-2">
-                {settlementRecords.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">Chưa có biên bản chốt sổ công nợ nào.</div>
+                {merchantsFinancials.flatMap((m) => m.lock_logs || []).length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">Chưa có nhật ký khóa mở nào.</div>
                 ) : (
-                  settlementRecords.map((rec) => {
-                    const isShopPays = rec.who_pays === 'shop_pays_platform';
-                    const isCompleted = rec.status === 'completed';
-
-                    return (
-                      <div key={rec.id} className="p-3.5 bg-white border border-gray-200 rounded-2xl shadow-sm space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-extrabold text-sm text-gray-900">{rec.shop_name}</span>
-                            <span className="text-xs text-gray-500 ml-2 font-semibold">({rec.period})</span>
-                          </div>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                            isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {isCompleted ? '✓ Đã hoàn tất thanh toán' : '⏳ Chờ chuyển khoản 7 ngày'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between bg-gray-50 p-2 rounded-xl text-xs">
-                          <div>
-                            <span className="text-gray-500">Nội dung đối soát: </span>
-                            <strong className={isShopPays ? 'text-rose-600' : 'text-emerald-600'}>
-                              {isShopPays ? `Shop chuyển trả Sàn: ${rec.net_amount.toLocaleString()}đ` : `Sàn chuyển trả Shop: ${rec.net_amount.toLocaleString()}đ`}
-                            </strong>
-                          </div>
-                          <span className="text-[11px] text-gray-400">Hạn chót: {rec.deadline_date}</span>
-                        </div>
-
-                        {!isCompleted && isAdmin && (
-                          <div className="text-right pt-1">
-                            <button
-                              onClick={() => handleMarkPaymentCompleted(rec.id)}
-                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-lg text-xs transition cursor-pointer"
-                            >
-                              Xác nhận đã nhận chuyển khoản
-                            </button>
-                          </div>
-                        )}
+                  merchantsFinancials.flatMap((m) => m.lock_logs || []).map((log) => (
+                    <div key={log.id} className="p-3 bg-white border border-gray-200 rounded-2xl flex items-center justify-between text-xs">
+                      <div>
+                        <strong className="text-gray-900 block font-black">{log.reason}</strong>
+                        <span className="text-gray-400 text-[10px]">Thực hiện bởi: <strong>{log.actor}</strong> • {new Date(log.timestamp).toLocaleString('vi-VN')}</span>
                       </div>
-                    );
-                  })
+                      <span className={`px-2.5 py-1 rounded-full font-black text-[10px] ${
+                        log.action.includes('unlock') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {log.action}
+                      </span>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
           )}
 
-          {/* TAB 3: ADMIN SETTLEMENT CYCLE CONFIGURATION */}
-          {activeTab === 'admin_config' && isAdmin && (
-            <div className="space-y-4 text-xs">
-              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-3">
-                <h3 className="font-black text-amber-950 text-sm flex items-center gap-1.5">
-                  <Settings className="w-4 h-4 text-amber-600" />
-                  <span>Cài Đặt Chu Kỳ Chốt Sổ Công Nợ Toàn Sàn</span>
-                </h3>
+          {/* TAB 3: SETTLEMENT HISTORY */}
+          {activeTab === 'history' && (
+            <div className="space-y-3">
+              <span className="font-black text-gray-900 block text-xs">Lịch sử chốt sổ các kỳ thanh toán gần nhất:</span>
 
-                <div className="space-y-2">
-                  <label className="block font-bold text-gray-800">Chọn chu kỳ chốt sổ công nợ:</label>
-                  
-                  <div className="space-y-2">
-                    <label className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${
-                      settlementCycle === 'monthly_1st' ? 'bg-white border-amber-500 shadow-sm font-extrabold text-amber-950' : 'bg-white/60 border-amber-200 text-gray-700'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="cycle"
-                          checked={settlementCycle === 'monthly_1st'}
-                          onChange={() => setSettlementCycle('monthly_1st')}
-                          className="text-amber-600 focus:ring-amber-500"
-                        />
-                        <span>📅 Ngày 1 hàng tháng (Mặc định chuẩn)</span>
-                      </div>
-                      <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded font-bold">Chuẩn nhất</span>
-                    </label>
-
-                    <label className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${
-                      settlementCycle === 'biweekly_15th' ? 'bg-white border-amber-500 shadow-sm font-extrabold text-amber-950' : 'bg-white/60 border-amber-200 text-gray-700'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="cycle"
-                          checked={settlementCycle === 'biweekly_15th'}
-                          onChange={() => setSettlementCycle('biweekly_15th')}
-                          className="text-amber-600 focus:ring-amber-500"
-                        />
-                        <span>📅 Ngày 15 hàng tháng (Bán nguyệt)</span>
-                      </div>
-                      <span className="text-[10px] text-gray-500">15 ngày/lần</span>
-                    </label>
-
-                    <label className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${
-                      settlementCycle === 'weekly_monday' ? 'bg-white border-amber-500 shadow-sm font-extrabold text-amber-950' : 'bg-white/60 border-amber-200 text-gray-700'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="cycle"
-                          checked={settlementCycle === 'weekly_monday'}
-                          onChange={() => setSettlementCycle('weekly_monday')}
-                          className="text-amber-600 focus:ring-amber-500"
-                        />
-                        <span>📅 Thứ Hai hàng tuần (Hàng tuần)</span>
-                      </div>
-                      <span className="text-[10px] text-gray-500">7 ngày/lần</span>
-                    </label>
+              {settlementHistory.map((s) => (
+                <div key={s.id} className="p-4 bg-white border border-gray-200 rounded-2xl flex items-center justify-between text-xs">
+                  <div>
+                    <strong className="text-gray-900 font-extrabold block">{s.shop_name} ({s.period})</strong>
+                    <span className="text-gray-500 text-[11px]">Số tiền chốt cấn trừ: <strong className="text-indigo-600">{s.net_amount.toLocaleString()} đ</strong></span>
                   </div>
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-800 font-black rounded-full text-[10px]">
+                    ✓ Đã chốt & Hoàn tất
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* TAB 4: ADMIN SETTLEMENT CYCLE CONFIGURATION */}
+          {activeTab === 'admin_config' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-2">
+                <strong className="text-sm font-black text-amber-400 block">Cấu Hình Chu Kỳ Chốt Sổ Công Nợ (Chủ Sàn Đổi Được):</strong>
+                <p className="text-[11px] text-slate-300">
+                  Chu kỳ chốt sổ mặc định là **Ngày 1 hằng tháng**. Admin có thể thay đổi sang chu kỳ nửa tháng hoặc hằng tuần.
+                </p>
+              </div>
+
+              <div className="space-y-3 bg-white p-4 border border-gray-200 rounded-2xl text-xs font-extrabold">
+                <label className="block text-gray-900 font-black">Chọn chu kỳ chốt sổ tự động:</label>
+                
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="cycle"
+                      checked={settlementCycle === 'monthly_1st'}
+                      onChange={() => setSettlementCycle('monthly_1st')}
+                      className="w-4 h-4 text-indigo-600"
+                    />
+                    <span>📅 Mặc định: Chốt sổ Ngày 01 hằng tháng (Thời hạn thanh toán 7 ngày)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="cycle"
+                      checked={settlementCycle === 'biweekly_15th'}
+                      onChange={() => setSettlementCycle('biweekly_15th')}
+                      className="w-4 h-4 text-indigo-600"
+                    />
+                    <span>📅 Nửa tháng: Chốt sổ Ngày 15 và Ngày 01 hằng tháng</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="cycle"
+                      checked={settlementCycle === 'weekly_monday'}
+                      onChange={() => setSettlementCycle('weekly_monday')}
+                      className="w-4 h-4 text-indigo-600"
+                    />
+                    <span>📅 Hằng tuần: Chốt sổ Thứ Hai hằng tuần</span>
+                  </label>
                 </div>
 
-                <div className="p-3 bg-white rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
-                  <strong>Quy trình đối soát tự động:</strong>
-                  <ul className="list-disc pl-4 space-y-0.5">
-                    <li>Shop nợ phí sàn % (chỉ áp dụng shop đã xác minh).</li>
-                    <li>Sàn nợ shop phần bù khách tiêu Xu hoặc Voucher.</li>
-                    <li>Chốt sổ cấn trừ 2 chiều ra 1 số dư duy nhất. Bên nợ chuyển khoản trong 7 ngày.</li>
-                    <li>Shop nợ quá trần (mặc định 1.000.000đ) tự động tạm dừng hoạt động.</li>
-                  </ul>
-                </div>
+                <button
+                  onClick={() => alert(`✅ Đã lưu thay đổi chu kỳ chốt sổ công nợ thành: ${settlementCycle === 'monthly_1st' ? 'Ngày 1 hằng tháng' : settlementCycle === 'biweekly_15th' ? 'Ngày 15 và Ngày 1' : 'Thứ Hai hằng tuần'}!`)}
+                  className="mt-3 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md cursor-pointer font-black"
+                >
+                  Lưu Cài Đặt Chu Kỳ Chốt Sổ
+                </button>
               </div>
             </div>
           )}
 
         </div>
+
+        {/* Footer */}
+        <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end shrink-0 text-xs font-extrabold">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 bg-slate-900 text-white rounded-xl shadow-md cursor-pointer"
+          >
+            Đóng Màn Hình
+          </button>
+        </div>
+
       </div>
     </div>
   );

@@ -176,7 +176,6 @@ export interface Order {
   updated_at?: string;
 }
 
-// 22-Granular Permission Matrix (Tài khoản, Danh bạ, Gian hàng, Xu/Ads, Tài chính, Hệ thống)
 export interface StaffPermissions {
   can_manage_users: boolean;                 // Thêm, sửa tài khoản
   can_lock_unlock_users: boolean;            // Khoá và mở lại tài khoản
@@ -203,7 +202,6 @@ export interface StaffPermissions {
   canManageCoins?: boolean;
 }
 
-// 5 Standard Account Lifecycle States
 export type AccountLifecycleStatus = 
   | 'active'                            // 1. Đang hoạt động (Bình thường)
   | 'locked_temp'                       // 2. Tạm khoá (Admin/Staff khóa kèm lý do + chỗ khiếu nại)
@@ -252,6 +250,14 @@ export interface MerchantApplication {
   created_at: string;
 }
 
+export interface MerchantDebtLockLog {
+  id: string;
+  timestamp: string;
+  action: 'auto_warning' | 'auto_lock' | 'auto_unlock_payment' | 'manual_force_open' | 'manual_force_lock';
+  reason: string;
+  actor: string;
+}
+
 export interface MerchantFinancials {
   shop_id: string;
   shop_name: string;
@@ -260,8 +266,11 @@ export interface MerchantFinancials {
   shop_debt_fee: number;          // Shop nợ sàn: phí sàn theo % (chỉ shop đã xác minh)
   platform_debt_reimburse: number; // Sàn nợ shop: bù tiền khách dùng xu/voucher
   net_balance: number;            // Cấn trừ 2 chiều: (>0 = Shop nợ Sàn, <0 = Sàn nợ Shop)
-  debt_limit: number;             // Mốc trần nợ (Mặc định 1.000.000đ, Admin chỉnh được)
-  is_suspended: boolean;          // Tạm dừng shop nếu nợ quá mốc 1 triệu
+  debt_limit: number;             // Mốc nợ trần riêng từng shop (Mặc định 1.000.000đ, shop quen cho nới, shop mới siết)
+  is_suspended: boolean;          // Tự động tạm khóa shop nếu nợ quá mốc trần
+  warning_issued?: boolean;       // Cảnh báo trước 3 ngày (Web & Email)
+  warning_deadline_date?: string; // Ngày hạn khóa tự động
+  lock_logs?: MerchantDebtLockLog[]; // Nhật ký khóa/mở công nợ chung 2 bên cùng nhìn 1 bản
   last_settled_at: string;
   settlement_status?: 'settled' | 'pending_payment' | 'overdue';
 }
