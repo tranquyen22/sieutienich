@@ -6,9 +6,10 @@ import { useShop } from '../context/ShopContext';
 interface ProductDetailModalProps {
   product: Product | null;
   onClose: () => void;
+  onOpenDirectMessagingModal?: (productInfo?: { shopName?: string; productId?: string | number; productName?: string; productPrice?: number }) => void;
 }
 
-export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClose }) => {
+export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClose, onOpenDirectMessagingModal }) => {
   const { addToCart } = useShop();
   const [added, setAdded] = useState(false);
   const [quantity, setQuantity] = useState<number>(1);
@@ -84,7 +85,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
   };
 
   const handleDirectChat = () => {
-    alert(`💬 Đang kết nối kênh chat riêng với gian hàng "${product.name}"...`);
+    onClose();
+    if (onOpenDirectMessagingModal) {
+      onOpenDirectMessagingModal({
+        shopName: product.contactName || 'Gian Hàng Siêu Tiện Ích',
+        productId: product.id,
+        productName: product.name,
+        productPrice: product.price,
+      });
+    }
   };
 
   return (

@@ -1,194 +1,487 @@
-import React, { useState } from 'react';
-import { X, Send, ShoppingBag, Package, Store, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  X, Send, ShoppingBag, ShieldCheck, Search, MessageSquare, 
+  Phone
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import type { DirectMessage } from '../types';
+import type { UserRole } from '../types';
+
+export interface ChatThread {
+  id: string;
+  partner_name: string;
+  partner_avatar?: string;
+  partner_role: UserRole | 'directory' | 'cskh';
+  last_message: string;
+  last_message_time: string;
+  unread_count: number;
+  is_online: boolean;
+}
+
+export interface SingleChatMessage {
+  id: string;
+  thread_id: string;
+  sender_name: string;
+  sender_role: UserRole | 'directory' | 'cskh';
+  content: string;
+  product_name?: string;
+  product_price?: number;
+  product_img?: string;
+  created_at: string;
+  is_me: boolean;
+}
 
 interface DirectMessagingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetShopName?: string;
-  targetProductId?: string | number;
-  targetProductName?: string;
-  targetOrderId?: string;
+  initialTargetShopName?: string;
+  initialProductId?: string | number;
+  initialProductName?: string;
+  initialProductPrice?: number;
+  initialProductImg?: string;
 }
 
 export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
   isOpen,
   onClose,
-  targetShopName = 'Nông Sản & Lẩu Thái Khoái Châu Official',
-  targetProductId,
-  targetProductName,
-  targetOrderId,
+  initialTargetShopName,
+  initialProductName,
+  initialProductPrice,
+  initialProductImg,
 }) => {
-  const { user, userRole } = useAuth();
-  const [inputMessage, setInputMessage] = useState('');
+  const { userRole } = useAuth();
 
-  // Sample Chat Messages History
-  const [messages, setMessages] = useState<DirectMessage[]>([
+  // Preset Active Conversations Threads List
+  const [threads, setThreads] = useState<ChatThread[]>([
     {
-      id: 'msg-1',
-      sender_id: 'shop-1',
-      sender_name: targetShopName,
-      sender_role: 'merchant',
-      receiver_id: user?.id || 'buyer-1',
-      receiver_name: 'Khách Hàng',
-      product_id: targetProductId || 1,
-      product_name: targetProductName || 'Combo Lẩu Thái Hải Sản Khoái Châu',
-      order_id: targetOrderId || 'ORD-882901',
-      content: 'Dạ chào bạn! Shop nhận được thông tin cần tư vấn của bạn rồi ạ. Sản phẩm luôn tươi ngon có sẵn nhé!',
-      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-      is_read: true,
+      id: 'thread-1',
+      partner_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
+      partner_avatar: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
+      partner_role: 'merchant',
+      last_message: 'Dạ shop sẵn sàng hỗ trợ đóng hàng giao ngay cho bạn nhé!',
+      last_message_time: '16:45',
+      unread_count: 1,
+      is_online: true,
     },
     {
-      id: 'msg-2',
-      sender_id: user?.id || 'buyer-1',
-      sender_name: 'Khách Hàng',
-      sender_role: 'buyer',
-      receiver_id: 'shop-1',
-      receiver_name: targetShopName,
-      product_id: targetProductId,
-      product_name: targetProductName,
-      order_id: targetOrderId,
-      content: 'Shop ơi, đơn hàng của mình chọn Shop giao thì khoảng bao lâu giao tới nơi ạ?',
-      created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-      is_read: true,
+      id: 'thread-2',
+      partner_name: 'Thời Trang Nam TQ Flagship Store',
+      partner_avatar: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&q=80',
+      partner_role: 'merchant',
+      last_message: 'Áo khoác gió có sẵn đủ size S, M, L nha khách ơi!',
+      last_message_time: 'Hôm qua',
+      unread_count: 0,
+      is_online: true,
     },
     {
-      id: 'msg-3',
-      sender_id: 'shop-1',
-      sender_name: targetShopName,
-      sender_role: 'merchant',
-      receiver_id: user?.id || 'buyer-1',
-      receiver_name: 'Khách Hàng',
-      order_id: targetOrderId,
-      content: 'Dạ đơn đang được soạn hàng khẩn trương, dự kiến 30 phút nữa shipper giao tới tận tay bạn nhé! Cảm ơn bạn đã tin tưởng Shop.',
-      created_at: new Date(Date.now() - 1800000).toISOString(),
-      is_read: true,
+      id: 'thread-3',
+      partner_name: 'Thợ Sửa Điện Nước & Máy Lạnh Hùng Cường',
+      partner_avatar: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&q=80',
+      partner_role: 'directory',
+      last_message: 'Em đang qua hỗ trợ rà soát đường ống nước nhà mình đây ạ.',
+      last_message_time: '2 ngày trước',
+      unread_count: 0,
+      is_online: false,
+    },
+    {
+      id: 'thread-4',
+      partner_name: 'Trung Tâm CSKH & Hỗ Trợ Siêu Tiện Ích',
+      partner_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80',
+      partner_role: 'cskh',
+      last_message: 'Tổng đài hỗ trợ 24/7 sẵn sàng giải đáp thắc mắc của quý khách.',
+      last_message_time: 'Vừa xong',
+      unread_count: 0,
+      is_online: true,
     },
   ]);
 
+  const [activeThreadId, setActiveThreadId] = useState<string>('thread-1');
+  const [searchThreadTerm, setSearchThreadTerm] = useState('');
+  const [inputMessage, setInputMessage] = useState('');
+
+  // Sample Chat Messages Store Keyed by thread_id
+  const [chatMessages, setChatMessages] = useState<Record<string, SingleChatMessage[]>>({
+    'thread-1': [
+      {
+        id: 'm-1',
+        thread_id: 'thread-1',
+        sender_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
+        sender_role: 'merchant',
+        content: 'Chào bạn! Cảm ơn bạn đã quan tâm gian hàng Nông Sản Khoái Châu Official.',
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+        is_me: false,
+      },
+      {
+        id: 'm-2',
+        thread_id: 'thread-1',
+        sender_name: 'Khách Hàng',
+        sender_role: 'buyer',
+        content: 'Shop ơi, mình mua đơn từ 300k có được miễn phí vận chuyển không ạ?',
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+        is_me: true,
+      },
+      {
+        id: 'm-3',
+        thread_id: 'thread-1',
+        sender_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
+        sender_role: 'merchant',
+        content: 'Dạ shop hỗ trợ Freeship bán kính 5km cho đơn từ 200k nha bạn! Đơn của bạn ship ngay 30 phút ạ.',
+        created_at: new Date(Date.now() - 1800000).toISOString(),
+        is_me: false,
+      },
+    ],
+    'thread-2': [
+      {
+        id: 'm-201',
+        thread_id: 'thread-2',
+        sender_name: 'Thời Trang Nam TQ Flagship Store',
+        sender_role: 'merchant',
+        content: 'Áo khoác gió có sẵn đủ size S, M, L nha khách ơi!',
+        created_at: new Date(Date.now() - 86400000).toISOString(),
+        is_me: false,
+      },
+    ],
+    'thread-3': [
+      {
+        id: 'm-301',
+        thread_id: 'thread-3',
+        sender_name: 'Thợ Sửa Điện Nước Hùng Cường',
+        sender_role: 'directory',
+        content: 'Em đang qua hỗ trợ rà soát đường ống nước nhà mình đây ạ.',
+        created_at: new Date(Date.now() - 172800000).toISOString(),
+        is_me: false,
+      },
+    ],
+    'thread-4': [
+      {
+        id: 'm-401',
+        thread_id: 'thread-4',
+        sender_name: 'Trung Tâm CSKH Siêu Tiện Ích',
+        sender_role: 'cskh',
+        content: 'Tổng đài hỗ trợ 24/7 sẵn sàng giải đáp thắc mắc của quý khách.',
+        created_at: new Date().toISOString(),
+        is_me: false,
+      },
+    ],
+  });
+
+  // AUTO-TRIGGER NEW CHAT THREAD WITH PRODUCT ASKING WHEN BUYER CLICKS FROM PRODUCT PAGE
+  useEffect(() => {
+    if (isOpen && initialProductName) {
+      const shopName = initialTargetShopName || 'Gian Hàng Siêu Tiện Ích';
+      
+      // Check if thread already exists with this shop
+      const existingThread = threads.find((t) => t.partner_name === shopName);
+      
+      const autoProductMessage = `Chào shop, mình đang quan tâm sản phẩm "${initialProductName}" ${initialProductPrice ? `- Giá: ${initialProductPrice.toLocaleString()} đ` : ''}. Shop cho mình hỏi hàng có sẵn giao ngay không ạ?`;
+
+      if (existingThread) {
+        setActiveThreadId(existingThread.id);
+
+        // Append product question message automatically
+        const autoMsgObj: SingleChatMessage = {
+          id: `m-auto-${Date.now()}`,
+          thread_id: existingThread.id,
+          sender_name: 'Khách Hàng',
+          sender_role: 'buyer',
+          content: autoProductMessage,
+          product_name: initialProductName,
+          product_price: initialProductPrice,
+          product_img: initialProductImg,
+          created_at: new Date().toISOString(),
+          is_me: true,
+        };
+
+        setChatMessages((prev) => ({
+          ...prev,
+          [existingThread.id]: [...(prev[existingThread.id] || []), autoMsgObj],
+        }));
+
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === existingThread.id
+              ? { ...t, last_message: autoProductMessage, last_message_time: 'Vừa xong' }
+              : t
+          )
+        );
+      } else {
+        // Create brand new chat thread
+        const newThreadId = `thread-new-${Date.now()}`;
+        const newThreadObj: ChatThread = {
+          id: newThreadId,
+          partner_name: shopName,
+          partner_avatar: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
+          partner_role: 'merchant',
+          last_message: autoProductMessage,
+          last_message_time: 'Vừa xong',
+          unread_count: 0,
+          is_online: true,
+        };
+
+        const autoMsgObj: SingleChatMessage = {
+          id: `m-auto-${Date.now()}`,
+          thread_id: newThreadId,
+          sender_name: 'Khách Hàng',
+          sender_role: 'buyer',
+          content: autoProductMessage,
+          product_name: initialProductName,
+          product_price: initialProductPrice,
+          product_img: initialProductImg,
+          created_at: new Date().toISOString(),
+          is_me: true,
+        };
+
+        setThreads([newThreadObj, ...threads]);
+        setActiveThreadId(newThreadId);
+        setChatMessages((prev) => ({
+          ...prev,
+          [newThreadId]: [autoMsgObj],
+        }));
+      }
+    }
+  }, [isOpen, initialProductName, initialTargetShopName]);
+
   if (!isOpen) return null;
 
+  const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
+  const activeMessages = chatMessages[activeThreadId] || [];
+
+  // Filter Threads by search keyword
+  const filteredThreads = threads.filter((t) =>
+    t.partner_name.toLowerCase().includes(searchThreadTerm.toLowerCase()) ||
+    t.last_message.toLowerCase().includes(searchThreadTerm.toLowerCase())
+  );
+
+  // Send Message Action
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    const newMsg: DirectMessage = {
+    const newMsg: SingleChatMessage = {
       id: `msg-${Date.now()}`,
-      sender_id: user?.id || 'buyer-1',
-      sender_name: userRole === 'merchant' ? 'Shop' : 'Khách Hàng',
+      thread_id: activeThreadId,
+      sender_name: userRole === 'merchant' ? 'Chủ Shop' : 'Khách Hàng',
       sender_role: userRole === 'merchant' ? 'merchant' : 'buyer',
-      receiver_id: 'shop-1',
-      receiver_name: targetShopName,
-      product_id: targetProductId,
-      product_name: targetProductName,
-      order_id: targetOrderId,
       content: inputMessage,
       created_at: new Date().toISOString(),
-      is_read: false,
+      is_me: true,
     };
 
-    setMessages((prev) => [...prev, newMsg]);
+    setChatMessages((prev) => ({
+      ...prev,
+      [activeThreadId]: [...(prev[activeThreadId] || []), newMsg],
+    }));
+
+    setThreads((prev) =>
+      prev.map((t) =>
+        t.id === activeThreadId
+          ? { ...t, last_message: inputMessage, last_message_time: 'Vừa xong' }
+          : t
+      )
+    );
+
     setInputMessage('');
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 max-h-[85vh] flex flex-col min-w-0"
+        className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 h-[88vh] flex flex-col min-w-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white p-4 relative shrink-0">
+        {/* Top Header */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-5 py-3.5 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-indigo-400" />
+            <h2 className="text-base sm:text-lg font-black text-white">Tin Nhắn Trực Tiếp Realtime (Kênh Chat Đa Chiều)</h2>
+          </div>
+
           <button 
             type="button"
             onClick={onClose} 
-            className="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition absolute right-4 top-4 shrink-0 cursor-pointer"
+            className="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
-
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0">
-              <Store className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-white flex items-center gap-1.5">
-                <span>{targetShopName}</span>
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              </h3>
-              <p className="text-[11px] text-indigo-300">
-                💬 Trao đổi trực tiếp Khách ⇄ Shop (Đồng bộ tức thì)
-              </p>
-            </div>
-          </div>
         </div>
 
-        {/* ATTACHMENT BADGE BAR */}
-        {(targetProductName || targetOrderId) && (
-          <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2 text-xs flex items-center gap-2 shrink-0">
-            {targetProductName && (
-              <span className="bg-white text-indigo-900 border border-indigo-200 px-2.5 py-0.5 rounded-lg font-bold flex items-center gap-1 truncate">
-                <ShoppingBag className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                <span className="truncate">Sản phẩm: {targetProductName}</span>
-              </span>
-            )}
+        {/* 2-COLUMN MESSENGER INTERFACE BODY */}
+        <div className="flex-1 flex min-h-0 overflow-hidden text-xs">
+          
+          {/* LEFT SIDEBAR: THREADS LIST (35% WIDTH) */}
+          <div className="w-full sm:w-80 md:w-96 border-r border-gray-200 bg-gray-50/70 flex flex-col shrink-0">
+            
+            {/* Search Threads Box */}
+            <div className="p-3 border-b border-gray-200 bg-white">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Tìm tin nhắn, tên shop, khách..."
+                  value={searchThreadTerm}
+                  onChange={(e) => setSearchThreadTerm(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 bg-gray-100 border border-transparent rounded-xl text-xs font-medium focus:bg-white focus:border-indigo-500 focus:outline-none"
+                />
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-3" />
+              </div>
+            </div>
 
-            {targetOrderId && (
-              <span className="bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-lg font-bold flex items-center gap-1 shrink-0">
-                <Package className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Đơn hàng #{targetOrderId}</span>
-              </span>
-            )}
+            {/* Scrollable Threads List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+              {filteredThreads.map((thread) => {
+                const isActive = thread.id === activeThreadId;
+
+                return (
+                  <div
+                    key={thread.id}
+                    onClick={() => setActiveThreadId(thread.id)}
+                    className={`p-3.5 flex items-center gap-3 transition cursor-pointer ${
+                      isActive ? 'bg-indigo-50/90 border-l-4 border-indigo-600' : 'hover:bg-gray-100/80 bg-white'
+                    }`}
+                  >
+                    {/* Partner Avatar with Online Badge */}
+                    <div className="relative shrink-0">
+                      <img
+                        src={thread.partner_avatar || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80'}
+                        alt={thread.partner_name}
+                        className="w-11 h-11 rounded-2xl object-cover border border-gray-200 shadow-2xs"
+                      />
+                      {thread.is_online && (
+                        <span className="w-3 h-3 bg-emerald-500 border-2 border-white rounded-full absolute -bottom-0.5 -right-0.5" />
+                      )}
+                    </div>
+
+                    {/* Partner Info & Last Message */}
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <strong className="text-gray-900 font-extrabold text-xs truncate">{thread.partner_name}</strong>
+                        <span className="text-[10px] text-gray-400 font-medium shrink-0">{thread.last_message_time}</span>
+                      </div>
+
+                      <p className={`text-[11px] truncate ${isActive ? 'text-indigo-900 font-bold' : 'text-gray-500'}`}>
+                        {thread.last_message}
+                      </p>
+
+                      {/* Partner Role Badge */}
+                      <div className="flex items-center gap-1 pt-0.5">
+                        <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-bold">
+                          {thread.partner_role === 'merchant' ? '🏪 Chủ shop' : thread.partner_role === 'directory' ? '📇 Danh bạ' : '🎧 CSKH'}
+                        </span>
+                        {thread.unread_count > 0 && (
+                          <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded-full font-black text-[9px]">
+                            {thread.unread_count}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        )}
 
-        {/* Chat History Messages Scroll Area */}
-        <div className="p-4 overflow-y-auto flex-1 space-y-3 bg-gray-50/50">
-          {messages.map((msg) => {
-            const isMe = msg.sender_role === (userRole === 'merchant' ? 'merchant' : 'buyer');
-            const timeStr = new Date(msg.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+          {/* RIGHT MAIN PANEL: ACTIVE CONVERSATION MESSAGES & CHAT BOX (65% WIDTH) */}
+          <div className="flex-1 flex flex-col bg-white min-w-0">
+            
+            {/* Active Thread Header */}
+            <div className="p-3.5 border-b border-gray-200 bg-slate-50 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <img
+                  src={activeThread.partner_avatar || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80'}
+                  alt={activeThread.partner_name}
+                  className="w-10 h-10 rounded-2xl object-cover border border-gray-200 shrink-0"
+                />
 
-            return (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1`}
-              >
-                <div className="text-[10px] text-gray-400 font-bold px-1">
-                  {msg.sender_name} • {timeStr}
-                </div>
-
-                <div
-                  className={`max-w-[80%] p-3 rounded-2xl text-xs leading-relaxed font-medium shadow-sm ${
-                    isMe
-                      ? 'bg-indigo-600 text-white rounded-br-none'
-                      : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
-                  }`}
-                >
-                  {msg.content}
+                <div className="min-w-0">
+                  <strong className="text-sm font-black text-gray-900 truncate block flex items-center gap-1.5">
+                    <span>{activeThread.partner_name}</span>
+                    <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                  </strong>
+                  <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    <span>Đang hoạt động (Realtime)</span>
+                  </span>
                 </div>
               </div>
-            );
-          })}
-        </div>
 
-        {/* Message Input Form */}
-        <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-200 flex items-center gap-2 shrink-0">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Nhập tin nhắn trao đổi với Shop..."
-            className="flex-1 px-4 py-2 bg-gray-100 border border-transparent rounded-full focus:bg-white focus:border-indigo-500 focus:outline-none text-xs text-gray-800"
-          />
-          <button
-            type="submit"
-            disabled={!inputMessage.trim()}
-            className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white rounded-full transition shadow-md cursor-pointer shrink-0"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href="tel:0912345678"
+                  className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl font-extrabold text-xs flex items-center gap-1 cursor-pointer border border-emerald-200"
+                >
+                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Gọi thoại</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Scrollable Messages Stream */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50/40">
+              {activeMessages.map((msg) => {
+                const timeStr = new Date(msg.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${msg.is_me ? 'items-end' : 'items-start'} space-y-1`}
+                  >
+                    <div className="text-[10px] text-gray-400 font-bold px-1 flex items-center gap-1">
+                      <span>{msg.sender_name}</span>
+                      <span>•</span>
+                      <span>{timeStr}</span>
+                    </div>
+
+                    {/* Rich Product Card Attached in Message if Present */}
+                    {msg.product_name && (
+                      <div className="max-w-xs p-3 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-1.5 shadow-sm text-xs">
+                        <div className="text-[10px] text-indigo-900 font-extrabold uppercase tracking-wider flex items-center gap-1">
+                          <ShoppingBag className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Hỏi về sản phẩm:</span>
+                        </div>
+                        <strong className="text-gray-900 font-black block text-xs">{msg.product_name}</strong>
+                        {msg.product_price && (
+                          <span className="text-rose-600 font-black text-xs block">
+                            {msg.product_price.toLocaleString()} đ
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Message Bubble Content */}
+                    <div
+                      className={`max-w-[85%] sm:max-w-[75%] p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-sm ${
+                        msg.is_me
+                          ? 'bg-indigo-600 text-white rounded-br-none'
+                          : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Message Input Form */}
+            <form onSubmit={handleSendMessage} className="p-3.5 bg-white border-t border-gray-200 flex items-center gap-2 shrink-0">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder={`Nhắn tin trao đổi với "${activeThread.partner_name}"...`}
+                className="flex-1 px-4 py-2.5 bg-gray-100 border border-transparent rounded-full focus:bg-white focus:border-indigo-500 focus:outline-none text-xs text-gray-900 font-medium"
+              />
+              <button
+                type="submit"
+                disabled={!inputMessage.trim()}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-extrabold rounded-full transition shadow-md cursor-pointer shrink-0 flex items-center gap-1.5"
+              >
+                <span>Gửi</span>
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+
+          </div>
+
+        </div>
 
       </div>
     </div>

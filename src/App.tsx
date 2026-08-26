@@ -50,6 +50,14 @@ function AppContent() {
   const [adminUserManagementModalOpen, setAdminUserManagementModalOpen] = useState(false);
   const [publicDirectoryModalOpen, setPublicDirectoryModalOpen] = useState(false);
 
+  // Messaging Auto Product Asking Target Info
+  const [messagingTargetInfo, setMessagingTargetInfo] = useState<{
+    shopName?: string;
+    productId?: string | number;
+    productName?: string;
+    productPrice?: number;
+  }>({});
+
   // Admin Dashboard Portal Landing Modal (Openable by default for Admin)
   const [adminDashboardModalOpen, setAdminDashboardModalOpen] = useState(userRole === 'admin');
 
@@ -165,7 +173,17 @@ function AppContent() {
         onClose={() => setCustomerAddressBookModalOpen(false)}
         addresses={customerAddresses}
       />
-      <DirectMessagingModal isOpen={directMessagingModalOpen} onClose={() => setDirectMessagingModalOpen(false)} />
+
+      {/* REALTIME 2-COLUMN MESSENGER MODAL */}
+      <DirectMessagingModal 
+        isOpen={directMessagingModalOpen} 
+        onClose={() => setDirectMessagingModalOpen(false)}
+        initialTargetShopName={messagingTargetInfo.shopName}
+        initialProductId={messagingTargetInfo.productId}
+        initialProductName={messagingTargetInfo.productName}
+        initialProductPrice={messagingTargetInfo.productPrice}
+      />
+
       <BuyerDashboardModal 
         isOpen={buyerDashboardModalOpen} 
         onClose={() => setBuyerDashboardModalOpen(false)}
@@ -202,9 +220,14 @@ function AppContent() {
         onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)}
       />
 
+      {/* PRODUCT DETAIL MODAL (WITH AUTO MESSAGING WITH PRODUCT) */}
       <ProductDetailModal 
         product={selectedProduct} 
         onClose={() => setSelectedProduct(null)} 
+        onOpenDirectMessagingModal={(info) => {
+          if (info) setMessagingTargetInfo(info);
+          setDirectMessagingModalOpen(true);
+        }}
       />
 
       {/* PWA INSTALL PROMPT BAR (CÀI APP LÊN MÀN HÌNH CHÍNH ĐIỆN THOẠI) */}
