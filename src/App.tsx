@@ -14,9 +14,11 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { StaffPermissionModal } from './components/StaffPermissionModal';
 import { MerchantReconciliationModal } from './components/MerchantReconciliationModal';
+import { CustomerAddressBookModal } from './components/CustomerAddressBookModal';
+import { DirectMessagingModal } from './components/DirectMessagingModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
-import type { Product } from './types';
+import type { Product, CustomerAddress } from './types';
 
 function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -26,7 +28,58 @@ function AppContent() {
   const [orderTrackingModalOpen, setOrderTrackingModalOpen] = useState(false);
   const [staffPermissionModalOpen, setStaffPermissionModalOpen] = useState(false);
   const [merchantReconciliationModalOpen, setMerchantReconciliationModalOpen] = useState(false);
+  const [customerAddressBookModalOpen, setCustomerAddressBookModalOpen] = useState(false);
+  const [directMessagingModalOpen, setDirectMessagingModalOpen] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
+
+  // Customer Saved Addresses State
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([
+    {
+      id: 'addr-1',
+      user_id: 'current-user',
+      recipient_name: 'Nguyễn Văn Hùng',
+      phone: '0912345678',
+      province: 'Hà Nội',
+      district: 'Cầu Giấy',
+      detail_address: 'Số 18 ngõ 20 đường Trần Thái Tông',
+      is_default: true,
+    },
+    {
+      id: 'addr-2',
+      user_id: 'current-user',
+      recipient_name: 'Trần Thị Thu Hải',
+      phone: '0987654321',
+      province: 'Hưng Yên',
+      district: 'Khoái Châu',
+      detail_address: 'Chợ Thị trấn Khoái Châu',
+      is_default: false,
+    },
+  ]);
+
+  const handleAddAddress = (newAddr: Omit<CustomerAddress, 'id'>) => {
+    const created: CustomerAddress = {
+      ...newAddr,
+      id: `addr-${Date.now()}`,
+    };
+
+    if (created.is_default) {
+      setCustomerAddresses((prev) =>
+        prev.map((a) => ({ ...a, is_default: false })).concat(created)
+      );
+    } else {
+      setCustomerAddresses((prev) => [...prev, created]);
+    }
+  };
+
+  const handleDeleteAddress = (id: string) => {
+    setCustomerAddresses((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const handleSetDefaultAddress = (id: string) => {
+    setCustomerAddresses((prev) =>
+      prev.map((a) => ({ ...a, is_default: a.id === id }))
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
@@ -39,6 +92,8 @@ function AppContent() {
         onOpenOrderTrackingModal={() => setOrderTrackingModalOpen(true)}
         onOpenStaffPermissionModal={() => setStaffPermissionModalOpen(true)}
         onOpenMerchantReconciliationModal={() => setMerchantReconciliationModalOpen(true)}
+        onOpenCustomerAddressBookModal={() => setCustomerAddressBookModalOpen(true)}
+        onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards */}
@@ -118,6 +173,20 @@ function AppContent() {
       <MerchantReconciliationModal
         isOpen={merchantReconciliationModalOpen}
         onClose={() => setMerchantReconciliationModalOpen(false)}
+      />
+
+      <CustomerAddressBookModal
+        isOpen={customerAddressBookModalOpen}
+        onClose={() => setCustomerAddressBookModalOpen(false)}
+        addresses={customerAddresses}
+        onAddAddress={handleAddAddress}
+        onDeleteAddress={handleDeleteAddress}
+        onSetDefaultAddress={handleSetDefaultAddress}
+      />
+
+      <DirectMessagingModal
+        isOpen={directMessagingModalOpen}
+        onClose={() => setDirectMessagingModalOpen(false)}
       />
 
       <ProductDetailModal 

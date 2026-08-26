@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock, Coins, PackageCheck, Settings, DollarSign } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
+import { NotificationBell } from './NotificationBell';
 import type { UserRole } from '../types';
 
 interface HeaderProps {
@@ -12,6 +13,8 @@ interface HeaderProps {
   onOpenOrderTrackingModal: () => void;
   onOpenStaffPermissionModal: () => void;
   onOpenMerchantReconciliationModal: () => void;
+  onOpenCustomerAddressBookModal: () => void;
+  onOpenDirectMessagingModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -21,12 +24,13 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCoinWalletModal,
   onOpenOrderTrackingModal,
   onOpenStaffPermissionModal,
-  onOpenMerchantReconciliationModal
+  onOpenMerchantReconciliationModal,
+  onOpenCustomerAddressBookModal,
+  onOpenDirectMessagingModal,
 }) => {
   const { 
     user, 
     signOut, 
-    merchantApplication, 
     userRole, 
     setUserRole, 
     isAdmin, 
@@ -161,10 +165,16 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="sm:hidden">{totalCoins.toLocaleString('vi-VN')} Xu</span>
             </button>
 
+            {/* REALTIME NOTIFICATION BELL FOR BOTH BUYER & SHOP */}
+            <NotificationBell
+              onOpenOrderTrackingModal={onOpenOrderTrackingModal}
+              onOpenDirectMessagingModal={onOpenDirectMessagingModal}
+            />
+
             {/* QUẢN LÝ THEO DÕI ĐƠN HÀNG BUTTON */}
             <button
               onClick={onOpenOrderTrackingModal}
-              title="Quản lý & Theo dõi tiến trình đơn hàng (4 bước)"
+              title="Quản lý & Theo dõi tiến trình đơn hàng (5 bước)"
               className="relative p-2 text-gray-600 hover:text-indigo-600 transition rounded-full hover:bg-gray-100 focus:outline-none cursor-pointer shrink-0"
             >
               <PackageCheck className="w-6 h-6 text-indigo-600" />
@@ -259,6 +269,30 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </button>
 
+                    {/* SỔ ĐỊA CHỈ KHÁCH HÀNG MENU ITEM */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenCustomerAddressBookModal();
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-gray-800 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                    >
+                      <MapPin className="w-4 h-4 text-indigo-600" />
+                      <span>Sổ Địa Chỉ Giao Hàng</span>
+                    </button>
+
+                    {/* DIRECT MESSAGING CHAT MENU ITEM */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenDirectMessagingModal();
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-indigo-800 hover:bg-indigo-50 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4 text-indigo-600" />
+                      <span>Nhắn tin Khách ⇄ Shop</span>
+                    </button>
+
                     {/* RECONCILIATION & FINANCIAL LEDGER BUTTON (Merchant & Admin) */}
                     {(userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && (
                       <button
@@ -299,27 +333,6 @@ export const Header: React.FC<HeaderProps> = ({
                         <ShieldCheck className="w-4 h-4 text-indigo-600" />
                         <span>Duyệt hồ sơ mở Shop ({isAdmin ? 'Admin' : 'Staff'})</span>
                       </button>
-                    )}
-
-                    {/* Merchant Application Status Badge for Normal Users */}
-                    {merchantApplication && (
-                      <div className="px-4 py-2 border-b border-gray-100 bg-amber-50/50">
-                        <div className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
-                          {merchantApplication.status === 'pending_review' ? (
-                            <>
-                              <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 animate-pulse" />
-                              <span>Hồ sơ mở Shop: Chờ Admin duyệt</span>
-                            </>
-                          ) : merchantApplication.status === 'approved' ? (
-                            <>
-                              <Store className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Tài khoản Merchant (Đã duyệt Shop)</span>
-                            </>
-                          ) : (
-                            <span>Hồ sơ mở Shop: Từ chối</span>
-                          )}
-                        </div>
-                      </div>
                     )}
 
                     <button

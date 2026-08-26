@@ -55,6 +55,18 @@ export interface CartItem {
   created_at?: string;
 }
 
+// Customer Address Book Interface
+export interface CustomerAddress {
+  id: string;
+  user_id: string;
+  recipient_name: string;
+  phone: string;
+  province: string;
+  district: string;
+  detail_address: string;
+  is_default: boolean;
+}
+
 // Expanded Order Lifecycle Statuses according to specifications
 export type OrderStatus = 
   | 'pending_seller_confirm' // 1. Chờ shop xác nhận (Khách vừa bấm đặt)
@@ -81,6 +93,7 @@ export interface Order {
   user_id: string;
   user_name: string;
   user_phone?: string;
+  shipping_address?: string; // Sổ địa chỉ giao hàng của khách
   items: OrderItem[];
   total_amount: number;
   discount_amount: number;
@@ -91,6 +104,7 @@ export interface Order {
   cancel_reason?: string; // Lý do hủy đơn
   cancelled_by?: 'buyer' | 'seller'; // Ai thực hiện hủy
   completed_by?: 'buyer' | 'seller' | 'auto_system'; // Ai xác nhận hoàn thành
+  auto_complete_at?: string; // Tự động hoàn thành sau 3 ngày
   created_at: string;
   updated_at?: string;
 }
@@ -100,6 +114,34 @@ export interface UserActivity {
   user_id: string;
   action_type: 'view_product' | 'search' | 'add_cart' | 'post_product';
   details: string;
+  created_at: string;
+}
+
+// Direct Messaging Interface (Gắn với SP hoặc Đơn hàng)
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_role: 'buyer' | 'merchant' | 'system';
+  receiver_id: string;
+  receiver_name: string;
+  product_id?: string | number;
+  product_name?: string;
+  order_id?: string;
+  content: string;
+  created_at: string;
+  is_read: boolean;
+}
+
+// Notification Bell Interface
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  type: 'order_status_update' | 'new_order' | 'new_message' | 'system';
+  order_id?: string;
+  is_read: boolean;
   created_at: string;
 }
 
