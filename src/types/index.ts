@@ -51,49 +51,49 @@ export interface CategoryDocument {
 
 export interface Product {
   id: number | string;
-  user_id?: string; // Account ownership
   name: string;
-  category: Category | string;
+  category: Category;
   price: number;
   img: string;
   description?: string;
-  created_at?: string;
-  // Store verification & TQ status
-  isTQStore?: boolean; // Cửa hàng TQ Official
-  isLicensed?: boolean; // Cửa hàng đã xác minh / có GPKD
-  licenseNo?: string;
+  locationName?: string;
   contactName?: string;
   phone?: string;
-  // Shop Operating Status (Tự chọn Tạm nghỉ vs Bị sàn khóa)
-  isShopTemporarilyClosed?: boolean; // Shop tự gạt tạm nghỉ
-  isShopSuspended?: boolean;         // Bị sàn khóa do nợ quá mốc hoặc vi phạm
-  shopCloseReason?: string;          // VD: "Quán nghỉ bán chiều T2", "Thợ đi làm xa 3 ngày"
-  operatingHours?: OperatingHours[];
-  // Dynamic Category & Variants
-  variants?: ProductVariant[];
-  soldCount?: number; // Tổng số lượt đã bán / đã phục vụ
-  // Ratings & Reviews & Sales Volume
+  licenseNo?: string;
+  province?: string;      // Tỉnh/Thành phố
+  district?: string;      // Quận/Huyện
+  distanceKm?: number;    // Khoảng cách GPS
+  variants?: ProductVariant[]; // Danh sách nhiều Size, Màu...
+  reviews?: ProductReview[];
   rating?: number;
   reviewCount?: number;
-  reviews?: ProductReview[];
-  // Vietnam post-merger location fields
-  province?: string;
-  district?: string;
-  distanceKm?: number;
-  locationName?: string;
+  soldCount?: number;
+  isLicensed?: boolean;
+  isTQStore?: boolean;
+  isShopTemporarilyClosed?: boolean; // Shop tự gạt tạm nghỉ
+  shopCloseReason?: string;          // Lý do tạm nghỉ
+  isShopSuspended?: boolean;          // Bị sàn tạm khóa do nợ công nợ
+  user_id?: string;
+  created_at?: string;
 }
 
 export interface CartItem {
   id: string;
-  user_id?: string; // Account isolated cart item
+  user_id?: string;
   product_id?: number | string;
-  product: Product;
-  selected_variant?: ProductVariant;
   quantity: number;
-  created_at?: string;
+  product: Product;
 }
 
-// Customer Address Book Interface
+export interface UserActivity {
+  id: string;
+  type: 'search' | 'view_product' | 'view_category' | 'add_to_cart';
+  query?: string;
+  product_id?: number | string;
+  category?: Category;
+  created_at: string;
+}
+
 export interface CustomerAddress {
   id: string;
   user_id: string;
@@ -105,24 +105,53 @@ export interface CustomerAddress {
   is_default: boolean;
 }
 
-// Expanded Order Lifecycle Statuses according to specifications
-export type OrderStatus = 
-  | 'pending_seller_confirm' // 1. Chờ shop xác nhận (Khách vừa bấm đặt)
-  | 'seller_accepted'         // 2. Shop đã nhận đơn (Shop đồng ý bán)
-  | 'preparing'               // 3. Đang chuẩn bị (Shop đang soạn hàng)
-  | 'ready_for_pickup'        // 4a. Sẵn sàng để lấy (Khách chọn đến lấy)
-  | 'delivering'              // 4b. Đang giao (Shop chọn shop giao)
-  | 'completed'               // 5. Hoàn thành (Shop bấm xong / Khách bấm đã nhận / Tự động sau 3 ngày)
-  | 'cancelled';              // 6. Đã hủy (Shop hoặc Khách hủy kèm lý do)
+export type UserRole = 'admin' | 'staff' | 'merchant' | 'buyer';
 
-export type DeliveryMethod = 
-  | 'seller_delivery'   // Shop giao hàng tận nơi
-  | 'customer_pickup';  // Khách đến cửa hàng lấy
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_avatar?: string;
+  sender_role?: UserRole;
+  receiver_id: string;
+  receiver_name: string;
+  shop_id?: string;
+  order_id?: string;
+  product_id?: number | string;
+  product_name?: string;
+  content: string;
+  created_at: string;
+  is_read: boolean;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message?: string;
+  body?: string;
+  order_id?: string;
+  type: 'order' | 'coin' | 'message' | 'system' | 'order_status_update' | 'new_order' | 'new_message';
+  is_read: boolean;
+  created_at: string;
+  link_url?: string;
+}
+
+export type DeliveryMethod = 'pickup' | 'seller_delivery' | 'customer_pickup';
+
+export type OrderStatus = 
+  | 'pending_approval'        // Chờ shop xác nhận (Khách vừa bấm đặt)
+  | 'pending_seller_confirm'  // Fallback alias
+  | 'seller_accepted'         // Shop đã nhận đơn (Shop đồng ý bán)
+  | 'preparing'               // Đang chuẩn bị (Shop đang soạn hàng)
+  | 'ready_for_pickup'        // Sẵn sàng để lấy (Chỉ hiện nếu khách chọn đến lấy)
+  | 'delivering'              // Đang giao (Chỉ hiện nếu khách chọn shop giao)
+  | 'completed'               // Hoàn thành (Shop bấm xong, khách bấm đã nhận, hoặc tự động sau 3 ngày)
+  | 'cancelled';              // Đã hủy (Kèm lý do)
 
 export interface OrderItem {
-  product_id: string | number;
+  product_id: number | string;
   product: Product;
-  selected_variant?: ProductVariant;
   quantity: number;
   price: number;
 }
@@ -132,70 +161,26 @@ export interface Order {
   user_id: string;
   user_name: string;
   user_phone?: string;
-  shipping_address?: string; // Sổ địa chỉ giao hàng của khách
+  shipping_address?: string;
   items: OrderItem[];
   total_amount: number;
   discount_amount: number;
   final_amount: number;
   status: OrderStatus;
-  delivery_method: DeliveryMethod; // Phương thức nhận hàng
-  payment_method: 'direct_with_seller'; // Sàn trung gian hiển thị, Shop và Khách tự thanh toán
-  cancel_reason?: string; // Lý do hủy đơn
-  cancelled_by?: 'buyer' | 'seller'; // Ai thực hiện hủy
-  completed_by?: 'buyer' | 'seller' | 'auto_system'; // Ai xác nhận hoàn thành
-  auto_complete_at?: string; // Tự động hoàn thành sau 3 ngày
+  delivery_method?: DeliveryMethod; // Đến lấy hoặc Shop giao
+  payment_method?: 'direct_with_seller' | 'online';
+  cancel_reason?: string;
+  cancelled_by?: 'buyer' | 'seller';
+  completed_by?: 'buyer' | 'seller' | 'auto_system';
   created_at: string;
   updated_at?: string;
 }
 
-export interface UserActivity {
-  id: string;
-  user_id: string;
-  action_type: 'view_product' | 'search' | 'add_cart' | 'post_product';
-  details: string;
-  created_at: string;
-}
-
-// Direct Messaging Interface (Gắn với SP hoặc Đơn hàng)
-export interface DirectMessage {
-  id: string;
-  sender_id: string;
-  sender_name: string;
-  sender_role: 'buyer' | 'merchant' | 'system';
-  receiver_id: string;
-  receiver_name: string;
-  product_id?: string | number;
-  product_name?: string;
-  order_id?: string;
-  content: string;
-  created_at: string;
-  is_read: boolean;
-}
-
-// Notification Bell Interface
-export interface AppNotification {
-  id: string;
-  user_id: string;
-  title: string;
-  body: string;
-  type: 'order_status_update' | 'new_order' | 'new_message' | 'system';
-  order_id?: string;
-  is_read: boolean;
-  created_at: string;
-}
-
-// 4-Tier Role-Based Access Control (RBAC) System
-export type UserRole = 
-  | 'admin'    // Admin tối cao (Full quyền quản trị)
-  | 'staff'    // Nhân viên cấp dưới (Được Admin phân quyền động)
-  | 'merchant' // Tài khoản Shop (Như người dùng + Đăng tin & Quản lý đơn của Shop)
-  | 'buyer';   // Tài khoản Người dùng (Mua sắm, sử dụng dịch vụ)
-
 export interface StaffPermissions {
-  canApproveShops: boolean;    // Quyền duyệt hồ sơ mở Shop
-  canManageProducts: boolean;   // Quyền thêm / sửa / xóa sản phẩm
-  canManageOrders: boolean;     // Quyền chuyển trạng thái / hủy đơn hàng
-  canManageCoins: boolean;      // Quyền cộng / trừ Xu
+  canApproveShops: boolean;
+  canManageProducts: boolean;
+  canManageOrders: boolean;
+  canManageCoins: boolean;
 }
 
 export interface UserProfile {
@@ -266,6 +251,40 @@ export interface SettlementRecord {
   deadline_date: string; // Trong vòng 7 ngày
   status: 'pending' | 'completed';
   created_at: string;
+}
+
+export interface UserAccountAuditLog {
+  id: string;
+  user_id: string;
+  admin_name: string;
+  action_type: 'create' | 'edit_profile' | 'change_roles' | 'lock' | 'unlock' | 'soft_delete' | 'reset_password_link';
+  before_state?: string;
+  after_state?: string;
+  reason?: string;
+  timestamp: string;
+}
+
+export interface AdminManagedUser {
+  id: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  address?: string;
+  avatar_url?: string;
+  roles: UserRole[]; // Can hold multiple roles e.g. ['buyer', 'merchant']
+  status: 'active' | 'locked' | 'soft_deleted';
+  lock_reason?: string;
+  internal_notes?: string;
+  must_change_password_on_first_login?: boolean;
+  orders_count: number;
+  regular_coins: number;
+  tq_coins: number;
+  reviews_written_count: number;
+  report_count: number;
+  active_devices: string[];
+  created_at: string;
+  created_by_admin?: boolean;
+  audit_logs: UserAccountAuditLog[];
 }
 
 export interface CategoryInfo {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store, Clock, Key } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store, Clock, Key, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import { NotificationBell } from './NotificationBell';
@@ -20,6 +20,7 @@ interface HeaderProps {
   onOpenShopDetailPortalModal: () => void;
   onOpenShopStatusToggleModal: () => void;
   onOpenAccountRoleAccessMatrixModal: () => void;
+  onOpenAdminUserManagementModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -37,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenShopDetailPortalModal,
   onOpenShopStatusToggleModal,
   onOpenAccountRoleAccessMatrixModal,
+  onOpenAdminUserManagementModal,
 }) => {
   const { 
     user, 
@@ -279,6 +281,20 @@ export const Header: React.FC<HeaderProps> = ({
                         {getRoleLabel(userRole)}
                       </span>
                     </div>
+
+                    {/* ADMIN USER MANAGEMENT LINK (ADMIN & STAFF) */}
+                    {(userRole === 'admin' || userRole === 'staff') && (
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenAdminUserManagementModal();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                      >
+                        <Users className="w-4 h-4 text-amber-300" />
+                        <span>👥 Admin Quản Lý Tài Khoản (Thêm/Sửa/Xóa)</span>
+                      </button>
+                    )}
 
                     {/* RBAC 4 ACCOUNTS MATRIX LINK */}
                     <button

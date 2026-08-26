@@ -21,6 +21,7 @@ import { MultiStepShopOnboardingModal } from './components/MultiStepShopOnboardi
 import { ShopDetailPortalModal } from './components/ShopDetailPortalModal';
 import { ShopStatusToggleModal } from './components/ShopStatusToggleModal';
 import { AccountRoleAccessMatrixModal } from './components/AccountRoleAccessMatrixModal';
+import { AdminUserManagementModal } from './components/AdminUserManagementModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import type { Product, CustomerAddress } from './types';
@@ -40,6 +41,7 @@ function AppContent() {
   const [shopDetailPortalModalOpen, setShopDetailPortalModalOpen] = useState(false);
   const [shopStatusToggleModalOpen, setShopStatusToggleModalOpen] = useState(false);
   const [accountRoleMatrixModalOpen, setAccountRoleMatrixModalOpen] = useState(false);
+  const [adminUserManagementModalOpen, setAdminUserManagementModalOpen] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
 
   // Customer Saved Addresses State
@@ -109,6 +111,7 @@ function AppContent() {
         onOpenShopDetailPortalModal={() => setShopDetailPortalModalOpen(true)}
         onOpenShopStatusToggleModal={() => setShopStatusToggleModalOpen(true)}
         onOpenAccountRoleAccessMatrixModal={() => setAccountRoleMatrixModalOpen(true)}
+        onOpenAdminUserManagementModal={() => setAdminUserManagementModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards & Homepage Daily Check-in */}
@@ -240,6 +243,11 @@ function AppContent() {
       <AccountRoleAccessMatrixModal
         isOpen={accountRoleMatrixModalOpen}
         onClose={() => setAccountRoleMatrixModalOpen(false)}
+      />
+
+      <AdminUserManagementModal
+        isOpen={adminUserManagementModalOpen}
+        onClose={() => setAdminUserManagementModalOpen(false)}
       />
 
       <ProductDetailModal 
