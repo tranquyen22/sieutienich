@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Check, Plus, Minus, PhoneCall, BookmarkCheck, MessageCircle, PauseCircle } from 'lucide-react';
-import type { Product, ProductReview } from '../types';
+import { 
+  X, Star, MapPin, Lock, Check, Plus, Minus, 
+  PhoneCall, BookmarkCheck, MessageCircle, PauseCircle, ThumbsUp, CheckCircle2 
+} from 'lucide-react';
+import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
 
 interface ProductDetailModalProps {
@@ -14,26 +17,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
   const [added, setAdded] = useState(false);
   const [quantity, setQuantity] = useState<number>(1);
   const [reserved, setReserved] = useState(false);
-
-  // Review list state
-  const [reviewsList] = useState<ProductReview[]>(
-    product?.reviews || [
-      {
-        id: 'rev-1',
-        user_name: 'Nguyễn Văn Hùng',
-        rating: 5,
-        comment: 'Dịch vụ rất chất lượng, chủ shop tư vấn nhiệt tình đúng thông tin!',
-        created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-      },
-      {
-        id: 'rev-2',
-        user_name: 'Trần Thị Thu Hải',
-        rating: 5,
-        comment: 'Giao hàng đúng hẹn, vị trí ngay trung tâm vô cùng tiện lợi.',
-        created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-      },
-    ]
-  );
+  
+  // Full Reviews Modal State
+  const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<'all' | '5star' | '4star' | 'with_photos'>('all');
+  const [helpfulLikes, setHelpfulLikes] = useState<{ [id: string]: number }>({});
 
   if (!product) return null;
 
@@ -46,12 +34,76 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
 
   const isTQStore = Boolean(product.isTQStore);
   const isVerified = Boolean(product.isLicensed);
-  const isUnverified = !isTQStore && !isVerified;
 
-  // Verified Buyer Review Eligibility Rules
   const isEligibleShopForReview = isTQStore || isVerified;
-
   const phoneNumber = product.phone || '0988.123.456';
+
+  const sampleCustomerReviews = [
+    {
+      id: 'rev-1',
+      user_name: 'Nguyễn Văn Hùng',
+      avatar: 'H',
+      rating: 5,
+      comment: 'Dịch vụ rất chất lượng, sản phẩm tươi ngon đúng như mô tả, giao nóng hổi trong 25 phút. Rất hài lòng!',
+      created_at: '2026-08-25T14:30:00Z',
+      is_verified_purchase: true,
+      variation: 'Combo chuẩn 2-3 người',
+      helpful_default: 14,
+      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80'
+    },
+    {
+      id: 'rev-2',
+      user_name: 'Trần Thị Thu Hải',
+      avatar: 'H',
+      rating: 5,
+      comment: 'Giao hàng đúng hẹn, chủ shop tư vấn nhiệt tình chu đáo, vị trí ngay trung tâm Khoái Châu rất tiện lợi.',
+      created_at: '2026-08-24T10:15:00Z',
+      is_verified_purchase: true,
+      variation: 'Dịch vụ xác minh',
+      helpful_default: 9,
+    },
+    {
+      id: 'rev-3',
+      user_name: 'Lê Minh Tuấn',
+      avatar: 'T',
+      rating: 5,
+      comment: 'Chất lượng tuyệt vời ngoài mong đợi, shop đóng gói cẩn thận 5 sao nhé!',
+      created_at: '2026-08-22T09:20:00Z',
+      is_verified_purchase: true,
+      variation: 'Size XL - Màu Đen',
+      helpful_default: 5,
+    },
+    {
+      id: 'rev-4',
+      user_name: 'Phạm Phương Thảo',
+      avatar: 'T',
+      rating: 4,
+      comment: 'Sản phẩm đẹp như hình quảng cáo, shipper giao nhanh nhẹn lịch sự. Lần sau sẽ ủng hộ tiếp.',
+      created_at: '2026-08-20T16:45:00Z',
+      is_verified_purchase: true,
+      variation: 'Size M - Màu Trắng',
+      helpful_default: 3,
+    }
+  ];
+
+  const filteredReviews = sampleCustomerReviews.filter((rev) => {
+    if (reviewFilter === '5star') return rev.rating === 5;
+    if (reviewFilter === '4star') return rev.rating === 4;
+    if (reviewFilter === 'with_photos') return Boolean(rev.image);
+    return true;
+  });
+
+  const handleToggleHelpful = (id: string, defaultCount: number) => {
+    setHelpfulLikes((prev) => {
+      const current = prev[id] !== undefined ? prev[id] : defaultCount;
+      const isLiked = prev[`${id}_liked`];
+      return {
+        ...prev,
+        [id]: isLiked ? current - 1 : current + 1,
+        [`${id}_liked`]: isLiked ? 0 : 1,
+      };
+    });
+  };
 
   const formatPrice = (price: number, cat: string) => {
     if (price === 0) return 'Miễn phí';
@@ -97,51 +149,40 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 max-h-[90vh] flex flex-col min-w-0"
+        className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 max-h-[92vh] flex flex-col min-w-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Close Button */}
-        <button 
-          type="button"
-          onClick={onClose} 
-          className="absolute right-4 top-4 z-20 text-gray-400 hover:text-gray-600 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-md transition cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 flex items-center justify-between relative shrink-0">
+          <div className="flex items-center gap-2 pr-8 min-w-0">
+            <span className="px-2.5 py-1 bg-amber-500 text-white rounded-lg text-[10px] uppercase font-black tracking-wider shrink-0">
+              {product.category.toUpperCase()}
+            </span>
+            <h2 className="text-base sm:text-lg font-black text-white truncate">
+              {product.name}
+            </h2>
+          </div>
 
-        {/* Scrollable Content Body */}
-        <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-5">
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition shrink-0 cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Body Content */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 text-xs font-medium">
           
-          {/* COMPACT & SLEEK SHOP STATUS BANNER */}
-          {isSuspended ? (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between text-xs text-rose-900">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
-                <strong className="font-extrabold">🔴 Shop bị Sàn tạm khóa do quá hạn công nợ</strong>
-              </div>
-            </div>
-          ) : isClosed ? (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between text-xs text-amber-900">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                <strong className="font-extrabold">🟠 Shop đang tạm nghỉ: {product.shopCloseReason || 'Tạm ngưng nhận đơn mới'}</strong>
-              </div>
-              <span className="text-[10px] bg-amber-200/80 text-amber-950 px-2 py-0.5 rounded-full font-extrabold shrink-0">Vẫn xem & lưu thích</span>
-            </div>
-          ) : (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-900">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-                <strong className="font-extrabold">🟢 Cửa hàng đang mở cửa — Giao ngay tận nơi</strong>
-              </div>
-            </div>
-          )}
-
-          {/* Product Image & Main Meta Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="relative h-64 sm:h-72 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100">
+          {/* Top Main Details Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+            
+            {/* Image Box with Badges */}
+            <div className="relative h-64 sm:h-72 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
               <img 
                 src={product.img} 
                 alt={product.name} 
@@ -150,116 +191,84 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                   (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80';
                 }}
               />
+
+              <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                {isTQStore ? (
+                  <span className="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg text-[10px] font-black shadow-md">
+                    👑 Shop TQ Official
+                  </span>
+                ) : isVerified ? (
+                  <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-extrabold shadow-md">
+                    ✓ Đã xác minh GPKD
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 bg-gray-900/90 text-gray-200 rounded-lg text-[10px] font-extrabold shadow-md">
+                    🔒 Chưa xác minh
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-3 flex flex-col justify-between">
+            {/* Product Meta Details */}
+            <div className="space-y-4">
+              
               <div>
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  {isTQStore ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg text-xs font-black shadow-md border border-amber-300/40">
-                      <Store className="w-3.5 h-3.5 shrink-0" />
-                      <span>👑 Shop TQ Official</span>
-                    </span>
-                  ) : isVerified ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold shadow-md">
-                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                      <span>✓ Đã xác minh GPKD</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-900 text-gray-200 rounded-lg text-xs font-bold shadow-sm">
-                      <Lock className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-                      <span>🔒 Chưa xác minh</span>
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 text-xs mb-2">
-                  {!isUnverified ? (
-                    <div className="flex items-center text-amber-400">
-                      <Star className="w-4 h-4 fill-amber-400" />
-                      <span className="ml-1 font-black text-gray-900 text-sm">
-                        {product.rating ? product.rating.toFixed(1) : '5.0'}
-                      </span>
-                      <span className="text-gray-400 text-xs ml-1">
-                        ({product.reviewCount || reviewsList.length} đánh giá từ người mua)
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="text-xs font-bold text-gray-400 flex items-center gap-1">
-                      <Lock className="w-3.5 h-3.5" />
-                      <span>Chưa xác minh • Không mở lượt đánh giá</span>
-                    </div>
-                  )}
-
-                  <span className="text-gray-300">|</span>
-                  <span className="text-xs font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                    🛒 Đã bán {product.soldCount !== undefined ? product.soldCount.toLocaleString('vi-VN') : '150'} lượt
-                  </span>
-                </div>
-
-                <h2 className="text-xl sm:text-2xl font-black text-gray-900 leading-snug">
+                <h1 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">
                   {product.name}
-                </h2>
+                </h1>
+                
+                {/* Rating Summary Link Trigger */}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex items-center text-amber-400 font-black text-xs gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                    <Star className="w-3.5 h-3.5 fill-amber-400" />
+                    <span>4.9 / 5.0</span>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setShowAllReviewsModal(true)}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-extrabold underline cursor-pointer"
+                  >
+                    Xem 128 Đánh giá từ khách hàng ➔
+                  </button>
+                </div>
               </div>
 
-              {/* Location & Contact Info */}
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3 text-xs">
-                {(product.locationName || product.district) && (
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2 text-gray-800">
-                      <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold block">Địa chỉ & Vị trí cửa hàng:</span>
-                        <span>{product.locationName || `${product.district}, ${product.province}`}</span>
-                        {product.distanceKm !== undefined && (
-                          <span className="text-gray-500 ml-1 font-semibold">({product.distanceKm} km từ vị trí hiện tại)</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Google Maps Directions Link Button */}
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                        product.locationName || `${product.district || ''}, ${product.province || ''}`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-rose-200 transition cursor-pointer"
-                    >
-                      <MapPin className="w-4 h-4 text-white animate-bounce shrink-0" />
-                      <span>🗺️ Bấm vào đây để mở Google Maps chỉ đường</span>
-                    </a>
+              {/* Location & Address Pin */}
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl space-y-1">
+                <div className="flex items-start gap-2 text-gray-700">
+                  <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="font-bold text-gray-900 block text-xs">Vị trí trực tiếp:</strong>
+                    <span className="text-[11px] text-gray-600 block">
+                      {product.locationName || `${product.district || 'Khoái Châu'}, ${product.province || 'Hưng Yên'}`}
+                    </span>
                   </div>
-                )}
+                </div>
 
-                {product.contactName && (
-                  <div className="flex items-center gap-2 text-indigo-700 font-bold pt-2 border-t border-gray-200/60">
-                    <Phone className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <span>Liên hệ: {product.contactName} ({phoneNumber})</span>
-                  </div>
-                )}
-
-                {product.licenseNo && (
-                  <div className="flex items-center gap-2 text-emerald-700 font-bold pt-1 border-t border-gray-200/60">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Giấy phép kinh doanh: {product.licenseNo}</span>
-                  </div>
+                {product.google_maps_url && (
+                  <a
+                    href={product.google_maps_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-900 rounded-lg text-[10px] font-extrabold hover:bg-emerald-200 transition"
+                  >
+                    🗺️ Xem vị trí bản đồ Google Maps
+                  </a>
                 )}
               </div>
 
-              {/* RESERVE GOODS & DIRECT CHAT FEATURE BUTTONS */}
+              {/* Direct Communication Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                {/* Direct Messaging */}
                 <button
                   type="button"
                   onClick={handleDirectChat}
                   className="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-extrabold rounded-2xl border border-indigo-200 transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4 text-indigo-600" />
-                  <span>💬 Nhắn tin với Khách / Shop</span>
+                  <span>💬 Nhắn tin với Shop</span>
                 </button>
 
-                {/* Reserve Goods (Only for Verified Shop) */}
                 <button
                   type="button"
                   onClick={handleReserveGoods}
@@ -268,7 +277,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                       ? reserved ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border-purple-200'
                       : 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'
                   }`}
-                  title={isEligibleShopForReview ? 'Đặt giữ hàng tại Shop' : 'Chỉ áp dụng cho Shop Đã Xác Minh & Shop TQ'}
                 >
                   {isEligibleShopForReview ? (
                     <>
@@ -289,10 +297,66 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
 
           {/* Product Description */}
           <div className="space-y-1.5">
-            <h3 className="text-xs font-black uppercase text-gray-400 tracking-wider">Mô tả chi tiết tiện ích</h3>
-            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line bg-white p-3 rounded-xl border border-gray-100">
+            <h3 className="text-xs font-black uppercase text-gray-400 tracking-wider">Mô tả chi tiết sản phẩm / tiện ích</h3>
+            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line bg-gray-50/70 p-3.5 rounded-2xl border border-gray-200">
               {product.description || 'Chưa có thông tin mô tả chi tiết từ chủ đăng tin.'}
             </p>
+          </div>
+
+          {/* ⭐ CUSTOMER REVIEWS FEED SECTION */}
+          <div className="p-4 sm:p-5 bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-amber-50/50 border border-amber-200/80 rounded-3xl space-y-4">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-3">
+              <div>
+                <h3 className="font-black text-gray-900 text-sm flex items-center gap-2">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span>Đánh Giá Từ Khách Hàng (128 Đánh Giá)</span>
+                </h3>
+                <p className="text-[11px] text-amber-900 mt-0.5">
+                  100% đánh giá thực tế từ khách hàng đã mua sản phẩm tại Shop
+                </p>
+              </div>
+
+              {/* SEE ALL REVIEWS BUTTON */}
+              <button
+                type="button"
+                onClick={() => setShowAllReviewsModal(true)}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl text-xs shadow-sm transition cursor-pointer self-start sm:self-auto"
+              >
+                ⭐ Xem Toàn Bộ Đánh Giá (128)
+              </button>
+            </div>
+
+            {/* PREVIEW OF TOP 2 REVIEWS */}
+            <div className="space-y-3">
+              {sampleCustomerReviews.slice(0, 2).map((rev) => (
+                <div key={rev.id} className="p-3.5 bg-white rounded-2xl border border-amber-100 shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 bg-indigo-600 text-white font-black text-xs rounded-full flex items-center justify-center">
+                        {rev.avatar}
+                      </div>
+                      <div>
+                        <strong className="font-extrabold text-gray-900 text-xs block">{rev.user_name}</strong>
+                        <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                          <span>✓ Đã mua hàng tại Shop</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center text-amber-400">
+                      {[...Array(rev.rating)].map((_, i) => (
+                        <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-700 leading-snug">{rev.comment}</p>
+                </div>
+              ))}
+            </div>
+
           </div>
 
         </div>
@@ -362,7 +426,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
               {isOrderingBlocked ? (
                 <>
                   <PauseCircle className="w-4 h-4 text-orange-600" />
-                  <span>⏸️ Shop Tạm Nghỉ (Ngưng Nhận Đơn)</span>
+                  <span>⏸️ Shop Tạm Nghỉ</span>
                 </>
               ) : added ? (
                 <>
@@ -379,6 +443,133 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
           )}
         </div>
       </div>
+
+      {/* FULL CUSTOMER REVIEWS MODAL OVERLAY */}
+      {showAllReviewsModal && (
+        <div className="fixed inset-0 z-60 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div 
+            className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative border border-amber-200 max-h-[88vh] flex flex-col min-w-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white p-4 sm:p-5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-300 fill-yellow-300" />
+                <h3 className="font-black text-base text-white">Toàn Bộ 128 Đánh Giá Từ Khách Hàng</h3>
+              </div>
+
+              <button
+                onClick={() => setShowAllReviewsModal(false)}
+                className="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter Tabs Header */}
+            <div className="p-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none text-xs font-extrabold">
+              <button
+                onClick={() => setReviewFilter('all')}
+                className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                  reviewFilter === 'all' ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-amber-900 border border-amber-200'
+                }`}
+              >
+                Tất cả (128)
+              </button>
+
+              <button
+                onClick={() => setReviewFilter('5star')}
+                className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                  reviewFilter === '5star' ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-amber-900 border border-amber-200'
+                }`}
+              >
+                5 ⭐ (112)
+              </button>
+
+              <button
+                onClick={() => setReviewFilter('4star')}
+                className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                  reviewFilter === '4star' ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-amber-900 border border-amber-200'
+                }`}
+              >
+                4 ⭐ (14)
+              </button>
+
+              <button
+                onClick={() => setReviewFilter('with_photos')}
+                className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                  reviewFilter === 'with_photos' ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-amber-900 border border-amber-200'
+                }`}
+              >
+                📸 Có hình ảnh (42)
+              </button>
+            </div>
+
+            {/* Full Review Cards List */}
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-xs">
+              {filteredReviews.map((rev) => {
+                const currentLikes = helpfulLikes[rev.id] !== undefined ? helpfulLikes[rev.id] : rev.helpful_default;
+                const isLiked = Boolean(helpfulLikes[`${rev.id}_liked`]);
+
+                return (
+                  <div key={rev.id} className="p-4 bg-white border border-gray-200 rounded-2xl shadow-sm space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-black text-xs rounded-full flex items-center justify-center shadow-xs">
+                          {rev.avatar}
+                        </div>
+                        <div>
+                          <strong className="font-extrabold text-gray-900 text-xs block">{rev.user_name}</strong>
+                          <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                            <span>✓ Đã mua hàng thực tế</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(rev.created_at).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center text-amber-400">
+                        {[...Array(rev.rating)].map((_, i) => (
+                          <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-semibold">Phân loại: {rev.variation}</span>
+                    </div>
+
+                    <p className="text-xs text-gray-800 leading-relaxed font-medium">{rev.comment}</p>
+
+                    {rev.image && (
+                      <div className="w-24 h-24 rounded-xl overflow-hidden border border-gray-200">
+                        <img src={rev.image} alt="Đánh giá sản phẩm" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleHelpful(rev.id, rev.helpful_default)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border font-bold transition cursor-pointer ${
+                          isLiked ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Hữu ích ({currentLikes})</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

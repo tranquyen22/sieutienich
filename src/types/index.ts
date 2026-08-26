@@ -63,6 +63,7 @@ export interface Product {
   province?: string;      // Tỉnh/Thành phố
   district?: string;      // Quận/Huyện
   distanceKm?: number;    // Khoảng cách GPS
+  google_maps_url?: string;
   variants?: ProductVariant[]; // Danh sách nhiều Size, Màu...
   reviews?: ProductReview[];
   rating?: number;
