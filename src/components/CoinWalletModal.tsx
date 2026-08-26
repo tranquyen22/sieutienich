@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Coins, ArrowUpRight, ArrowDownLeft, CalendarCheck, CheckCircle2, AlertCircle, Clock, Sparkles, Store, ShieldCheck, Info, Flame, AlertTriangle } from 'lucide-react';
+import { X, Coins, ArrowUpRight, ArrowDownLeft, CalendarCheck, CheckCircle2, AlertCircle, Clock, Sparkles, Store, ShieldCheck, Info, Flame, AlertTriangle, Settings, Lock } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -23,9 +23,12 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
     orders
   } = useShop();
 
-  const { isAdmin, userRole } = useAuth();
+  const { isAdmin, canManageCoins, userRole } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'history' | 'tasks' | 'rules'>('tasks');
+  // Admin access control for adjusting coin rules
+  const hasCoinAdminAccess = isAdmin || canManageCoins;
+
+  const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'admin_rules'>('tasks');
   const [historyFilter, setHistoryFilter] = useState<'all' | 'regular' | 'tq'>('all');
   const [checkInMsg, setCheckInMsg] = useState<{ success: boolean; text: string } | null>(null);
 
@@ -120,16 +123,6 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
           </button>
 
           <button
-            onClick={() => setActiveTab('rules')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'rules' ? 'bg-white text-amber-700 shadow-sm border border-amber-200' : 'text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <Info className="w-4 h-4 text-indigo-600" />
-            <span>Quy tắc Xu (11 Quy định)</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab('history')}
             className={`flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'history' ? 'bg-white text-amber-700 shadow-sm border border-amber-200' : 'text-gray-500 hover:text-gray-800'
@@ -137,6 +130,18 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
           >
             <Clock className="w-4 h-4 text-amber-600" />
             <span>Lịch sử biến động</span>
+          </button>
+
+          {/* ADMIN ONLY TAB FOR ADJUSTING COIN RULES */}
+          <button
+            onClick={() => setActiveTab('admin_rules')}
+            className={`flex-1 py-2 text-xs font-extrabold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'admin_rules' ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
+            }`}
+            title="Bảng điều chỉnh Quy tắc Xu (Dành riêng cho Admin)"
+          >
+            <Settings className="w-4 h-4" />
+            <span>Quy tắc Xu ({hasCoinAdminAccess ? 'Admin' : 'Khóa'})</span>
           </button>
         </div>
 
@@ -244,7 +249,7 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
                 <div className="p-3 bg-white border border-gray-200 rounded-2xl flex items-center justify-between text-xs">
                   <div>
                     <span className="font-bold text-gray-900 block">Viết Đánh Giá Đơn Đã Hoàn Thành</span>
-                    <span className="text-gray-500 text-[11px]">Hoàn {reviewCashbackRate}% giá trị đơn (Admin cài đặt 1-3%)</span>
+                    <span className="text-gray-500 text-[11px]">Hoàn {reviewCashbackRate}% giá trị đơn (Admin chỉnh được 1-3%)</span>
                   </div>
                   <span className="px-2.5 py-1 bg-amber-100 text-amber-900 font-extrabold rounded-lg shrink-0">
                     +{reviewCashbackRate}% Xu
@@ -266,96 +271,7 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
             </div>
           )}
 
-          {/* TAB 2: RULES MATRIX */}
-          {activeTab === 'rules' && (
-            <div className="space-y-3 text-xs">
-              <div className="p-3 bg-slate-900 text-white rounded-2xl border border-slate-700 space-y-2">
-                <h3 className="font-extrabold text-amber-400 text-sm flex items-center gap-1.5">
-                  <Info className="w-4 h-4 text-amber-400" />
-                  <span>Quy Định Hệ Thống Xu (11 Quy Tắc)</span>
-                </h3>
-                <p className="text-[11px] text-slate-300">
-                  Xu là điểm thưởng khuyến khích tiêu dùng, giữ ranh giới pháp lý dự án minh bạch.
-                </p>
-              </div>
-
-              {/* Rules List */}
-              <div className="space-y-2 text-gray-800">
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">1. Quy đổi giá trị:</span>
-                  <span className="font-black text-amber-700">1 Xu = 1 VNĐ</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">2. Hoàn xu khi đánh giá:</span>
-                  <span className="font-black text-amber-700">{reviewCashbackRate}% giá trị đơn (Admin chỉnh 1-3%)</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">3. Điểm danh Ngày 1–6:</span>
-                  <span className="font-black text-emerald-700">50 xu / ngày</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">4. Điểm danh Ngày 7:</span>
-                  <span className="font-black text-emerald-700">+300 xu (Trọn tuần 600 xu, bỏ lỡ 1 ngày reset)</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">5. Điều kiện điểm danh:</span>
-                  <span className="font-black text-rose-700">Có ít nhất 1 đơn hoàn thành (Chống nick ảo)</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">6. Trần phát toàn sàn:</span>
-                  <span className="font-black text-purple-700">500.000 xu / tháng (Hiện tại: {monthlyDistributedCoins.toLocaleString()}/500k)</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">7. Trần tiêu mỗi đơn:</span>
-                  <span className="font-black text-indigo-700">Tối đa 10% đơn, không quá 50.000 xu</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">8. Hạn sử dụng:</span>
-                  <span className="font-black text-amber-700">6 tháng (Có thông báo trước)</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">9. Đổi ra tiền mặt:</span>
-                  <span className="font-black text-rose-700">KHÔNG (Xu là điểm thưởng, giữ ranh giới luật)</span>
-                </div>
-
-                <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between">
-                  <span className="font-bold text-gray-600">10. Tài khoản Shop:</span>
-                  <span className="font-black text-gray-700">KHÔNG có Xu (Chỉ dùng cho Buyer)</span>
-                </div>
-              </div>
-
-              {/* ADMIN REVIEW CASHBACK CONFIGURATOR */}
-              {isAdmin && (
-                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-300 space-y-2 mt-3">
-                  <span className="font-extrabold text-amber-900 text-xs block">👑 Cài đặt Admin: Tỷ lệ hoàn Xu khi đánh giá</span>
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3].map((rate) => (
-                      <button
-                        key={rate}
-                        type="button"
-                        onClick={() => setReviewCashbackRate(rate)}
-                        className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer ${
-                          reviewCashbackRate === rate ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-amber-900 border border-amber-300'
-                        }`}
-                      >
-                        {rate}% giá trị đơn
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 3: TRANSACTION HISTORY */}
+          {/* TAB 2: TRANSACTION HISTORY */}
           {activeTab === 'history' && (
             <div className="space-y-3">
               {/* Filter sub-tabs */}
@@ -430,6 +346,96 @@ export const CoinWalletModal: React.FC<CoinWalletModalProps> = ({ isOpen, onClos
                   })
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB 3: ADMIN ONLY COIN RULES ADJUSTMENT PANEL */}
+          {activeTab === 'admin_rules' && (
+            <div className="space-y-3 text-xs">
+              
+              {!hasCoinAdminAccess ? (
+                <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-2">
+                  <Lock className="w-8 h-8 text-rose-500 mx-auto" />
+                  <h3 className="font-extrabold text-rose-900 text-sm">Chỉ Dành Cho Tài Khoản Admin</h3>
+                  <p className="text-xs text-rose-700">
+                    Phần cài đặt & điều chỉnh tham số Quy tắc Xu chỉ dành riêng cho Admin (hoặc Nhân viên được Admin phân quyền `canManageCoins`).
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="p-3.5 bg-slate-900 text-white rounded-2xl border border-slate-700 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-4 h-4 text-amber-400" />
+                      <h3 className="font-extrabold text-amber-400 text-sm">Bảng Cài Đặt Quy Tắc Xu (Dành Cho Admin)</h3>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Tài khoản Admin có quyền tùy chỉnh tỷ lệ hoàn Xu, trần phát thưởng và các tham số toàn sàn.
+                    </p>
+                  </div>
+
+                  {/* ADMIN ADJUSTMENT CONTROLS */}
+                  <div className="space-y-3 p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                    
+                    {/* Control 1: Review Cashback Rate (1-3%) */}
+                    <div className="space-y-1.5 pb-3 border-b border-amber-200/80">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-amber-950">1. Tỷ lệ hoàn Xu khi đánh giá đơn:</span>
+                        <span className="bg-amber-600 text-white font-black px-2 py-0.5 rounded text-xs">
+                          {reviewCashbackRate}% giá trị đơn
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-900/80">Quy định từ 1% đến 3% giá trị đơn mua hàng thành công.</p>
+                      <div className="flex items-center gap-2 pt-1">
+                        {[1, 2, 3].map((rate) => (
+                          <button
+                            key={rate}
+                            type="button"
+                            onClick={() => setReviewCashbackRate(rate)}
+                            className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer ${
+                              reviewCashbackRate === rate ? 'bg-amber-600 text-white shadow-md' : 'bg-white text-amber-900 border border-amber-300'
+                            }`}
+                          >
+                            Hoàn {rate}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Control 2: Monthly Platform Cap Status */}
+                    <div className="space-y-1 pb-3 border-b border-amber-200/80">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-amber-950">2. Trần phát Xu toàn sàn tháng này:</span>
+                        <span className="font-black text-purple-700 text-xs">
+                          {monthlyDistributedCoins.toLocaleString()} / 500.000 Xu
+                        </span>
+                      </div>
+                      <div className="w-full bg-amber-200 h-2 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-purple-600 h-full rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, (monthlyDistributedCoins / 500000) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-[10px] text-amber-900/80">Tự động tạm ngừng thưởng khi chạm mốc 500.000 Xu/tháng.</p>
+                    </div>
+
+                    {/* Summary of 11 Fixed Rules */}
+                    <div className="space-y-1.5 pt-1">
+                      <span className="font-extrabold text-amber-950 block">3. Bản quy tắc 11 nguyên tắc cố định:</span>
+                      <ul className="list-disc pl-4 space-y-1 text-[11px] text-amber-900/90 font-medium">
+                        <li><strong>Quy đổi:</strong> 1 Xu = 1 VNĐ.</li>
+                        <li><strong>Điểm danh:</strong> N1-6 = 50 xu/ngày; N7 = +300 xu (Trọn tuần 600 xu). Miss 1 ngày reset.</li>
+                        <li><strong>Điều kiện:</strong> Phải có ít nhất 1 đơn hoàn thành (chống nick ảo).</li>
+                        <li><strong>Trần tiêu đơn:</strong> Tối đa 10% giá trị đơn, không quá 50.000 xu.</li>
+                        <li><strong>Hạn dùng:</strong> 6 tháng từ ngày nhận.</li>
+                        <li><strong>Đổi tiền mặt:</strong> KHÔNG (Xu là điểm thưởng, giữ ranh giới pháp lý).</li>
+                        <li><strong>Tài khoản Shop:</strong> KHÔNG có Xu (Chỉ dành cho Buyer).</li>
+                      </ul>
+                    </div>
+
+                  </div>
+                </>
+              )}
+
             </div>
           )}
 
