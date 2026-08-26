@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Check, Plus, Minus, PhoneCall, BookmarkCheck, MessageCircle, PauseCircle, AlertOctagon, Clock } from 'lucide-react';
+import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Check, Plus, Minus, PhoneCall, BookmarkCheck, MessageCircle, PauseCircle } from 'lucide-react';
 import type { Product, ProductReview } from '../types';
 import { useShop } from '../context/ShopContext';
 
@@ -105,35 +105,27 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
         {/* Scrollable Content Body */}
         <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-5">
           
-          {/* PROMINENT SHOP OPEN / TEMPORARY CLOSED / SUSPENDED STATUS BANNER */}
+          {/* COMPACT & SLEEK SHOP STATUS BANNER */}
           {isSuspended ? (
-            <div className="p-3.5 bg-rose-500 text-white rounded-2xl shadow-md border border-rose-600 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between text-xs text-rose-900">
               <div className="flex items-center gap-2">
-                <AlertOctagon className="w-5 h-5 text-white shrink-0 animate-bounce" />
-                <div>
-                  <strong className="font-black text-sm block">🔴 SHOP BỊ SÀN TẠM KHÓA</strong>
-                  <span className="text-rose-100">Cửa hàng tạm thời bị khóa do nợ công nợ quá trần hoặc vi phạm quy định.</span>
-                </div>
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
+                <strong className="font-extrabold">🔴 Shop bị Sàn tạm khóa do quá hạn công nợ</strong>
               </div>
             </div>
           ) : isClosed ? (
-            <div className="p-3.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl shadow-md border border-amber-300 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between text-xs text-amber-900">
               <div className="flex items-center gap-2">
-                <PauseCircle className="w-5 h-5 text-yellow-200 shrink-0 animate-bounce" />
-                <div>
-                  <strong className="font-black text-sm block">🟠 SHOP ĐANG TẠM NGHỈ (Shop tự gạt tạm dừng)</strong>
-                  <span className="text-amber-100">{product.shopCloseReason || 'Tạm ngưng nhận đơn mới. Khách vẫn xem & lưu thích sản phẩm!'}</span>
-                </div>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                <strong className="font-extrabold">🟠 Shop đang tạm nghỉ: {product.shopCloseReason || 'Tạm ngưng nhận đơn mới'}</strong>
               </div>
+              <span className="text-[10px] bg-amber-200/80 text-amber-950 px-2 py-0.5 rounded-full font-extrabold shrink-0">Vẫn xem & lưu thích</span>
             </div>
           ) : (
-            <div className="p-3.5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-2xl shadow-md border border-emerald-300 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-900">
               <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-emerald-200 shrink-0" />
-                <div>
-                  <strong className="font-black text-sm block">🟢 CỬA HÀNG ĐANG MỞ CỬA PHỤC VỤ</strong>
-                  <span className="text-emerald-100">Sẵn sàng nhận đơn & giao ngay tận nơi.</span>
-                </div>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                <strong className="font-extrabold">🟢 Cửa hàng đang mở cửa — Giao ngay tận nơi</strong>
               </div>
             </div>
           )}

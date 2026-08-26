@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, MapPin, Store, CheckCircle, Star, Lock, AlertOctagon, Clock, PauseCircle } from 'lucide-react';
+import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, MapPin, Store, CheckCircle, Star, Lock } from 'lucide-react';
 import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
 
@@ -122,22 +122,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
           )}
         </div>
 
-        {/* PROMINENT SHOP OPEN / PAUSE / SUSPENDED CARD BADGE */}
-        <div className="absolute top-3 right-3">
+        {/* COMPACT & SLEEK SHOP OPEN / PAUSE / SUSPENDED BADGE */}
+        <div className="absolute top-2.5 right-2.5">
           {isSuspended ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600/95 text-white backdrop-blur-md rounded-xl text-[10px] font-black shadow-md border border-rose-400">
-              <AlertOctagon className="w-3 h-3 shrink-0" />
-              <span>🔴 Bị Sàn Khóa</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-600/90 text-white backdrop-blur-md rounded-full text-[10px] font-black shadow-sm border border-rose-400/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+              <span>Khóa sàn</span>
             </span>
           ) : isClosed ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600/95 text-white backdrop-blur-md rounded-xl text-[10px] font-black shadow-md border border-amber-300">
-              <PauseCircle className="w-3 h-3 shrink-0" />
-              <span>🟠 Tạm Nghỉ</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/95 text-white backdrop-blur-md rounded-full text-[10px] font-black shadow-sm border border-amber-300/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-200 shrink-0" />
+              <span>Tạm nghỉ</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600/95 text-white backdrop-blur-md rounded-xl text-[10px] font-black shadow-md border border-emerald-300">
-              <Clock className="w-3 h-3 shrink-0" />
-              <span>🟢 Đang Mở Cửa</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600/90 text-white backdrop-blur-md rounded-full text-[10px] font-black shadow-sm border border-emerald-400/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 shrink-0" />
+              <span>Mở cửa</span>
             </span>
           )}
         </div>
@@ -222,18 +222,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
             </p>
           )}
 
-          {/* TEMPORARY CLOSED OR SUSPENDED STATUS BANNER IN CARD BODY */}
+          {/* COMPACT INLINE NOTICE FOR TEMPORARY CLOSED / SUSPENDED */}
           {isClosed && (
-            <div className="mt-2 p-2 bg-amber-100/90 border border-amber-300 rounded-xl text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
-              <PauseCircle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-              <span className="truncate">⏸️ {product.shopCloseReason || 'Shop tạm nghỉ - Tạm ngưng nhận đơn'}</span>
+            <div className="mt-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg text-[10px] font-extrabold text-amber-800 flex items-center gap-1 truncate">
+              <span className="truncate">⏸️ Tạm nghỉ: {product.shopCloseReason || 'Ngưng nhận đơn'}</span>
             </div>
           )}
 
           {isSuspended && (
-            <div className="mt-2 p-2 bg-rose-100/90 border border-rose-300 rounded-xl text-[11px] font-bold text-rose-900 flex items-center gap-1.5">
-              <AlertOctagon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span className="truncate">🔴 Shop bị Sàn tạm khóa (Quá hạn công nợ)</span>
+            <div className="mt-1.5 px-2 py-1 bg-rose-50 border border-rose-200 rounded-lg text-[10px] font-extrabold text-rose-800 flex items-center gap-1 truncate">
+              <span className="truncate">🔴 Bị khóa: Quá hạn công nợ</span>
             </div>
           )}
 
