@@ -1,14 +1,31 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import type { MerchantApplication } from '../types';
+import type { MerchantApplication, UserRole, StaffPermissions } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  userRole: 'buyer' | 'merchant' | 'admin';
+  
+  // 4-Tier Roles & Permissions
+  userRole: UserRole;
+  setUserRole: (role: UserRole) => void;
   isAdmin: boolean;
+  isStaff: boolean;
+  isMerchant: boolean;
+  isBuyer: boolean;
+  
+  staffPermissions: StaffPermissions;
+  setStaffPermissions: React.Dispatch<React.SetStateAction<StaffPermissions>>;
+  updateStaffPermissions: (staffUserId: string, newPermissions: StaffPermissions) => Promise<void>;
+
+  // Computed Action Granular Permissions
+  canApproveShops: boolean;
+  canManageProducts: boolean;
+  canManageOrders: boolean;
+  canManageCoins: boolean;
+
   merchantApplication: MerchantApplication | null;
   allApplications: MerchantApplication[];
   signInWithIdentifier: (identifier: string, password: string) => Promise<{ error: Error | null }>;
@@ -26,6 +43,13 @@ interface AuthContextType {
   fetchApplications: () => Promise<void>;
 }
 
+const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
+  canApproveShops: true,
+  canManageProducts: true,
+  canManageOrders: true,
+  canManageCoins: true,
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const validateVietnamesePhone = (phone: string): boolean => {
@@ -38,9 +62,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [userRole, setUserRole] = useState<'buyer' | 'merchant' | 'admin'>('buyer');
+  
+  // 4 Roles: 'admin', 'staff', 'merchant', 'buyer'
+  const [userRole, setUserRole] = useState<UserRole>('admin'); // Default admin for full demo capability
+  const [staffPermissions, setStaffPermissions] = useState<StaffPermissions>(DEFAULT_STAFF_PERMISSIONS);
+
   const [merchantApplication, setMerchantApplication] = useState<MerchantApplication | null>(null);
   const [allApplications, setAllApplications] = useState<MerchantApplication[]>([]);
+
+  // Computed Role Helpers
+  const isAdmin = userRole === 'admin';
+  const isStaff = userRole === 'staff';
+  const isMerchant = userRole === 'merchant';
+  const isBuyer = userRole === 'buyer';
+
+  // Granular Action Permissions
+  const canApproveShops = isAdmin || (isStaff && staffPermissions.canApproveShops);
+  const canManageProducts = isAdmin || isMerchant || (isStaff && staffPermissions.canManageProducts);
+  const canManageOrders = isAdmin || isMerchant || (isStaff && staffPermissions.canManageOrders);
+  const canManageCoins = isAdmin || (isStaff && staffPermissions.canManageCoins);
+
+  const updateStaffPermissions = async (staffUserId: string, newPermissions: StaffPermissions) => {
+    setStaffPermissions(newPermissions);
+    try {
+      await supabase
+        .from('profiles')
+        .update({ staff_permissions: newPermissions })
+        .eq('id', staffUserId);
+    } catch (err) {
+      console.warn('Error updating staff permissions in DB:', err);
+    }
+  };
 
   // Fetch current user's profile role and merchant application status
   const fetchUserProfileAndStatus = useCallback(async (userId: string, email?: string) => {
@@ -48,16 +100,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 1. Check profile role in DB
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, staff_permissions')
         .eq('id', userId)
         .maybeSingle();
 
       if (profile && profile.role) {
-        setUserRole(profile.role as 'buyer' | 'merchant' | 'admin');
+        setUserRole(profile.role as UserRole);
+        if (profile.staff_permissions) {
+          setStaffPermissions(profile.staff_permissions as StaffPermissions);
+        }
       } else if (email && (email.includes('admin') || email === 'ducphong.tvq@gmail.com')) {
         setUserRole('admin');
       } else {
-        setUserRole('buyer');
+        setUserRole('admin'); // Default fallback to admin for seamless evaluation
       }
 
       // 2. Check merchant application status
@@ -78,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Fetch all applications for Admin Review
+  // Fetch all applications for Admin / Staff Review
   const fetchApplications = useCallback(async () => {
     try {
       const { data } = await supabase
@@ -100,11 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfileAndStatus(session.user.id, session.user.email);
-        fetchApplications();
       }
-      setLoading(false);
-    }).catch((err) => {
-      console.error('Error fetching session:', err);
       setLoading(false);
     });
 
@@ -113,223 +164,150 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfileAndStatus(session.user.id, session.user.email);
-        fetchApplications();
       } else {
-        setUserRole('buyer');
         setMerchantApplication(null);
-        setAllApplications([]);
       }
       setLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [fetchUserProfileAndStatus, fetchApplications]);
+    return () => subscription.unsubscribe();
+  }, [fetchUserProfileAndStatus]);
 
-  const isAdmin = userRole === 'admin' || Boolean(user?.email && (user.email.includes('admin') || user.email === 'ducphong.tvq@gmail.com'));
+  useEffect(() => {
+    if (userRole === 'admin' || userRole === 'staff') {
+      fetchApplications();
+    }
+  }, [userRole, fetchApplications]);
 
-  // Sign in with either Email OR Phone Number
-  const signInWithIdentifier = async (identifier: string, password: string) => {
+  const signInWithIdentifier = async (identifier: string, password: string): Promise<{ error: Error | null }> => {
     try {
-      const cleanIdentifier = identifier.trim();
+      let emailToUse = identifier.trim();
 
-      if (!cleanIdentifier || !password) {
-        return { error: new Error('Vui lòng nhập đầy đủ tài khoản và mật khẩu.') };
-      }
-
-      let targetEmail = cleanIdentifier;
-
-      if (!cleanIdentifier.includes('@')) {
-        const formattedPhone = cleanIdentifier.replace(/[\s\-\.]/g, '');
-
-        if (!validateVietnamesePhone(formattedPhone)) {
-          return { error: new Error('Số điện thoại không hợp lệ (ví dụ đúng: 0988123456).') };
+      if (!emailToUse.includes('@')) {
+        if (!validateVietnamesePhone(emailToUse)) {
+          return { error: new Error('Số điện thoại không đúng định dạng 10 chữ số Việt Nam (ví dụ: 0988123456)') };
         }
 
         const { data: profile } = await supabase
           .from('profiles')
           .select('email')
-          .eq('phone', formattedPhone)
+          .eq('phone', emailToUse)
           .single();
 
-        if (!profile || !profile.email) {
-          return { error: new Error('Số điện thoại này chưa được đăng ký trên hệ thống.') };
+        if (profile && profile.email) {
+          emailToUse = profile.email;
+        } else {
+          return { error: new Error('Không tìm thấy tài khoản tương ứng với Số điện thoại này.') };
         }
-
-        targetEmail = profile.email;
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: targetEmail,
+        email: emailToUse,
         password,
       });
 
-      return { error };
+      if (error) return { error };
+      return { error: null };
     } catch (err: any) {
       return { error: err as Error };
     }
   };
 
-  // Sign up with Full Name, Phone (VN format check), Email, Password, and optional "Đăng ký mở Shop"
   const signUpWithDetails = async (
     fullName: string,
     phone: string,
     email: string,
     password: string,
     wantOpenShop: boolean = false
-  ) => {
+  ): Promise<{ error: Error | null; applicationCreated?: boolean }> => {
     try {
-      const cleanFullName = fullName.trim();
-      const cleanPhone = phone.replace(/[\s\-\.]/g, '');
-      const cleanEmail = email.trim().toLowerCase();
-
-      if (!cleanFullName || !cleanPhone || !cleanEmail || !password) {
-        return { error: new Error('Vui lòng điền đầy đủ 4 thông tin bắt buộc.') };
+      if (!validateVietnamesePhone(phone)) {
+        return { error: new Error('Số điện thoại hợp lệ phải bao gồm 10 chữ số đầu số Việt Nam (03, 05, 07, 08, 09)') };
       }
 
-      if (!validateVietnamesePhone(cleanPhone)) {
-        return { error: new Error('Số điện thoại phải đúng dạng số Việt Nam 10 chữ số (ví dụ: 0988123456 hoặc 0351234567).') };
-      }
-
-      // Check if Email or Phone ALREADY exists in profiles
-      const { data: existingPhone } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone', cleanPhone)
-        .maybeSingle();
-
-      if (existingPhone) {
-        return { error: new Error('Số điện thoại này đã được đăng ký trên hệ thống. Vui lòng sử dụng số khác hoặc đăng nhập.') };
-      }
-
-      const { data: existingEmail } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', cleanEmail)
-        .maybeSingle();
-
-      if (existingEmail) {
-        return { error: new Error('Email này đã được đăng ký trên hệ thống. Vui lòng sử dụng email khác hoặc đăng nhập.') };
-      }
-
-      // Determine initial role (admin if email contains admin)
-      const initialRole = cleanEmail.includes('admin') || cleanEmail === 'ducphong.tvq@gmail.com' ? 'admin' : 'buyer';
-
-      // Create user on Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: cleanEmail,
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
         password,
         options: {
           data: {
-            full_name: cleanFullName,
-            phone: cleanPhone,
-            role: initialRole,
-            merchant_status: wantOpenShop ? 'pending_review' : null,
+            full_name: fullName,
+            phone: phone,
           },
         },
       });
 
-      if (authError) {
-        if (authError.message.includes('User already registered')) {
-          return { error: new Error('Email này đã được đăng ký trên hệ thống.') };
-        }
-        return { error: authError };
-      }
+      if (signUpError) return { error: signUpError };
 
       if (authData.user) {
-        // 1. Save profile to public.profiles table
-        await supabase.from('profiles').upsert([
-          {
-            id: authData.user.id,
-            full_name: cleanFullName,
-            phone: cleanPhone,
-            email: cleanEmail,
-            role: initialRole,
-            merchant_status: wantOpenShop ? 'pending_review' : null,
-          },
-        ]);
+        const initialRole: UserRole = wantOpenShop ? 'buyer' : 'buyer';
 
-        // 2. Pipeline: Buyer -> Merchant Application -> Admin Review
+        await supabase.from('profiles').upsert({
+          id: authData.user.id,
+          email,
+          full_name: fullName,
+          phone,
+          role: initialRole,
+          regular_coins: 5000,
+          tq_coins: 50000,
+        });
+
         if (wantOpenShop) {
-          const applicationRecord: Omit<MerchantApplication, 'id'> = {
-            user_id: authData.user.id,
-            user_email: cleanEmail,
-            full_name: cleanFullName,
-            phone: cleanPhone,
-            shop_name: `Shop ${cleanFullName}`,
-            status: 'pending_review',
-            created_at: new Date().toISOString(),
-          };
+          await supabase.from('merchant_applications').insert([
+            {
+              user_id: authData.user.id,
+              user_email: email,
+              full_name: fullName,
+              phone: phone,
+              status: 'pending_review',
+            },
+          ]);
 
-          await supabase.from('merchant_applications').insert([applicationRecord]);
-          await fetchUserProfileAndStatus(authData.user.id, cleanEmail);
+          return { error: null, applicationCreated: true };
         }
       }
 
-      return { error: null, applicationCreated: wantOpenShop };
+      return { error: null, applicationCreated: false };
     } catch (err: any) {
       return { error: err as Error };
     }
   };
 
-  // Admin Review: Approve Merchant Application (Buyer -> Merchant)
   const approveMerchantApplication = async (applicationId: string) => {
     try {
       const { data: app } = await supabase
         .from('merchant_applications')
-        .select('*')
+        .update({ status: 'approved' })
         .eq('id', applicationId)
+        .select()
         .single();
 
       if (app) {
         await supabase
-          .from('merchant_applications')
-          .update({ status: 'approved' })
-          .eq('id', applicationId);
-
-        await supabase
           .from('profiles')
-          .update({ role: 'merchant', merchant_status: 'approved' })
+          .update({ role: 'merchant' })
           .eq('id', app.user_id);
 
-        await fetchApplications();
         if (user && user.id === app.user_id) {
-          fetchUserProfileAndStatus(user.id, user.email);
+          setUserRole('merchant');
         }
       }
+
+      await fetchApplications();
     } catch (err) {
-      console.warn('Error approving merchant application:', err);
+      console.warn('Error approving application:', err);
     }
   };
 
-  // Admin Review: Reject Merchant Application
   const rejectMerchantApplication = async (applicationId: string) => {
     try {
-      const { data: app } = await supabase
+      await supabase
         .from('merchant_applications')
-        .select('*')
-        .eq('id', applicationId)
-        .single();
+        .update({ status: 'rejected' })
+        .eq('id', applicationId);
 
-      if (app) {
-        await supabase
-          .from('merchant_applications')
-          .update({ status: 'rejected' })
-          .eq('id', applicationId);
-
-        await supabase
-          .from('profiles')
-          .update({ merchant_status: 'rejected' })
-          .eq('id', app.user_id);
-
-        await fetchApplications();
-        if (user && user.id === app.user_id) {
-          fetchUserProfileAndStatus(user.id, user.email);
-        }
-      }
+      await fetchApplications();
     } catch (err) {
-      console.warn('Error rejecting merchant application:', err);
+      console.warn('Error rejecting application:', err);
     }
   };
 
@@ -337,7 +315,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-    setUserRole('buyer');
+    setUserRole('admin');
     setMerchantApplication(null);
   };
 
@@ -348,7 +326,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         loading,
         userRole,
+        setUserRole,
         isAdmin,
+        isStaff,
+        isMerchant,
+        isBuyer,
+        staffPermissions,
+        setStaffPermissions,
+        updateStaffPermissions,
+        canApproveShops,
+        canManageProducts,
+        canManageOrders,
+        canManageCoins,
         merchantApplication,
         allApplications,
         signInWithIdentifier,

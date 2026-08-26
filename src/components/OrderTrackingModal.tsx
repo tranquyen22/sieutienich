@@ -11,18 +11,18 @@ interface OrderTrackingModalProps {
 
 export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose }) => {
   const { orders, updateOrderStatus } = useShop();
-  const { userRole, isAdmin } = useAuth();
+  const { userRole, isAdmin, isMerchant, isStaff, canManageOrders } = useAuth();
 
   // Role perspective mode state ('buyer' or 'merchant')
   const [viewRoleMode, setViewRoleMode] = useState<'buyer' | 'merchant'>(
-    userRole === 'merchant' || userRole === 'admin' ? 'merchant' : 'buyer'
+    userRole === 'merchant' || userRole === 'admin' || userRole === 'staff' ? 'merchant' : 'buyer'
   );
 
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'delivering' | 'completed' | 'cancelled'>('all');
 
   if (!isOpen) return null;
 
-  const isMerchantControl = viewRoleMode === 'merchant' || isAdmin;
+  const isMerchantControl = (viewRoleMode === 'merchant' || isMerchant || isAdmin || isStaff) && canManageOrders;
 
   const filteredOrders = orders.filter((ord) => {
     if (activeTab === 'pending') return ord.status === 'pending_seller_confirm' || ord.status === 'preparing';
@@ -132,7 +132,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-slate-300">Chế độ giao diện:</span>
             <span className="text-[11px] bg-slate-800 text-indigo-300 px-2 py-0.5 rounded font-bold">
-              {isMerchantControl ? '👑 Quyền Chủ Shop (Có quyền cập nhật & Hủy đơn)' : '👁️ Quyền Khách Hàng (Chỉ xem & nhận tín hiệu)'}
+              {isMerchantControl ? '👑 Quyền Chủ Shop / Staff (Có quyền cập nhật & Hủy đơn)' : '👁️ Quyền Khách Hàng (Chỉ xem & nhận tín hiệu)'}
             </span>
           </div>
 
@@ -163,7 +163,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="leading-snug">
             {isMerchantControl ? (
-              <span>⚡ <strong>Quyền Cửa Hàng:</strong> Shop có quyền bấm nút <em>"Chuyển sang bước tiếp"</em> hoặc bấm <em>"Hủy đơn hàng"</em> khi không thể đáp ứng.</span>
+              <span>⚡ <strong>Quyền Cửa Hàng / Staff:</strong> Bạn có quyền bấm <em>"Chuyển sang bước tiếp"</em> hoặc <em>"Hủy đơn hàng"</em>.</span>
             ) : (
               <span>👁️ <strong>Tín hiệu Khách hàng:</strong> Khách chỉ xem tín hiệu thời gian thực từ Shop. Nếu Shop hủy đơn, tiến trình sẽ báo Hủy trực tiếp.</span>
             )}

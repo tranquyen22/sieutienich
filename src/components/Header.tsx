@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock, Coins, PackageCheck } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock, Coins, PackageCheck, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
+import type { UserRole } from '../types';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -9,6 +10,7 @@ interface HeaderProps {
   onOpenAdminReviewModal: () => void;
   onOpenCoinWalletModal: () => void;
   onOpenOrderTrackingModal: () => void;
+  onOpenStaffPermissionModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -16,17 +18,94 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAddProductModal, 
   onOpenAdminReviewModal,
   onOpenCoinWalletModal,
-  onOpenOrderTrackingModal
+  onOpenOrderTrackingModal,
+  onOpenStaffPermissionModal
 }) => {
-  const { user, signOut, merchantApplication, isAdmin } = useAuth();
+  const { 
+    user, 
+    signOut, 
+    merchantApplication, 
+    userRole, 
+    setUserRole, 
+    isAdmin, 
+    canApproveShops, 
+    canManageProducts 
+  } = useAuth();
+
   const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen, regularCoins, tqCoins, orders } = useShop();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Tài khoản';
   const totalCoins = regularCoins + tqCoins;
 
+  const getRoleLabel = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return '👑 Admin tối cao';
+      case 'staff':
+        return '💼 Nhân viên (Staff)';
+      case 'merchant':
+        return '🏪 Shop (Merchant)';
+      case 'buyer':
+        return '👤 Người dùng (Buyer)';
+      default:
+        return role;
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
+      
+      {/* 4-TIER RBAC QUICK DEMO ROLE SWITCHER BAR */}
+      <div className="bg-slate-900 text-white px-4 py-1 text-[11px] font-semibold flex items-center justify-between gap-2 overflow-x-auto">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Mô hình phân quyền 4 Cấp:</span>
+          <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black text-[10px]">
+            {getRoleLabel(userRole)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-slate-400 text-[10px] hidden sm:inline">Thử nghiệm vai trò:</span>
+          <button
+            onClick={() => setUserRole('admin')}
+            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
+              userRole === 'admin' ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
+            }`}
+            title="Quyền Admin tối cao"
+          >
+            👑 Admin
+          </button>
+          <button
+            onClick={() => setUserRole('staff')}
+            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
+              userRole === 'staff' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
+            }`}
+            title="Quyền Nhân viên cấp dưới (Admin phân quyền)"
+          >
+            💼 Staff
+          </button>
+          <button
+            onClick={() => setUserRole('merchant')}
+            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
+              userRole === 'merchant' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
+            }`}
+            title="Quyền Shop (Đăng tiện ích + Quản lý đơn hàng)"
+          >
+            🏪 Shop
+          </button>
+          <button
+            onClick={() => setUserRole('buyer')}
+            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
+              userRole === 'buyer' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:text-white'
+            }`}
+            title="Quyền Người dùng (Mua sắm & sử dụng dịch vụ)"
+          >
+            👤 Buyer
+          </button>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
           
@@ -62,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* NÚT CHỨC NĂNG (VÍ XU + THEO DÕI ĐƠN + NÚT ĐĂNG TIN + GIỎ HÀNG + AUTH) */}
+          {/* NÚT CHỨC NĂNG */}
           <div className="flex items-center gap-2 sm:gap-3">
             
             {/* VÍ XU HÀNG NGÀY BUTTON */}
@@ -80,10 +159,10 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="sm:hidden">{totalCoins.toLocaleString('vi-VN')} Xu</span>
             </button>
 
-            {/* QUẢN LÝ THEO DÕI ĐƠN HÀNG TRUNG GIAN BUTTON */}
+            {/* QUẢN LÝ THEO DÕI ĐƠN HÀNG BUTTON */}
             <button
               onClick={onOpenOrderTrackingModal}
-              title="Quản lý & Theo dõi tiến trình đơn hàng trung gian (4 bước)"
+              title="Quản lý & Theo dõi tiến trình đơn hàng (4 bước)"
               className="relative p-2 text-gray-600 hover:text-indigo-600 transition rounded-full hover:bg-gray-100 focus:outline-none cursor-pointer shrink-0"
             >
               <PackageCheck className="w-6 h-6 text-indigo-600" />
@@ -94,15 +173,17 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Nút Đăng tin */}
-            <button
-              onClick={onOpenAddProductModal}
-              title="Đăng tiện ích mới"
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-full border border-emerald-200 transition cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Đăng tin</span>
-            </button>
+            {/* Nút Đăng tin (Shop, Staff hoặc Admin mới thấy nút) */}
+            {canManageProducts && (
+              <button
+                onClick={onOpenAddProductModal}
+                title="Đăng tiện ích mới (Dành cho Shop / Staff / Admin)"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-full border border-emerald-200 transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Đăng tin</span>
+              </button>
+            )}
 
             {/* Giỏ hàng */}
             <button 
@@ -136,6 +217,9 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="text-xs text-gray-500">Tài khoản xác thực</p>
                       <p className="text-xs font-bold text-gray-800 truncate">{user.email}</p>
+                      <span className="inline-block mt-1 text-[10px] bg-indigo-100 text-indigo-800 font-extrabold px-2 py-0.5 rounded">
+                        {getRoleLabel(userRole)}
+                      </span>
                     </div>
 
                     {/* Ví Xu Item in User Menu */}
@@ -173,6 +257,34 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </button>
 
+                    {/* ADMIN STAFF PERMISSION MANAGEMENT BUTTON */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenStaffPermissionModal();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-violet-700 hover:bg-violet-50 flex items-center gap-2 transition border-b border-gray-100 cursor-pointer"
+                      >
+                        <Settings className="w-4 h-4 text-violet-600" />
+                        <span>Cấp quyền Nhân viên (Admin)</span>
+                      </button>
+                    )}
+
+                    {/* ADMIN OR AUTHORIZED STAFF REVIEW SHOPS BUTTON */}
+                    {canApproveShops && (
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenAdminReviewModal();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition border-b border-gray-100 cursor-pointer"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                        <span>Duyệt hồ sơ mở Shop ({isAdmin ? 'Admin' : 'Staff'})</span>
+                      </button>
+                    )}
+
                     {/* Merchant Application Status Badge for Normal Users */}
                     {merchantApplication && (
                       <div className="px-4 py-2 border-b border-gray-100 bg-amber-50/50">
@@ -192,20 +304,6 @@ export const Header: React.FC<HeaderProps> = ({
                           )}
                         </div>
                       </div>
-                    )}
-
-                    {/* ONLY VISIBLE FOR ADMIN ACCOUNTS */}
-                    {isAdmin && (
-                      <button
-                        onClick={() => {
-                          setShowDropdown(false);
-                          onOpenAdminReviewModal();
-                        }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition border-b border-gray-100"
-                      >
-                        <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                        <span>Duyệt hồ sơ mở Shop (Chỉ Admin)</span>
-                      </button>
                     )}
 
                     <button

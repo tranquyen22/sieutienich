@@ -91,15 +91,30 @@ export interface UserActivity {
   created_at: string;
 }
 
+// 4-Tier Role-Based Access Control (RBAC) System
+export type UserRole = 
+  | 'admin'    // Admin tối cao (Full quyền quản trị)
+  | 'staff'    // Nhân viên cấp dưới (Được Admin phân quyền động)
+  | 'merchant' // Tài khoản Shop (Như người dùng + Đăng tin & Quản lý đơn của Shop)
+  | 'buyer';   // Tài khoản Người dùng (Mua sắm, sử dụng dịch vụ)
+
+export interface StaffPermissions {
+  canApproveShops: boolean;    // Quyền duyệt hồ sơ mở Shop
+  canManageProducts: boolean;   // Quyền thêm / sửa / xóa sản phẩm
+  canManageOrders: boolean;     // Quyền chuyển trạng thái / hủy đơn hàng
+  canManageCoins: boolean;      // Quyền cộng / trừ Xu
+}
+
 export interface UserProfile {
   id: string;
   email: string;
   full_name?: string;
   phone?: string;
   regular_coins?: number; // Xu Thường
-  tq_coins?: number; // Xu TQ
-  role?: 'buyer' | 'merchant' | 'admin';
+  tq_coins?: number;      // Xu TQ
+  role: UserRole;
   merchant_status?: 'pending_review' | 'approved' | 'rejected' | null;
+  staff_permissions?: StaffPermissions;
 }
 
 export interface CoinTransaction {
