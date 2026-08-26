@@ -289,6 +289,33 @@ export interface SettlementRecord {
   created_at: string;
 }
 
+// -------------------------------------------------------------
+// PUBLIC UTILITIES & SERVICES DIRECTORY TYPES (DANH BẠ TIỆN ÍCH)
+// -------------------------------------------------------------
+export interface DirectoryCategory {
+  id: string;
+  name: string;
+  icon_name?: string;
+  description?: string;
+}
+
+export interface DirectoryEntry {
+  id: string;
+  title: string;
+  category_id: string;
+  phone: string;
+  address: string;
+  province: string;
+  district: string;
+  ward?: string;
+  distance_km?: number;
+  is_verified: boolean; // Mặc định khi tạo mới là FALSE (Chưa xác minh)
+  verified_by?: string;
+  verified_at?: string;
+  report_wrong_number_count: number; // Số lượt khách báo số sai (chỉ báo, không cho khách tự sửa)
+  created_at: string;
+}
+
 export interface UserAccountAuditLog {
   id: string;
   user_id: string;

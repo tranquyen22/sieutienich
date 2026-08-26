@@ -23,6 +23,7 @@ import { ShopStatusToggleModal } from './components/ShopStatusToggleModal';
 import { AccountRoleAccessMatrixModal } from './components/AccountRoleAccessMatrixModal';
 import { AdminUserManagementModal } from './components/AdminUserManagementModal';
 import { AdminDashboardPortalModal } from './components/AdminDashboardPortalModal';
+import { PublicDirectoryModal } from './components/PublicDirectoryModal';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
 import { PWAInstallPromptBar } from './components/PWAInstallPromptBar';
 import { CartDrawer } from './components/CartDrawer';
@@ -47,6 +48,7 @@ function AppContent() {
   const [shopStatusToggleModalOpen, setShopStatusToggleModalOpen] = useState(false);
   const [accountRoleMatrixModalOpen, setAccountRoleMatrixModalOpen] = useState(false);
   const [adminUserManagementModalOpen, setAdminUserManagementModalOpen] = useState(false);
+  const [publicDirectoryModalOpen, setPublicDirectoryModalOpen] = useState(false);
 
   // Admin Dashboard Portal Landing Modal (Openable by default for Admin)
   const [adminDashboardModalOpen, setAdminDashboardModalOpen] = useState(userRole === 'admin');
@@ -96,9 +98,9 @@ function AppContent() {
         onOpenMultiStepOnboardingModal={() => setMultiStepOnboardingModalOpen(true)}
         onOpenShopDetailPortalModal={() => setShopDetailPortalModalOpen(true)}
         onOpenShopStatusToggleModal={() => setShopStatusToggleModalOpen(true)}
-        onOpenAccountRoleAccessMatrixModal={() => setAccountRoleMatrixModalOpen(true)}
         onOpenAdminUserManagementModal={() => setAdminUserManagementModalOpen(true)}
         onOpenAdminDashboardModal={() => setAdminDashboardModalOpen(true)}
+        onOpenPublicDirectoryModal={() => setPublicDirectoryModalOpen(true)}
       />
       
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 space-y-6">
@@ -186,6 +188,9 @@ function AppContent() {
       <ShopStatusToggleModal isOpen={shopStatusToggleModalOpen} onClose={() => setShopStatusToggleModalOpen(false)} />
       <AccountRoleAccessMatrixModal isOpen={accountRoleMatrixModalOpen} onClose={() => setAccountRoleMatrixModalOpen(false)} />
       <AdminUserManagementModal isOpen={adminUserManagementModalOpen} onClose={() => setAdminUserManagementModalOpen(false)} />
+      
+      {/* PUBLIC UTILITIES & SERVICES DIRECTORY MODAL */}
+      <PublicDirectoryModal isOpen={publicDirectoryModalOpen} onClose={() => setPublicDirectoryModalOpen(false)} />
 
       {/* SUPER ADMIN LANDING DASHBOARD MODAL (HÔM NAY CÓ GÌ CẦN LÀM & SÀN ĐANG CHẠY RA SAO) */}
       <AdminDashboardPortalModal

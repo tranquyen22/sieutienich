@@ -43,6 +43,9 @@ interface AuthContextType {
   canManageProducts: boolean;
   canManageOrders: boolean;
   canManageCoins: boolean;
+  canManageDirectory: boolean;
+  canToggleVerifiedBadge: boolean;
+  canManageCategories: boolean;
 
   merchantApplication: MerchantApplication | null;
   allApplications: MerchantApplication[];
@@ -450,6 +453,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserRole('buyer');
   };
 
+  const canManageDirectory = isAdmin || Boolean(staffPermissions.can_manage_directory_items);
+  const canToggleVerifiedBadge = isAdmin || Boolean(staffPermissions.can_toggle_verified_badge);
+  const canManageCategories = isAdmin || Boolean(staffPermissions.can_manage_categories_and_regions);
+
   return (
     <AuthContext.Provider
       value={{
@@ -474,6 +481,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         canManageProducts,
         canManageOrders,
         canManageCoins,
+        canManageDirectory,
+        canToggleVerifiedBadge,
+        canManageCategories,
         merchantApplication,
         allApplications,
         signInWithIdentifier,
