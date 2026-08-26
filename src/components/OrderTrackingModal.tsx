@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, PackageCheck, Clock, Truck, CheckCircle2, ChevronRight, AlertCircle, ShoppingBag, Store, User, Eye, Lock, XCircle } from 'lucide-react';
+import { X, PackageCheck, Clock, Truck, CheckCircle2, ChevronRight, AlertCircle, ShoppingBag, Eye, Lock, XCircle, Filter } from 'lucide-react';
 import type { Order, OrderStatus } from '../types';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,20 +11,38 @@ interface OrderTrackingModalProps {
 
 export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, onClose }) => {
   const { orders, updateOrderStatus } = useShop();
-  const { userRole, isAdmin, isMerchant, isStaff, canManageOrders } = useAuth();
-
-  // Role perspective mode state ('buyer' or 'merchant')
-  const [viewRoleMode, setViewRoleMode] = useState<'buyer' | 'merchant'>(
-    userRole === 'merchant' || userRole === 'admin' || userRole === 'staff' ? 'merchant' : 'buyer'
-  );
+  const { user, userRole, canManageOrders } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'delivering' | 'completed' | 'cancelled'>('all');
 
   if (!isOpen) return null;
 
-  const isMerchantControl = (viewRoleMode === 'merchant' || isMerchant || isAdmin || isStaff) && canManageOrders;
+  // Permissions to manage order status
+  const isMerchantControl = (userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && canManageOrders;
 
-  const filteredOrders = orders.filter((ord) => {
+  // 1. STAGE 1: ROLE-BASED ORDER SCOPE FILTERING (Phân loại đơn hàng hiển thị theo loại tài khoản)
+  const scopeFilteredOrders = orders.filter((ord) => {
+    if (userRole === 'admin') {
+      return true; // Admin tối cao: Xem toàn bộ đơn hàng trên sàn
+    }
+    if (userRole === 'staff') {
+      return true; // Staff nhân viên: Xem toàn bộ đơn hàng
+    }
+    if (userRole === 'merchant') {
+      // Merchant Shop: Chỉ xem đơn hàng thuộc sản phẩm/dịch vụ của Shop mình
+      return ord.items.some(
+        (item) =>
+          item.product.user_id === user?.id ||
+          Boolean(item.product.isTQStore) ||
+          Boolean(item.product.isLicensed)
+      );
+    }
+    // Buyer Người dùng: Chỉ xem đơn hàng do chính mình đặt mua
+    return ord.user_id === user?.id || ord.user_id === 'guest';
+  });
+
+  // 2. STAGE 2: TAB STATUS FILTERING
+  const finalOrders = scopeFilteredOrders.filter((ord) => {
     if (activeTab === 'pending') return ord.status === 'pending_seller_confirm' || ord.status === 'preparing';
     if (activeTab === 'delivering') return ord.status === 'delivering';
     if (activeTab === 'completed') return ord.status === 'completed';
@@ -116,46 +134,38 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
 
           <div className="flex items-center gap-2 text-indigo-200 text-xs font-extrabold uppercase tracking-wider mb-1">
             <ShoppingBag className="w-4 h-4 text-indigo-300" />
-            <span>Quản Lý Tiến Trình Đơn Hàng Trung Gian</span>
+            <span>Quản Lý Tiến Trình Đơn Hàng Theo Vai Trò</span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-white">
-            Theo Dõi Đơn Hàng Theo Các Giai Đoạn
+            Theo Dõi Tiến Trình Đơn Hàng (4 Giai Đoạn)
           </h2>
           <p className="text-xs text-indigo-100 mt-1">
-            Sàn giao dịch trung gian • Khách xem tín hiệu thời gian thực • Shop điều chỉnh & Hủy đơn
+            Hiển thị chính xác danh sách đơn hàng tương ứng với loại tài khoản của bạn.
           </p>
         </div>
 
-        {/* DEMO ROLE MODE SWITCHER */}
+        {/* ROLE SCOPE BADGE CALLOUT */}
         <div className="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between gap-2 shrink-0 text-xs">
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-slate-300">Chế độ giao diện:</span>
-            <span className="text-[11px] bg-slate-800 text-indigo-300 px-2 py-0.5 rounded font-bold">
-              {isMerchantControl ? '👑 Quyền Chủ Shop / Staff (Có quyền cập nhật & Hủy đơn)' : '👁️ Quyền Khách Hàng (Chỉ xem & nhận tín hiệu)'}
+            <Filter className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span className="font-extrabold text-slate-300">Phạm vi hiển thị tài khoản:</span>
+            <span className="text-[11px] bg-slate-800 text-indigo-300 px-2.5 py-0.5 rounded font-black border border-slate-700">
+              {userRole === 'admin' ? (
+                '👑 Admin Tối Cao (Xem toàn bộ đơn sàn)'
+              ) : userRole === 'staff' ? (
+                '💼 Nhân viên Staff (Xem toàn bộ đơn sàn)'
+              ) : userRole === 'merchant' ? (
+                '🏪 Chủ Gian Hàng (Đơn từ Shop của bạn)'
+              ) : (
+                '👤 Khách Mua Hàng (Đơn hàng cá nhân)'
+              )}
             </span>
           </div>
 
-          <div className="flex items-center bg-slate-800 p-0.5 rounded-xl border border-slate-700">
-            <button
-              onClick={() => setViewRoleMode('buyer')}
-              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition flex items-center gap-1 cursor-pointer ${
-                viewRoleMode === 'buyer' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <User className="w-3 h-3" />
-              <span>Khách hàng</span>
-            </button>
-            <button
-              onClick={() => setViewRoleMode('merchant')}
-              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition flex items-center gap-1 cursor-pointer ${
-                viewRoleMode === 'merchant' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Store className="w-3 h-3" />
-              <span>Tài khoản Shop</span>
-            </button>
-          </div>
+          <span className="bg-indigo-600 text-white text-[11px] font-black px-2.5 py-0.5 rounded-full">
+            {scopeFilteredOrders.length} đơn thuộc scope
+          </span>
         </div>
 
         {/* Intermediary Notice Banner */}
@@ -163,9 +173,9 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="leading-snug">
             {isMerchantControl ? (
-              <span>⚡ <strong>Quyền Cửa Hàng / Staff:</strong> Bạn có quyền bấm <em>"Chuyển sang bước tiếp"</em> hoặc <em>"Hủy đơn hàng"</em>.</span>
+              <span>⚡ <strong>Quyền Shop / Staff / Admin:</strong> Bạn có quyền bấm <em>"Bước Tiếp"</em> để cập nhật tiến trình hoặc <em>"Hủy Đơn"</em> khi cần.</span>
             ) : (
-              <span>👁️ <strong>Tín hiệu Khách hàng:</strong> Khách chỉ xem tín hiệu thời gian thực từ Shop. Nếu Shop hủy đơn, tiến trình sẽ báo Hủy trực tiếp.</span>
+              <span>👁️ <strong>Tín hiệu Khách hàng:</strong> Bạn chỉ xem tín hiệu thời gian thực từ Shop. Đơn hoàn thành sẽ được mở quyền viết Đánh Giá.</span>
             )}
           </div>
         </div>
@@ -178,7 +188,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
               activeTab === 'all' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-200' : 'text-gray-500 hover:text-gray-800'
             }`}
           >
-            Tất cả ({orders.length})
+            Tất cả ({scopeFilteredOrders.length})
           </button>
           <button
             onClick={() => setActiveTab('pending')}
@@ -216,12 +226,12 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
 
         {/* Modal Scrollable Body */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
-          {filteredOrders.length === 0 ? (
+          {finalOrders.length === 0 ? (
             <div className="text-center py-12 text-gray-400 text-xs">
-              Chưa có đơn hàng nào trong danh mục này.
+              Không có đơn hàng nào phù hợp với tài khoản và bộ lọc này.
             </div>
           ) : (
-            filteredOrders.map((order) => {
+            finalOrders.map((order) => {
               const statusInfo = getStatusStepInfo(order.status);
               const StatusIcon = statusInfo.icon;
               const dateStr = new Date(order.created_at).toLocaleString('vi-VN');
@@ -354,7 +364,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
                           <button
                             onClick={() => handleCancelOrder(order)}
                             className="px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white font-extrabold rounded-xl text-xs border border-rose-200 transition cursor-pointer"
-                            title="Chủ shop hủy đơn hàng này"
+                            title="Chủ shop hoặc Admin hủy đơn hàng này"
                           >
                             <span>❌ Hủy Đơn</span>
                           </button>
