@@ -237,7 +237,7 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
 
   const userThreads = user ? threads : [];
   const activeThread = userThreads.find((t) => t.id === activeThreadId) || userThreads[0];
-  const activeMessages = user ? (chatMessages[activeThreadId] || []) : [];
+  const activeMessages = (user && activeThread) ? (chatMessages[activeThread.id] || []) : [];
 
   const filteredThreads = userThreads.filter((t) => 
     t.partner_name.toLowerCase().includes(searchThreadTerm.toLowerCase()) ||
@@ -382,116 +382,132 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
           <div className={`flex-1 flex flex-col bg-white min-w-0 ${
             mobileViewMode === 'list' ? 'hidden sm:flex' : 'flex'
           }`}>
-            
-            {/* Active Thread Header */}
-            <div className="p-3 border-b border-gray-200 bg-slate-50 flex items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                
-                {/* Mobile Back Button to Conversations List */}
-                <button
-                  type="button"
-                  onClick={() => setMobileViewMode('list')}
-                  className="sm:hidden p-1.5 bg-white hover:bg-gray-100 border border-gray-200 text-gray-800 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0"
-                  title="Quay lại danh sách các cuộc trò chuyện"
-                >
-                  <ArrowLeft className="w-4 h-4 text-indigo-600" />
-                </button>
-
-                <img
-                  src={activeThread.partner_avatar || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80'}
-                  alt={activeThread.partner_name}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl object-cover border border-gray-200 shrink-0"
-                />
-
-                <div className="min-w-0">
-                  <strong className="text-xs sm:text-sm font-black text-gray-900 truncate block flex items-center gap-1">
-                    <span className="truncate">{activeThread.partner_name}</span>
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  </strong>
-                  <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <span>Đang hoạt động (Realtime)</span>
-                  </span>
+            {!activeThread ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-gray-400 space-y-3">
+                <div className="w-14 h-14 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto">
+                  <MessageSquare className="w-7 h-7" />
                 </div>
+                <h4 className="font-extrabold text-sm text-gray-800">
+                  {user ? 'Không có tin nhắn nào' : '🔒 Chưa Đăng Nhập'}
+                </h4>
+                <p className="text-xs max-w-xs text-gray-500">
+                  {user 
+                    ? 'Bạn chưa chọn hoặc chưa có cuộc trò chuyện nào.' 
+                    : 'Vui lòng đăng nhập tài khoản để nhắn tin trao đổi với shop.'}
+                </p>
               </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <a
-                  href="tel:0912345678"
-                  className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl font-extrabold text-[11px] sm:text-xs flex items-center gap-1 cursor-pointer border border-emerald-200"
-                >
-                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="hidden sm:inline">Gọi thoại</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Scrollable Messages Stream */}
-            <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 sm:space-y-4 bg-gray-50/40">
-              {activeMessages.map((msg) => {
-                const timeStr = new Date(msg.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col ${msg.is_me ? 'items-end' : 'items-start'} space-y-1`}
-                  >
-                    <div className="text-[10px] text-gray-400 font-bold px-1 flex items-center gap-1">
-                      <span>{msg.sender_name}</span>
-                      <span>•</span>
-                      <span>{timeStr}</span>
-                    </div>
-
-                    {/* Rich Product Card Attached in Message if Present */}
-                    {msg.product_name && (
-                      <div className="max-w-xs p-3 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-1.5 shadow-sm text-xs">
-                        <div className="text-[10px] text-indigo-900 font-extrabold uppercase tracking-wider flex items-center gap-1">
-                          <ShoppingBag className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>Hỏi về sản phẩm:</span>
-                        </div>
-                        <strong className="text-gray-900 font-black block text-xs">{msg.product_name}</strong>
-                        {msg.product_price && (
-                          <span className="text-rose-600 font-black text-xs block">
-                            {msg.product_price.toLocaleString()} đ
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Message Bubble Content */}
-                    <div
-                      className={`max-w-[88%] sm:max-w-[75%] p-3 sm:p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-sm ${
-                        msg.is_me
-                          ? 'bg-indigo-600 text-white rounded-br-none'
-                          : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
-                      }`}
+            ) : (
+              <>
+                {/* Active Thread Header */}
+                <div className="p-3 border-b border-gray-200 bg-slate-50 flex items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    
+                    {/* Mobile Back Button to Conversations List */}
+                    <button
+                      type="button"
+                      onClick={() => setMobileViewMode('list')}
+                      className="sm:hidden p-1.5 bg-white hover:bg-gray-100 border border-gray-200 text-gray-800 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0"
+                      title="Quay lại danh sách các cuộc trò chuyện"
                     >
-                      {msg.content}
+                      <ArrowLeft className="w-4 h-4 text-indigo-600" />
+                    </button>
+
+                    <img
+                      src={activeThread.partner_avatar || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80'}
+                      alt={activeThread.partner_name}
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl object-cover border border-gray-200 shrink-0"
+                    />
+
+                    <div className="min-w-0">
+                      <strong className="text-xs sm:text-sm font-black text-gray-900 truncate block flex items-center gap-1">
+                        <span className="truncate">{activeThread.partner_name}</span>
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      </strong>
+                      <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                        <span>Đang hoạt động (Realtime)</span>
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Message Input Form */}
-            <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-200 flex items-center gap-2 shrink-0">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder={`Nhắn tin trao đổi...`}
-                className="flex-1 px-3.5 py-2.5 bg-gray-100 border border-transparent rounded-full focus:bg-white focus:border-indigo-500 focus:outline-none text-xs text-gray-900 font-medium"
-              />
-              <button
-                type="submit"
-                disabled={!inputMessage.trim()}
-                className="px-4 sm:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-extrabold rounded-full transition shadow-md cursor-pointer shrink-0 flex items-center gap-1.5 text-xs"
-              >
-                <span>Gửi</span>
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </form>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href="tel:0912345678"
+                      className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl font-extrabold text-[11px] sm:text-xs flex items-center gap-1 cursor-pointer border border-emerald-200"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="hidden sm:inline">Gọi thoại</span>
+                    </a>
+                  </div>
+                </div>
 
+                {/* Scrollable Messages Stream */}
+                <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 sm:space-y-4 bg-gray-50/40">
+                  {activeMessages.map((msg) => {
+                    const timeStr = new Date(msg.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex flex-col ${msg.is_me ? 'items-end' : 'items-start'} space-y-1`}
+                      >
+                        <div className="text-[10px] text-gray-400 font-bold px-1 flex items-center gap-1">
+                          <span>{msg.sender_name}</span>
+                          <span>•</span>
+                          <span>{timeStr}</span>
+                        </div>
+
+                        {/* Rich Product Card Attached in Message if Present */}
+                        {msg.product_name && (
+                          <div className="max-w-xs p-3 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-1.5 shadow-sm text-xs">
+                            <div className="text-[10px] text-indigo-900 font-extrabold uppercase tracking-wider flex items-center gap-1">
+                              <ShoppingBag className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Hỏi về sản phẩm:</span>
+                            </div>
+                            <strong className="text-gray-900 font-black block text-xs">{msg.product_name}</strong>
+                            {msg.product_price && (
+                              <span className="text-rose-600 font-black text-xs block">
+                                {msg.product_price.toLocaleString()} đ
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Message Bubble Content */}
+                        <div
+                          className={`max-w-[88%] sm:max-w-[75%] p-3 sm:p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-sm ${
+                            msg.is_me
+                              ? 'bg-indigo-600 text-white rounded-br-none'
+                              : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
+                          }`}
+                        >
+                          {msg.content}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Message Input Form */}
+                <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-200 flex items-center gap-2 shrink-0">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder={`Nhắn tin trao đổi...`}
+                    className="flex-1 px-3.5 py-2.5 bg-gray-100 border border-transparent rounded-full focus:bg-white focus:border-indigo-500 focus:outline-none text-xs text-gray-900 font-medium"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!inputMessage.trim()}
+                    className="px-4 sm:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-extrabold rounded-full transition shadow-md cursor-pointer shrink-0 flex items-center gap-1.5 text-xs"
+                  >
+                    <span>Gửi</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              </>
+            )}
           </div>
 
         </div>
