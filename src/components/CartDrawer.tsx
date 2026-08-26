@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck, Plus, Minus, CheckSquare, Square } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck, Plus, Minus, CheckSquare, Square, Truck } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import type { DeliveryMethod } from '../types';
 
 export const CartDrawer: React.FC = () => {
   const { 
@@ -18,6 +19,7 @@ export const CartDrawer: React.FC = () => {
 
   const [useTQCoins, setUseTQCoins] = useState(false);
   const [useRegularCoins, setUseRegularCoins] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('seller_delivery');
 
   // Selected item IDs state for combined checkout selection
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -80,7 +82,7 @@ export const CartDrawer: React.FC = () => {
       await addCoinTransaction(-regularDiscount, `🛒 Giảm giá đơn mua gộp bằng Xu Thường`, 'spend', 'regular');
     }
 
-    // Create Intermediary Order in stage 1 (Chờ Shop xác nhận đơn)
+    // Create Intermediary Order in Stage 1: pending_seller_confirm (Chờ shop xác nhận)
     await createOrder({
       user_id: 'guest',
       user_name: 'Khách hàng',
@@ -93,11 +95,14 @@ export const CartDrawer: React.FC = () => {
       total_amount: selectedTotalAmount,
       discount_amount: totalDiscount,
       final_amount: finalTotalAmount,
-      status: 'pending_seller_confirm',
+      status: 'pending_seller_confirm', // Stage 1
+      delivery_method: deliveryMethod, // seller_delivery or customer_pickup
       payment_method: 'direct_with_seller',
     });
 
-    alert(`Đặt hàng thành công!\n- Đơn hàng đã được khởi tạo: Giai đoạn 1 (Chờ Shop xác nhận)\n- Phương thức: Sàn trung gian hiển thị (Shop và Khách tự liên hệ giao hàng & tự thanh toán)\n\nKhi Shop chuyển trạng thái sang "Đã giao thành công", bạn sẽ được quyền gửi Đánh Giá sản phẩm!`);
+    const methodLabel = deliveryMethod === 'seller_delivery' ? '🚚 Shop giao hàng tận nơi' : '🏬 Đến cửa hàng lấy';
+
+    alert(`Đặt hàng thành công!\n- Đơn hàng khởi tạo: Giai đoạn 1 (Chờ shop xác nhận)\n- Phương thức nhận hàng: ${methodLabel}\n- Thanh toán: Khách và Shop tự thanh toán & giao dịch trực tiếp\n\nBạn và Shop sẽ nhận được tín hiệu cập nhật tự động sau mỗi 5-10 giây!`);
     
     // Remove ONLY selected items from cart
     for (const item of selectedCartItems) {
@@ -254,13 +259,48 @@ export const CartDrawer: React.FC = () => {
             )}
           </div>
 
-          {/* Checkout & Coin Discount Panel */}
+          {/* Checkout & Delivery & Coin Discount Panel */}
           {cartItems.length > 0 && (
             <div className="p-5 border-t border-gray-100 bg-gray-50/70 space-y-3 shrink-0">
               
-              {/* Intermediary Platform Disclaimer */}
-              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-tight">
-                ℹ️ <strong>Sàn giao dịch trung gian:</strong> Shop và Khách hàng tự liên hệ thanh toán & tự giao nhận trực tiếp.
+              {/* Delivery Method Selection */}
+              <div className="bg-white p-3 rounded-2xl border border-gray-200 space-y-2">
+                <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5 border-b border-gray-100 pb-1.5">
+                  <Truck className="w-4 h-4 text-indigo-600" />
+                  <span>Chọn phương thức nhận hàng:</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <label className={`p-2 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
+                    deliveryMethod === 'seller_delivery' ? 'bg-indigo-50 border-indigo-400 font-extrabold text-indigo-900' : 'bg-white border-gray-200 text-gray-600'
+                  }`}>
+                    <input 
+                      type="radio" 
+                      name="deliveryMethod" 
+                      checked={deliveryMethod === 'seller_delivery'}
+                      onChange={() => setDeliveryMethod('seller_delivery')}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <div className="truncate">
+                      <span className="block truncate">🚚 Shop giao hàng</span>
+                    </div>
+                  </label>
+
+                  <label className={`p-2 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
+                    deliveryMethod === 'customer_pickup' ? 'bg-indigo-50 border-indigo-400 font-extrabold text-indigo-900' : 'bg-white border-gray-200 text-gray-600'
+                  }`}>
+                    <input 
+                      type="radio" 
+                      name="deliveryMethod" 
+                      checked={deliveryMethod === 'customer_pickup'}
+                      onChange={() => setDeliveryMethod('customer_pickup')}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <div className="truncate">
+                      <span className="block truncate">🏬 Đến cửa hàng lấy</span>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* Coin Options Panel */}
@@ -332,7 +372,7 @@ export const CartDrawer: React.FC = () => {
                 disabled={selectedCartItems.length === 0}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
-                <span>Xác nhận Đặt Hàng Trung Gian ({selectedCartItems.length} Đơn)</span>
+                <span>Xác nhận Đặt Hàng ({selectedCartItems.length} Đơn)</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

@@ -55,12 +55,19 @@ export interface CartItem {
   created_at?: string;
 }
 
+// Expanded Order Lifecycle Statuses according to specifications
 export type OrderStatus = 
-  | 'pending_seller_confirm' // Shop xác nhận đơn
-  | 'preparing'              // Đang chuẩn bị
-  | 'delivering'             // Đang giao
-  | 'completed'              // Đã giao thành công
-  | 'cancelled';
+  | 'pending_seller_confirm' // 1. Chờ shop xác nhận (Khách vừa bấm đặt)
+  | 'seller_accepted'         // 2. Shop đã nhận đơn (Shop đồng ý bán)
+  | 'preparing'               // 3. Đang chuẩn bị (Shop đang soạn hàng)
+  | 'ready_for_pickup'        // 4a. Sẵn sàng để lấy (Khách chọn đến lấy)
+  | 'delivering'              // 4b. Đang giao (Shop chọn shop giao)
+  | 'completed'               // 5. Hoàn thành (Shop bấm xong / Khách bấm đã nhận / Tự động sau 3 ngày)
+  | 'cancelled';              // 6. Đã hủy (Shop hoặc Khách hủy kèm lý do)
+
+export type DeliveryMethod = 
+  | 'seller_delivery'   // Shop giao hàng tận nơi
+  | 'customer_pickup';  // Khách đến cửa hàng lấy
 
 export interface OrderItem {
   product_id: string | number;
@@ -79,7 +86,11 @@ export interface Order {
   discount_amount: number;
   final_amount: number;
   status: OrderStatus;
-  payment_method: 'direct_with_seller'; // Sàn trung gian hiển thị, Shop và Khách tự thanh toán & tự giao hàng
+  delivery_method: DeliveryMethod; // Phương thức nhận hàng
+  payment_method: 'direct_with_seller'; // Sàn trung gian hiển thị, Shop và Khách tự thanh toán
+  cancel_reason?: string; // Lý do hủy đơn
+  cancelled_by?: 'buyer' | 'seller'; // Ai thực hiện hủy
+  completed_by?: 'buyer' | 'seller' | 'auto_system'; // Ai xác nhận hoàn thành
   created_at: string;
   updated_at?: string;
 }

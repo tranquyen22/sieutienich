@@ -21,7 +21,11 @@ interface ShopContextType {
   // Intermediary Orders Lifecycle
   orders: Order[];
   createOrder: (orderData: Omit<Order, 'id' | 'created_at'>) => Promise<Order>;
-  updateOrderStatus: (orderId: string, newStatus: OrderStatus) => Promise<void>;
+  updateOrderStatus: (
+    orderId: string, 
+    newStatus: OrderStatus, 
+    options?: { cancelReason?: string; cancelledBy?: 'buyer' | 'seller'; completedBy?: 'buyer' | 'seller' | 'auto_system' }
+  ) => Promise<void>;
 
   // Verified Buyer Purchase Tracking
   purchasedProductIds: string[];
@@ -87,7 +91,7 @@ const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
   },
 ];
 
-// Default sample orders covering the 4 lifecycle stages
+// Expanded sample orders matching user's exact lifecycle specifications
 const DEFAULT_SAMPLE_ORDERS: Order[] = [
   {
     id: 'ORD-882901',
@@ -99,9 +103,10 @@ const DEFAULT_SAMPLE_ORDERS: Order[] = [
     total_amount: 850000,
     discount_amount: 50000,
     final_amount: 800000,
-    status: 'pending_seller_confirm', // Giai đoạn 1: Chờ Shop xác nhận
+    status: 'pending_seller_confirm', // Status 1: Khách vừa bấm đặt
+    delivery_method: 'seller_delivery',
     payment_method: 'direct_with_seller',
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
   },
   {
     id: 'ORD-773012',
@@ -113,9 +118,10 @@ const DEFAULT_SAMPLE_ORDERS: Order[] = [
     total_amount: 700000,
     discount_amount: 20000,
     final_amount: 680000,
-    status: 'preparing', // Giai đoạn 2: Đang chuẩn bị hàng
+    status: 'seller_accepted', // Status 2: Shop đã nhận đơn (Shop đồng ý bán)
+    delivery_method: 'seller_delivery',
     payment_method: 'direct_with_seller',
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+    created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
   },
   {
     id: 'ORD-662093',
@@ -127,29 +133,78 @@ const DEFAULT_SAMPLE_ORDERS: Order[] = [
     total_amount: 12000000,
     discount_amount: 50000,
     final_amount: 11950000,
-    status: 'delivering', // Giai đoạn 3: Đang giao hàng
+    status: 'preparing', // Status 3: Đang chuẩn bị (Shop đang soạn hàng)
+    delivery_method: 'customer_pickup',
     payment_method: 'direct_with_seller',
-    created_at: new Date(Date.now() - 3600000 * 20).toISOString(),
+    created_at: new Date(Date.now() - 3600000 * 10).toISOString(),
   },
   {
-    id: 'ORD-551044',
+    id: 'ORD-554019',
+    user_id: 'guest',
+    user_name: 'Vũ Quốc Anh',
+    items: [
+      { product_id: 18, product: INITIAL_PRODUCTS[17], quantity: 1, price: 150000 },
+    ],
+    total_amount: 150000,
+    discount_amount: 10000,
+    final_amount: 140000,
+    status: 'ready_for_pickup', // Status 4a: Sẵn sàng để lấy (Khách chọn đến lấy)
+    delivery_method: 'customer_pickup',
+    payment_method: 'direct_with_seller',
+    created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
+  },
+  {
+    id: 'ORD-443088',
+    user_id: 'guest',
+    user_name: 'Hoàng Kim Ngân',
+    items: [
+      { product_id: 3, product: INITIAL_PRODUCTS[2], quantity: 1, price: 490000 },
+    ],
+    total_amount: 490000,
+    discount_amount: 30000,
+    final_amount: 460000,
+    status: 'delivering', // Status 4b: Đang giao (Shop chọn shop giao)
+    delivery_method: 'seller_delivery',
+    payment_method: 'direct_with_seller',
+    created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+  },
+  {
+    id: 'ORD-332011',
     user_id: 'guest',
     user_name: 'Lê Hoàng Nam',
     items: [
       { product_id: 1, product: INITIAL_PRODUCTS[0], quantity: 1, price: 8500000 },
-      { product_id: 14, product: INITIAL_PRODUCTS[13], quantity: 2, price: 180000 },
     ],
-    total_amount: 8860000,
-    discount_amount: 60000,
-    final_amount: 8800000,
-    status: 'completed', // Giai đoạn 4: Đã giao hàng thành công (Mở Đánh giá)
+    total_amount: 8500000,
+    discount_amount: 100000,
+    final_amount: 8400000,
+    status: 'completed', // Status 5: Hoàn thành (Bấm nhận / tự động 3 ngày)
+    delivery_method: 'seller_delivery',
     payment_method: 'direct_with_seller',
+    completed_by: 'buyer',
     created_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+  },
+  {
+    id: 'ORD-221099',
+    user_id: 'guest',
+    user_name: 'Trịnh Đức Minh',
+    items: [
+      { product_id: 4, product: INITIAL_PRODUCTS[3], quantity: 1, price: 290000 },
+    ],
+    total_amount: 290000,
+    discount_amount: 0,
+    final_amount: 290000,
+    status: 'cancelled', // Status 6: Đã hủy
+    delivery_method: 'seller_delivery',
+    payment_method: 'direct_with_seller',
+    cancel_reason: 'Tạm hết hàng tại kho',
+    cancelled_by: 'seller',
+    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
   },
 ];
 
 // Default demo purchased product IDs
-const DEFAULT_PURCHASED_IDS: string[] = ['1', '2', '3', '7', '10', '13', '14', '15'];
+const DEFAULT_PURCHASED_IDS: string[] = ['1', '2', '3', '7', '10', '13', '14', '15', '18'];
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -188,6 +243,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPurchasedProductIds((prev) => Array.from(new Set([...prev, ...stringIds])));
   };
 
+  // REALTIME STATUS POLLING (Sync order status every 6 seconds)
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      // Simulate near-instant status sync check
+      setOrders((prev) => [...prev]);
+    }, 6000);
+
+    return () => clearInterval(pollInterval);
+  }, []);
+
   const createOrder = async (orderData: Omit<Order, 'id' | 'created_at'>): Promise<Order> => {
     const newOrder: Order = {
       ...orderData,
@@ -199,13 +264,24 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newOrder;
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+  const updateOrderStatus = async (
+    orderId: string, 
+    newStatus: OrderStatus,
+    options?: { cancelReason?: string; cancelledBy?: 'buyer' | 'seller'; completedBy?: 'buyer' | 'seller' | 'auto_system' }
+  ) => {
     setOrders((prev) =>
       prev.map((ord) => {
         if (ord.id === orderId) {
-          const updated = { ...ord, status: newStatus, updated_at: new Date().toISOString() };
+          const updated: Order = {
+            ...ord,
+            status: newStatus,
+            cancel_reason: options?.cancelReason || ord.cancel_reason,
+            cancelled_by: options?.cancelledBy || ord.cancelled_by,
+            completed_by: options?.completedBy || ord.completed_by,
+            updated_at: new Date().toISOString(),
+          };
           
-          // When order is completed (Đã giao hàng thành công), unlock review eligibility for those items!
+          // When order is completed, unlock review eligibility!
           if (newStatus === 'completed') {
             recordPurchase(ord.items.map((item) => item.product_id));
           }
