@@ -24,8 +24,9 @@ import { AccountRoleAccessMatrixModal } from './components/AccountRoleAccessMatr
 import { AdminUserManagementModal } from './components/AdminUserManagementModal';
 import { AdminDashboardPortalModal } from './components/AdminDashboardPortalModal';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
+import { PWAInstallPromptBar } from './components/PWAInstallPromptBar';
 import { CartDrawer } from './components/CartDrawer';
-import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Zap } from 'lucide-react';
 import type { Product, CustomerAddress } from './types';
 
 function AppContent() {
@@ -53,61 +54,37 @@ function AppContent() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Address Book Demo Data State
-  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([
+  const [customerAddresses] = useState<CustomerAddress[]>([
     {
       id: 'addr-1',
       user_id: 'usr-buyer-demo',
       recipient_name: 'Trần Văn Quyền',
-      phone: '0912345678',
+      phone: '0367818343',
       province: 'Hà Nội',
       district: 'Cầu Giấy',
-      detail_address: 'Số 18 Trần Thái Tông, Dịch Vọng Hậu',
+      detail_address: 'Số 18 Trần Thái Tông, Phường Dịch Vọng',
       is_default: true,
     },
     {
       id: 'addr-2',
       user_id: 'usr-buyer-demo',
-      recipient_name: 'Nguyễn Thị Hoa',
-      phone: '0987654321',
+      recipient_name: 'Trần Văn Quyền (Nhà riêng Hưng Yên)',
+      phone: '0367818343',
       province: 'Hưng Yên',
       district: 'Khoái Châu',
-      detail_address: 'Chợ Thị trấn Khoái Châu, Hưng Yên',
+      detail_address: 'Số 88 Đường Thị trấn Khoái Châu',
       is_default: false,
     },
   ]);
 
-  const handleSaveAddress = (created: Omit<CustomerAddress, "id"> | CustomerAddress) => {
-    const fullAddr: CustomerAddress = 'id' in created ? created : { ...created, id: `addr-${Date.now()}` };
-    const existingIndex = customerAddresses.findIndex((a) => a.id === fullAddr.id);
-    if (existingIndex >= 0) {
-      setCustomerAddresses((prev) =>
-        prev.map((a) => (a.id === fullAddr.id ? fullAddr : a))
-      );
-    } else {
-      setCustomerAddresses((prev) => [...prev, fullAddr]);
-    }
-  };
-
-  const handleDeleteAddress = (id: string) => {
-    setCustomerAddresses((prev) => prev.filter((a) => a.id !== id));
-  };
-
-  const handleSetDefaultAddress = (id: string) => {
-    setCustomerAddresses((prev) =>
-      prev.map((a) => ({ ...a, is_default: a.id === id }))
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      
-      {/* IMPERSONATION TOP WARNING BANNER BAR */}
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+      {/* Top Impersonation Warning Banner (If Super Admin is viewing as Shop) */}
       <ImpersonationBannerBar />
 
-      {/* HEADER */}
       <Header 
-        onOpenAuthModal={() => setAuthModalOpen(true)} 
-        onOpenAddProductModal={() => setAddProductModalOpen(true)} 
+        onOpenAuthModal={() => setAuthModalOpen(true)}
+        onOpenAddProductModal={() => setAddProductModalOpen(true)}
         onOpenAdminReviewModal={() => setAdminReviewModalOpen(true)}
         onOpenCoinWalletModal={() => setCoinWalletModalOpen(true)}
         onOpenOrderTrackingModal={() => setOrderTrackingModalOpen(true)}
@@ -123,118 +100,68 @@ function AppContent() {
         onOpenAdminUserManagementModal={() => setAdminUserManagementModalOpen(true)}
         onOpenAdminDashboardModal={() => setAdminDashboardModalOpen(true)}
       />
-
-      {/* BANNER Carousel & Side Cards & Homepage Daily Check-in */}
-      <Banner />
-
-      {/* THANH LỌC & ĐỊNH VỊ GPS (BÊN DƯỚI BANNER) */}
-      <div className="bg-white border-b border-gray-200 shadow-sm py-2 sticky top-[64px] z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <LocationFilterBar />
-        </div>
-      </div>
-
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 w-full">
-        {/* Category List */}
-        <section className="bg-white rounded-3xl p-4 sm:p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h2 className="text-sm sm:text-base font-extrabold text-gray-900 flex items-center gap-2">
-              <span>Danh Mục Ngành Hàng Tuỳ Biến Form</span>
-              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full">Tự động gợi ý Form</span>
-            </h2>
-          </div>
-          <CategoryFilter />
-        </section>
-
-        {/* Product Grid */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-gray-900">Khám Phá Gian Hàng Tiện Ích Gần Bạn</h2>
-              <p className="text-xs text-gray-500">Tự động tìm kiếm gõ không dấu & gợi ý khoảng cách GPS thực tế</p>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-2xl border border-indigo-100">
-              <Zap className="w-4 h-4 text-amber-500 fill-amber-500 animate-bounce" />
-              <span className="hidden sm:inline">Cập nhật thời gian thực</span>
-            </div>
-          </div>
-
-          <ProductGrid onSelectProduct={(prod) => setSelectedProduct(prod)} />
-        </section>
+      
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 space-y-6">
+        <Banner />
+        <LocationFilterBar />
+        <CategoryFilter />
+        <ProductGrid onSelectProduct={(prod) => setSelectedProduct(prod)} />
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-slate-900 text-gray-400 py-10 border-t border-slate-800 mt-12 text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <footer className="bg-slate-900 text-slate-300 py-10 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-xs">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-white font-black text-lg">
-              <ShieldCheck className="w-6 h-6 text-emerald-400" />
-              <span>SIÊU TIỆN ÍCH</span>
-            </div>
-            <p className="text-gray-400 leading-relaxed">
-              Nền tảng danh bạ đa dịch vụ & thương mại điện tử kết nối thông minh khách hàng và các gian hàng xác minh địa phương.
+            <h4 className="text-white font-black text-sm uppercase tracking-wider flex items-center gap-2">
+              <Zap className="w-4 h-4 text-indigo-400 fill-indigo-400" />
+              <span>Siêu Tiện Ích Platform</span>
+            </h4>
+            <p className="text-slate-400 leading-relaxed">
+              Hệ sinh thái kết nối Gian hàng, Nông sản, Dịch vụ & Danh bạ trực tuyến đa năng. Tối ưu hóa trải nghiệm mua sắm realtime.
             </p>
           </div>
-
-          <div>
-            <h3 className="text-white font-bold mb-3 text-sm">Hệ Thống Tiện Ích</h3>
-            <ul className="space-y-2">
-              <li className="hover:text-white transition cursor-pointer">Danh bạ tiện ích & dịch vụ</li>
-              <li className="hover:text-white transition cursor-pointer">Nông sản & Lẩu Thái Khoái Châu</li>
-              <li className="hover:text-white transition cursor-pointer">Cho thuê kiot & Homestay</li>
-              <li className="hover:text-white transition cursor-pointer">Điểm danh tích Xu Siêu Tiện Ích</li>
+          <div className="space-y-2">
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Thông Tin Hỗ Trợ</h4>
+            <ul className="space-y-1.5 text-slate-400">
+              <li>• Quy chế hoạt động sàn TMĐT</li>
+              <li>• Chính sách bảo vệ dữ liệu cá nhân (PDPD)</li>
+              <li>• Cơ chế giải quyết khiếu nại & Tranh chấp</li>
+              <li>• Tổng đài hỗ trợ 24/7: 1900 6889</li>
             </ul>
           </div>
-
-          <div>
-            <h3 className="text-white font-bold mb-3 text-sm">Hỗ Trợ & Chính Sách</h3>
-            <ul className="space-y-2">
-              <li className="hover:text-white transition cursor-pointer">Quy trình xác minh Khâu 1 & 2</li>
-              <li className="hover:text-white transition cursor-pointer">Quy tắc tích & đổi Xu TQ</li>
-              <li className="hover:text-white transition cursor-pointer">Chính sách bảo vệ dữ liệu cá nhân</li>
-              <li className="hover:text-white transition cursor-pointer">Yêu cầu xoá tài khoản tự động</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-bold mb-3 text-sm">Tài Khoản & Quản Trị</h3>
-            <div className="space-y-2">
-              <button 
-                onClick={() => setAuthModalOpen(true)}
-                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-center"
-              >
-                Đăng Nhập / Đăng Ký
-              </button>
-              <p className="text-[11px] text-gray-500 text-center">Hỗ trợ 4 loại tài khoản: Khách, Chủ shop, Nhân viên & Admin tổng</p>
+          <div className="space-y-2">
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Tiêu Chuẩn Kỹ Thuật</h4>
+            <div className="p-3 bg-slate-800 rounded-xl border border-slate-700 space-y-1">
+              <span className="text-emerald-400 font-extrabold flex items-center gap-1">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Bảo mật Chuẩn ISO/IEC 27001</span>
+              </span>
+              <span className="text-slate-400 text-[11px] block">Tích hợp PWA Standalone - Cài đặt ứng dụng trực tiếp lên màn hình điện thoại iOS & Android.</span>
             </div>
           </div>
         </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pt-6 border-t border-slate-800 text-center text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>© 2026 Siêu Tiện Ích. Bản quyền thuộc về Antigravity System.</span>
-          <span className="flex items-center gap-1 text-emerald-400 font-bold">
-            <RefreshCw className="w-3.5 h-3.5" /> Đồng bộ hai chiều real-time
-          </span>
+        <div className="max-w-7xl mx-auto px-4 pt-8 mt-8 border-t border-slate-800/80 text-center text-slate-500 text-[11px]">
+          © 2026 Siêu Tiện Ích Platform. Tất cả quyền được bảo hộ.
         </div>
       </footer>
 
-      {/* ALL MODALS & DRAWERS */}
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      {/* Modals Mounting */}
+      <AuthModal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+      />
       <AddProductModal isOpen={addProductModalOpen} onClose={() => setAddProductModalOpen(false)} />
-      <AdminMerchantReviewModal isOpen={adminReviewModalOpen} onClose={() => setAdminReviewModalOpen(false)} />
+      <AdminMerchantReviewModal 
+        isOpen={adminReviewModalOpen} 
+        onClose={() => setAdminReviewModalOpen(false)}
+      />
       <CoinWalletModal isOpen={coinWalletModalOpen} onClose={() => setCoinWalletModalOpen(false)} />
       <OrderTrackingModal isOpen={orderTrackingModalOpen} onClose={() => setOrderTrackingModalOpen(false)} />
       <StaffPermissionModal isOpen={staffPermissionModalOpen} onClose={() => setStaffPermissionModalOpen(false)} />
       <MerchantReconciliationModal isOpen={merchantReconciliationModalOpen} onClose={() => setMerchantReconciliationModalOpen(false)} />
       <CustomerAddressBookModal 
         isOpen={customerAddressBookModalOpen} 
-        onClose={() => setCustomerAddressBookModalOpen(false)} 
+        onClose={() => setCustomerAddressBookModalOpen(false)}
         addresses={customerAddresses}
-        onAddAddress={handleSaveAddress}
-        onDeleteAddress={handleDeleteAddress}
-        onSetDefaultAddress={handleSetDefaultAddress}
       />
       <DirectMessagingModal isOpen={directMessagingModalOpen} onClose={() => setDirectMessagingModalOpen(false)} />
       <BuyerDashboardModal 
@@ -274,6 +201,9 @@ function AppContent() {
         product={selectedProduct} 
         onClose={() => setSelectedProduct(null)} 
       />
+
+      {/* PWA INSTALL PROMPT BAR (CÀI APP LÊN MÀN HÌNH CHÍNH ĐIỆN THOẠI) */}
+      <PWAInstallPromptBar />
 
       <CartDrawer />
     </div>

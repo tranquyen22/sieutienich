@@ -7,9 +7,9 @@ interface CustomerAddressBookModalProps {
   onClose: () => void;
   addresses: CustomerAddress[];
   onSelectAddress?: (addr: CustomerAddress) => void;
-  onAddAddress: (newAddr: Omit<CustomerAddress, 'id'>) => void;
-  onDeleteAddress: (id: string) => void;
-  onSetDefaultAddress: (id: string) => void;
+  onAddAddress?: (newAddr: Omit<CustomerAddress, 'id'>) => void;
+  onDeleteAddress?: (id: string) => void;
+  onSetDefaultAddress?: (id: string) => void;
 }
 
 export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> = ({
@@ -38,7 +38,7 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
       return;
     }
 
-    onAddAddress({
+    onAddAddress?.({
       user_id: 'current-user',
       recipient_name: recipientName,
       phone,
@@ -224,7 +224,7 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
                         </button>
                       )}
                       <button
-                        onClick={() => onDeleteAddress(addr.id)}
+                        onClick={() => onDeleteAddress?.(addr.id)}
                         className="p-1 text-gray-400 hover:text-rose-600 transition cursor-pointer"
                         title="Xóa địa chỉ"
                       >
@@ -239,7 +239,7 @@ export const CustomerAddressBookModal: React.FC<CustomerAddressBookModalProps> =
 
                   {!addr.is_default && (
                     <button
-                      onClick={() => onSetDefaultAddress(addr.id)}
+                      onClick={() => onSetDefaultAddress?.(addr.id)}
                       className="text-indigo-600 hover:underline text-[11px] font-bold cursor-pointer"
                     >
                       Thiết lập làm mặc định
