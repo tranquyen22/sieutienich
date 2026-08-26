@@ -47,54 +47,42 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
   initialProductName,
   initialProductPrice,
 }) => {
-  const { userRole } = useAuth();
+  const { user, userRole } = useAuth();
 
   // Mobile View Mode State ('list' = list of conversations, 'detail' = active conversation chat stream)
   const [mobileViewMode, setMobileViewMode] = useState<'list' | 'detail'>('list');
 
-  // Preset Active Conversations Threads List
-  const [threads, setThreads] = useState<ChatThread[]>([
-    {
-      id: 'thread-1',
-      partner_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
-      partner_avatar: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
-      partner_role: 'merchant',
-      last_message: 'Dạ shop sẵn sàng hỗ trợ đóng hàng giao ngay cho bạn nhé!',
-      last_message_time: '16:45',
-      unread_count: 1,
-      is_online: true,
-    },
-    {
-      id: 'thread-2',
-      partner_name: 'Thời Trang Nam TQ Flagship Store',
-      partner_avatar: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&q=80',
-      partner_role: 'merchant',
-      last_message: 'Áo khoác gió có sẵn đủ size S, M, L nha khách ơi!',
-      last_message_time: 'Hôm qua',
-      unread_count: 0,
-      is_online: true,
-    },
-    {
-      id: 'thread-3',
-      partner_name: 'Thợ Sửa Điện Nước Hùng Cường (Danh Bạ)',
-      partner_avatar: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&q=80',
-      partner_role: 'directory',
-      last_message: 'Em đang qua hỗ trợ rà soát đường ống nước nhà mình đây ạ.',
-      last_message_time: '2 ngày trước',
-      unread_count: 0,
-      is_online: false,
-    },
-    {
-      id: 'thread-4',
-      partner_name: 'Trung Tâm CSKH Siêu Tiện Ích Platform',
-      partner_avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&q=80',
-      partner_role: 'cskh',
-      last_message: 'Tổng đài hỗ trợ 24/7 sẵn sàng giải đáp thắc mắc của quý khách.',
-      last_message_time: '10:15',
-      unread_count: 0,
-      is_online: true,
-    },
-  ]);
+  // Preset Active Conversations Threads List (Empty [] for unauthenticated Guest)
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setThreads([]);
+    } else {
+      setThreads([
+        {
+          id: 'thread-1',
+          partner_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
+          partner_avatar: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
+          partner_role: 'merchant',
+          last_message: 'Dạ shop sẵn sàng hỗ trợ đóng hàng giao ngay cho bạn nhé!',
+          last_message_time: '16:45',
+          unread_count: 1,
+          is_online: true,
+        },
+        {
+          id: 'thread-2',
+          partner_name: 'Thời Trang Nam TQ Flagship Store',
+          partner_avatar: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&q=80',
+          partner_role: 'merchant',
+          last_message: 'Áo khoác gió có sẵn đủ size S, M, L nha khách ơi!',
+          last_message_time: 'Hôm qua',
+          unread_count: 0,
+          is_online: true,
+        },
+      ]);
+    }
+  }, [user]);
 
   const [activeThreadId, setActiveThreadId] = useState<string>('thread-1');
   const [searchThreadTerm, setSearchThreadTerm] = useState<string>('');

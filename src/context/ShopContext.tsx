@@ -86,68 +86,74 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [userActivities] = useState<UserActivity[]>([]);
+  // Dual Coins State (0 for unauthenticated Guest, loaded for logged-in user)
+  const [regularCoins, setRegularCoins] = useState<number>(0);
+  const [tqCoins, setTQCoins] = useState<number>(0);
+  const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([]);
 
-  // Dual Coins State
-  const [regularCoins, setRegularCoins] = useState<number>(125000);
-  const [tqCoins, setTQCoins] = useState<number>(50000);
-  const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([
-    {
-      id: 'tx-1',
-      user_id: 'current-user',
-      amount: 50,
-      type: 'bonus',
-      coin_category: 'regular',
-      description: '🎁 Thưởng điểm danh Ngày 1/7 hàng ngày',
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: 'tx-2',
-      user_id: 'current-user',
-      amount: 10000,
-      type: 'earn',
-      coin_category: 'regular',
-      description: '🌟 Thưởng 2% Hoàn Xu khi đánh giá gian hàng đã mua',
-      created_at: new Date(Date.now() - 43200000).toISOString(),
-    },
-  ]);
-
-  // Check-in State
   const [hasCheckedInToday, setHasCheckedInToday] = useState<boolean>(false);
   const [checkInStreak, setCheckInStreak] = useState<number>(1);
   const [lastCheckInDate, setLastCheckInDate] = useState<string | null>(null);
 
-  // Admin Coins Rules Configuration
   const [reviewCashbackRate, setReviewCashbackRate] = useState<number>(2); // 2%
   const [monthlyDistributedCoins] = useState<number>(185000); // 185k / 500k monthly emission limit
 
-  // Orders State
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 'ORD-9812',
-      user_id: user?.id || 'guest',
-      user_name: 'Nguyễn Văn Hùng',
-      user_phone: '0912345678',
-      shipping_address: 'Số 18 ngõ 20 đường Trần Thái Tông, Cầu Giấy, Hà Nội',
-      items: [
-        {
-          product_id: 1,
-          product: INITIAL_PRODUCTS[0],
-          quantity: 1,
-          price: INITIAL_PRODUCTS[0].price,
-        },
-      ],
-      total_amount: INITIAL_PRODUCTS[0].price,
-      discount_amount: 0,
-      final_amount: INITIAL_PRODUCTS[0].price,
-      status: 'preparing',
-      delivery_method: 'seller_delivery',
-      payment_method: 'direct_with_seller',
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-    },
-  ]);
+  // Orders State (Empty [] for unauthenticated Guest)
+  const [orders, setOrders] = useState<Order[]>([]);
 
   // Purchased Products Tracker for Verified Buyer Reviews
-  const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>(['1', '2', '3']);
+  const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>([]);
+
+  // ISOLATE USER DATA & SET CLEAN BLANK STATE FOR UNAUTHENTICATED GUESTS
+  useEffect(() => {
+    if (!user) {
+      setCartItems([]);
+      setOrders([]);
+      setRegularCoins(0);
+      setTQCoins(0);
+      setCoinTransactions([]);
+      setPurchasedProductIds([]);
+    } else {
+      setRegularCoins(125000);
+      setTQCoins(50000);
+      setPurchasedProductIds(['1', '2', '3']);
+      setCoinTransactions([
+        {
+          id: 'tx-1',
+          user_id: user.id,
+          amount: 50,
+          type: 'bonus',
+          coin_category: 'regular',
+          description: '🎁 Thưởng điểm danh Ngày 1/7 hàng ngày',
+          created_at: new Date().toISOString(),
+        },
+      ]);
+      setOrders([
+        {
+          id: 'ORD-9812',
+          user_id: user.id,
+          user_name: user.user_metadata?.full_name || 'Khách hàng',
+          user_phone: user.user_metadata?.phone || '0912345678',
+          shipping_address: 'Số 18 ngõ 20 đường Trần Thái Tông, Cầu Giấy, Hà Nội',
+          items: [
+            {
+              product_id: 1,
+              product: INITIAL_PRODUCTS[0],
+              quantity: 1,
+              price: INITIAL_PRODUCTS[0].price,
+            },
+          ],
+          total_amount: INITIAL_PRODUCTS[0].price,
+          discount_amount: 0,
+          final_amount: INITIAL_PRODUCTS[0].price,
+          status: 'preparing',
+          delivery_method: 'seller_delivery',
+          payment_method: 'direct_with_seller',
+          created_at: new Date(Date.now() - 7200000).toISOString(),
+        },
+      ]);
+    }
+  }, [user]);
 
   // GPS Location Filter States
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
