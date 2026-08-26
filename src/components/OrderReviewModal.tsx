@@ -19,8 +19,8 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({ isOpen, onCl
 
   if (!isOpen || !order) return null;
 
-  const firstItemName = order.items[0]?.product.name || 'Sản phẩm Siêu Tiện Ích';
-  const firstItemImg = order.items[0]?.product.img || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80';
+  const firstItemName = order.items?.[0]?.product?.name || 'Sản phẩm Siêu Tiện Ích';
+  const firstItemImg = order.items?.[0]?.product?.img || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80';
 
   // Handle Photo Upload From Device Gallery / Photo Library
   const handlePhotoUploadFromLibrary = (e: React.ChangeEvent<HTMLInputElement>) => {

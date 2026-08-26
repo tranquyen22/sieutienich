@@ -12,8 +12,8 @@ export const PWAInstallPromptBar: React.FC = () => {
   useEffect(() => {
     // 1. Check if running as standalone app (already installed)
     const isStandaloneMode = 
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
+      Boolean(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      Boolean((window.navigator as any)?.standalone === true);
 
     setIsStandalone(isStandaloneMode);
 
