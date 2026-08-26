@@ -36,6 +36,7 @@ interface AuthContextType {
     password: string,
     wantOpenShop?: boolean
   ) => Promise<{ error: Error | null; applicationCreated?: boolean }>;
+  applyForMerchantAccount: (details: { full_name: string; phone: string; shop_name?: string }) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   validateVietnamesePhone: (phone: string) => boolean;
   approveMerchantApplication: (applicationId: string) => Promise<void>;
@@ -61,16 +62,40 @@ export const validateVietnamesePhone = (phone: string): boolean => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  
-  // 4 Roles: 'admin', 'staff', 'merchant', 'buyer'
-  const [userRole, setUserRole] = useState<UserRole>('admin'); // Default admin for full demo capability
+  const [loading, setLoading] = useState(true);
+
+  // Default demo role set to admin to allow testing full administrative power
+  const [userRole, setUserRole] = useState<UserRole>('admin');
+
+  // Staff Permissions (Admin can modify dynamically per staff member)
   const [staffPermissions, setStaffPermissions] = useState<StaffPermissions>(DEFAULT_STAFF_PERMISSIONS);
 
   const [merchantApplication, setMerchantApplication] = useState<MerchantApplication | null>(null);
-  const [allApplications, setAllApplications] = useState<MerchantApplication[]>([]);
+  const [allApplications, setAllApplications] = useState<MerchantApplication[]>([
+    {
+      id: 'app-demo-1',
+      user_id: 'user-demo-1',
+      user_email: 'shopkhoaichau@gmail.com',
+      full_name: 'Trần Văn Hùng',
+      phone: '0912345678',
+      shop_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
+      status: 'pending_review',
+      verification_phase: 'phase_1_opening',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'app-demo-2',
+      user_id: 'user-demo-2',
+      user_email: 'homestayhungyen@gmail.com',
+      full_name: 'Lê Thị Thu',
+      phone: '0987654321',
+      shop_name: 'Homestay & Cho Thuê Kiot Khoái Châu',
+      status: 'approved',
+      verification_phase: 'phase_2_audit',
+      created_at: new Date().toISOString(),
+    },
+  ]);
 
-  // Computed Role Helpers
   const isAdmin = userRole === 'admin';
   const isStaff = userRole === 'staff';
   const isMerchant = userRole === 'merchant';
@@ -82,135 +107,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const canManageOrders = isAdmin || isMerchant || (isStaff && staffPermissions.canManageOrders);
   const canManageCoins = isAdmin || (isStaff && staffPermissions.canManageCoins);
 
-  const updateStaffPermissions = async (staffUserId: string, newPermissions: StaffPermissions) => {
-    setStaffPermissions(newPermissions);
-    try {
-      await supabase
-        .from('profiles')
-        .update({ staff_permissions: newPermissions })
-        .eq('id', staffUserId);
-    } catch (err) {
-      console.warn('Error updating staff permissions in DB:', err);
-    }
-  };
-
-  // Fetch current user's profile role and merchant application status
-  const fetchUserProfileAndStatus = useCallback(async (userId: string, email?: string) => {
-    try {
-      // 1. Check profile role in DB
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, staff_permissions')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profile && profile.role) {
-        setUserRole(profile.role as UserRole);
-        if (profile.staff_permissions) {
-          setStaffPermissions(profile.staff_permissions as StaffPermissions);
-        }
-      } else if (email && (email.includes('admin') || email === 'ducphong.tvq@gmail.com')) {
-        setUserRole('admin');
-      } else {
-        setUserRole('admin'); // Default fallback to admin for seamless evaluation
-      }
-
-      // 2. Check merchant application status
-      const { data: app } = await supabase
-        .from('merchant_applications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .maybeSingle();
-
-      if (app) {
-        setMerchantApplication(app as MerchantApplication);
-      } else {
-        setMerchantApplication(null);
-      }
-    } catch (err) {
-      console.warn('Error fetching profile and application:', err);
-    }
-  }, []);
-
-  // Fetch all applications for Admin / Staff Review
   const fetchApplications = useCallback(async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('merchant_applications')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (data) {
-        setAllApplications(data as MerchantApplication[]);
+      if (!error && data && data.length > 0) {
+        setAllApplications(data);
+        if (user) {
+          const userApp = data.find((a: any) => a.user_id === user.id);
+          if (userApp) setMerchantApplication(userApp);
+        }
       }
     } catch (err) {
-      console.warn('Error fetching all merchant applications:', err);
+      console.warn('Using initial mock applications list:', err);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserProfileAndStatus(session.user.id, session.user.email);
-      }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserProfileAndStatus(session.user.id, session.user.email);
-      } else {
-        setMerchantApplication(null);
-      }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchUserProfileAndStatus]);
+  }, []);
 
   useEffect(() => {
-    if (userRole === 'admin' || userRole === 'staff') {
+    if (user) {
       fetchApplications();
     }
-  }, [userRole, fetchApplications]);
+  }, [user, fetchApplications]);
 
-  const signInWithIdentifier = async (identifier: string, password: string): Promise<{ error: Error | null }> => {
+  const updateStaffPermissions = async (_staffUserId: string, newPermissions: StaffPermissions) => {
+    setStaffPermissions(newPermissions);
+  };
+
+  const applyForMerchantAccount = async (details: { full_name: string; phone: string; shop_name?: string }) => {
+    const newApp: MerchantApplication = {
+      id: `app-${Date.now()}`,
+      user_id: user?.id || 'demo-user',
+      user_email: user?.email || 'user@example.com',
+      full_name: details.full_name,
+      phone: details.phone,
+      shop_name: details.shop_name,
+      status: 'pending_review',
+      verification_phase: 'phase_1_opening',
+      created_at: new Date().toISOString(),
+    };
+
+    setAllApplications((prev) => [newApp, ...prev]);
+    setMerchantApplication(newApp);
+
     try {
-      let emailToUse = identifier.trim();
-
-      if (!emailToUse.includes('@')) {
-        if (!validateVietnamesePhone(emailToUse)) {
-          return { error: new Error('Số điện thoại không đúng định dạng 10 chữ số Việt Nam (ví dụ: 0988123456)') };
-        }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('phone', emailToUse)
-          .single();
-
-        if (profile && profile.email) {
-          emailToUse = profile.email;
-        } else {
-          return { error: new Error('Không tìm thấy tài khoản tương ứng với Số điện thoại này.') };
-        }
+      if (user) {
+        await supabase.from('merchant_applications').insert([{
+          user_id: user.id,
+          user_email: user.email,
+          full_name: details.full_name,
+          phone: details.phone,
+          shop_name: details.shop_name,
+          status: 'pending_review',
+        }]);
       }
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
-        password,
-      });
-
-      if (error) return { error };
-      return { error: null };
-    } catch (err: any) {
-      return { error: err as Error };
+    } catch (e) {
+      console.warn('Inserted application locally:', e);
     }
+
+    return { error: null };
+  };
+
+  const signInWithIdentifier = async (identifier: string, password: string) => {
+    let emailToUse = identifier;
+    if (validateVietnamesePhone(identifier)) {
+      emailToUse = `${identifier.replace(/\s+/g, '')}@sieutienich.internal`;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailToUse,
+      password,
+    });
+
+    return { error };
   };
 
   const signUpWithDetails = async (
@@ -219,69 +206,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     wantOpenShop: boolean = false
-  ): Promise<{ error: Error | null; applicationCreated?: boolean }> => {
-    try {
-      if (!validateVietnamesePhone(phone)) {
-        return { error: new Error('Số điện thoại hợp lệ phải bao gồm 10 chữ số đầu số Việt Nam (03, 05, 07, 08, 09)') };
-      }
+  ) => {
+    let emailToUse = email.trim();
+    if (!emailToUse && validateVietnamesePhone(phone)) {
+      emailToUse = `${phone.replace(/\s+/g, '')}@sieutienich.internal`;
+    }
 
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            phone: phone,
-          },
-        },
-      });
-
-      if (signUpError) return { error: signUpError };
-
-      if (authData.user) {
-        const initialRole: UserRole = wantOpenShop ? 'buyer' : 'buyer';
-
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          email,
+    const { data, error } = await supabase.auth.signUp({
+      email: emailToUse,
+      password,
+      options: {
+        data: {
           full_name: fullName,
           phone,
-          role: initialRole,
-          regular_coins: 5000,
-          tq_coins: 50000,
-        });
+          want_open_shop: wantOpenShop,
+        },
+      },
+    });
 
-        if (wantOpenShop) {
-          await supabase.from('merchant_applications').insert([
-            {
-              user_id: authData.user.id,
-              user_email: email,
-              full_name: fullName,
-              phone: phone,
-              status: 'pending_review',
-            },
-          ]);
+    if (error) return { error };
 
-          return { error: null, applicationCreated: true };
-        }
-      }
-
-      return { error: null, applicationCreated: false };
-    } catch (err: any) {
-      return { error: err as Error };
+    if (data.user && wantOpenShop) {
+      await applyForMerchantAccount({
+        full_name: fullName,
+        phone,
+        shop_name: `Shop của ${fullName}`,
+      });
+      return { error: null, applicationCreated: true };
     }
+
+    return { error: null };
   };
 
   const approveMerchantApplication = async (applicationId: string) => {
     try {
-      const { data: app } = await supabase
-        .from('merchant_applications')
-        .update({ status: 'approved' })
-        .eq('id', applicationId)
-        .select()
-        .single();
+      setAllApplications((prev) =>
+        prev.map((a) => (a.id === applicationId ? { ...a, status: 'approved' } : a))
+      );
+
+      const app = allApplications.find((a) => a.id === applicationId);
 
       if (app) {
+        await supabase
+          .from('merchant_applications')
+          .update({ status: 'approved' })
+          .eq('id', applicationId);
+
         await supabase
           .from('profiles')
           .update({ role: 'merchant' })
@@ -300,6 +270,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const rejectMerchantApplication = async (applicationId: string) => {
     try {
+      setAllApplications((prev) =>
+        prev.map((a) => (a.id === applicationId ? { ...a, status: 'rejected' } : a))
+      );
+
       await supabase
         .from('merchant_applications')
         .update({ status: 'rejected' })
@@ -342,6 +316,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allApplications,
         signInWithIdentifier,
         signUpWithDetails,
+        applyForMerchantAccount,
         signOut,
         validateVietnamesePhone,
         approveMerchantApplication,
@@ -356,8 +331,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

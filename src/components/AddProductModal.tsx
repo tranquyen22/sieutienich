@@ -212,6 +212,79 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             </div>
           )}
 
+          {/* Dynamic Category Specific Form Fields */}
+          {category === 'fashion' && (
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl space-y-2 text-xs">
+              <span className="font-extrabold text-purple-900 block">👕 Ngành hàng Thời trang — Kích cỡ & Màu sắc:</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">Kích cỡ (Size)</label>
+                  <input
+                    type="text"
+                    placeholder="VD: S, M, L, XL"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">Màu sắc</label>
+                  <input
+                    type="text"
+                    placeholder="VD: Đen, Trắng, Đỏ"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {category === 'food' && (
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded-2xl space-y-2 text-xs">
+              <span className="font-extrabold text-amber-900 block">🍱 Ngành hàng Đồ ăn — Khẩu phần & Topping:</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">Khẩu phần</label>
+                  <input
+                    type="text"
+                    placeholder="VD: Nhỏ, Vừa, Lớn"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">Tùy chọn Topping</label>
+                  <input
+                    type="text"
+                    placeholder="VD: Trân châu, Phô mai"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {category === 'lodging' && (
+            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2 text-xs">
+              <span className="font-extrabold text-indigo-900 block">🏠 Ngành hàng Phòng trọ — Loại phòng & Số người:</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">Loại phòng</label>
+                  <input
+                    type="text"
+                    placeholder="VD: Studio, Phòng đơn, Căn hộ"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">Số người tối đa</label>
+                  <input
+                    type="number"
+                    placeholder="VD: 2 người, 4 người"
+                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Category Selection */}
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center gap-1">

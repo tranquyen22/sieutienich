@@ -19,6 +19,36 @@ export interface ProductReview {
   created_at: string;
 }
 
+// Product Variant Interface (Multi-size, color, stock & price)
+export interface ProductVariant {
+  id: string;
+  size?: string;       // Fashion: S, M, L, XL
+  color?: string;      // Fashion: Đen, Trắng...
+  portion?: string;    // Food: Nhỏ, Vừa, Lớn
+  topping?: string;    // Food: Trân châu, Phô mai...
+  room_type?: string;  // Lodging: Phòng đơn, Studio, Căn hộ
+  max_guests?: number; // Lodging: 2 người, 4 người...
+  price: number;
+  stock: number;
+}
+
+export interface OperatingHours {
+  day: string; // T2, T3, T4, T5, T6, T7, CN
+  open_time: string;
+  close_time: string;
+  is_open: boolean;
+}
+
+export interface CategoryDocument {
+  id: string;
+  document_name: string;
+  category: string;
+  document_url?: string;
+  issue_date?: string;
+  expiry_date?: string;
+  is_valid: boolean;
+}
+
 export interface Product {
   id: number | string;
   user_id?: string; // Account ownership
@@ -34,11 +64,13 @@ export interface Product {
   licenseNo?: string;
   contactName?: string;
   phone?: string;
+  // Dynamic Category & Variants
+  variants?: ProductVariant[];
+  soldCount?: number; // Tổng số lượt đã bán / đã phục vụ
   // Ratings & Reviews & Sales Volume
   rating?: number;
   reviewCount?: number;
   reviews?: ProductReview[];
-  soldCount?: number; // Tổng số lượt đã bán / đã phục vụ
   // Vietnam post-merger location fields
   province?: string;
   district?: string;
@@ -51,6 +83,7 @@ export interface CartItem {
   user_id?: string; // Account isolated cart item
   product_id?: number | string;
   product: Product;
+  selected_variant?: ProductVariant;
   quantity: number;
   created_at?: string;
 }
@@ -84,6 +117,7 @@ export type DeliveryMethod =
 export interface OrderItem {
   product_id: string | number;
   product: Product;
+  selected_variant?: ProductVariant;
   quantity: number;
   price: number;
 }
@@ -189,7 +223,12 @@ export interface MerchantApplication {
   full_name: string;
   phone: string;
   shop_name?: string;
-  status: 'pending_review' | 'approved' | 'rejected';
+  category?: string;
+  business_license?: string;
+  store_photo?: string;
+  status: 'pending_review' | 'approved' | 'rejected' | 'needs_info';
+  status_reason?: string;
+  verification_phase?: 'phase_1_opening' | 'phase_2_audit'; // Phase 1: Mở Shop, Phase 2: Xác minh thực địa
   created_at: string;
 }
 

@@ -3,6 +3,7 @@ import type { Product, CartItem, Category, UserActivity, CoinTransaction, Order,
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { removeVietnameseAccents } from '../utils/vietnamese';
 
 interface ShopContextType {
   products: Product[];
@@ -533,13 +534,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const matchesCategory =
         selectedCategory === 'all' || product.category === selectedCategory;
 
+      const cleanQuery = removeVietnameseAccents(searchQuery);
+
       const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        !cleanQuery ||
+        removeVietnameseAccents(product.name).includes(cleanQuery) ||
+        removeVietnameseAccents(product.category).includes(cleanQuery) ||
         (product.description &&
-          product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          removeVietnameseAccents(product.description).includes(cleanQuery)) ||
         (product.locationName &&
-          product.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
+          removeVietnameseAccents(product.locationName).includes(cleanQuery));
 
       const matchesProvince =
         selectedProvince === 'all' ||

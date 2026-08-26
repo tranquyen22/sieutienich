@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import { NotificationBell } from './NotificationBell';
@@ -16,6 +16,8 @@ interface HeaderProps {
   onOpenCustomerAddressBookModal: () => void;
   onOpenDirectMessagingModal: () => void;
   onOpenBuyerDashboardModal: () => void;
+  onOpenMultiStepOnboardingModal: () => void;
+  onOpenShopDetailPortalModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -29,6 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCustomerAddressBookModal,
   onOpenDirectMessagingModal,
   onOpenBuyerDashboardModal,
+  onOpenMultiStepOnboardingModal,
+  onOpenShopDetailPortalModal,
 }) => {
   const { 
     user, 
@@ -40,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
     canManageProducts 
   } = useAuth();
 
-  const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen, regularCoins, tqCoins, orders } = useShop();
+  const { searchQuery, setSearchQuery, cartCount, setIsCartOpen, isCartOpen, regularCoins, tqCoins, orders, filteredProducts } = useShop();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Tài khoản';
@@ -127,14 +131,14 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </a>
 
-          {/* THANH TÌM KIẾM */}
-          <div className="flex-1 max-w-2xl mx-2 sm:mx-4">
+          {/* THANH TÌM KIẾM CÓ GỢI Ý & TÌM KIẾM KHÔNG DẤU */}
+          <div className="flex-1 max-w-2xl mx-2 sm:mx-4 relative">
             <div className="relative">
               <input 
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm shop cho thuê, đồ ăn, spa, việc làm, vận tải..." 
+                placeholder="Tìm kiếm shop cho thuê, đồ ăn, spa, việc làm (gõ không dấu)..." 
                 className="w-full pl-10 pr-8 py-2 bg-gray-100 border border-transparent rounded-full focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 transition text-xs sm:text-sm text-gray-800"
               />
               <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
@@ -147,6 +151,35 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
             </div>
+
+            {/* LIVE SEARCH SUGGESTIONS POPOVER WHILE TYPING */}
+            {searchQuery.trim().length > 0 && (
+              <div className="absolute left-0 right-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 text-xs">
+                <div className="px-3.5 py-1 text-[10px] text-gray-400 font-extrabold uppercase">
+                  🔍 Gợi ý tìm kiếm tức thì (Gõ không dấu):
+                </div>
+                {filteredProducts.length === 0 ? (
+                  <div className="px-3.5 py-2 text-gray-400 text-xs">Không tìm thấy tiện ích phù hợp.</div>
+                ) : (
+                  filteredProducts.slice(0, 5).map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => {
+                        setSearchQuery(p.name);
+                        document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="px-3.5 py-2 hover:bg-indigo-50 flex items-center justify-between cursor-pointer transition"
+                    >
+                      <div className="flex items-center gap-2">
+                        <img src={p.img} alt={p.name} className="w-7 h-7 object-cover rounded-lg shrink-0" />
+                        <span className="font-bold text-gray-800 truncate max-w-[200px] sm:max-w-xs">{p.name}</span>
+                      </div>
+                      <span className="text-rose-600 font-black shrink-0">{p.price.toLocaleString()} đ</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* NÚT CHỨC NĂNG */}
@@ -236,13 +269,37 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </div>
 
+                    {/* MULTI-STEP SHOP ONBOARDING WIZARD LINK */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenMultiStepOnboardingModal();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                    >
+                      <Store className="w-4 h-4 text-emerald-600" />
+                      <span>🏪 Đăng Ký Mở Shop 4 Bước (Wizard)</span>
+                    </button>
+
+                    {/* SHOP DETAIL & PORTAL (8 TABS) LINK */}
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenShopDetailPortalModal();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-indigo-900 bg-indigo-50/70 hover:bg-indigo-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                    >
+                      <Store className="w-4 h-4 text-indigo-600" />
+                      <span>🏪 Trang Chi Tiết Gian Hàng (8 Thẻ)</span>
+                    </button>
+
                     {/* BUYER PROFILE & DASHBOARD PORTAL LINK */}
                     <button
                       onClick={() => {
                         setShowDropdown(false);
                         onOpenBuyerDashboardModal();
                       }}
-                      className="w-full text-left px-4 py-2.5 text-xs font-black text-indigo-900 bg-indigo-50/80 hover:bg-indigo-100 flex items-center gap-2 border-b border-indigo-100 cursor-pointer"
+                      className="w-full text-left px-4 py-2.5 text-xs font-black text-indigo-900 hover:bg-indigo-50 flex items-center gap-2 border-b border-indigo-100 cursor-pointer"
                     >
                       <UserIcon className="w-4 h-4 text-indigo-600" />
                       <span>👤 Quản Lý Tài Khoản Khách (18 Mục)</span>

@@ -17,6 +17,8 @@ import { MerchantReconciliationModal } from './components/MerchantReconciliation
 import { CustomerAddressBookModal } from './components/CustomerAddressBookModal';
 import { DirectMessagingModal } from './components/DirectMessagingModal';
 import { BuyerDashboardModal } from './components/BuyerDashboardModal';
+import { MultiStepShopOnboardingModal } from './components/MultiStepShopOnboardingModal';
+import { ShopDetailPortalModal } from './components/ShopDetailPortalModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import type { Product, CustomerAddress } from './types';
@@ -32,6 +34,8 @@ function AppContent() {
   const [customerAddressBookModalOpen, setCustomerAddressBookModalOpen] = useState(false);
   const [directMessagingModalOpen, setDirectMessagingModalOpen] = useState(false);
   const [buyerDashboardModalOpen, setBuyerDashboardModalOpen] = useState(false);
+  const [multiStepOnboardingModalOpen, setMultiStepOnboardingModalOpen] = useState(false);
+  const [shopDetailPortalModalOpen, setShopDetailPortalModalOpen] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
 
   // Customer Saved Addresses State
@@ -97,6 +101,8 @@ function AppContent() {
         onOpenCustomerAddressBookModal={() => setCustomerAddressBookModalOpen(true)}
         onOpenDirectMessagingModal={() => setDirectMessagingModalOpen(true)}
         onOpenBuyerDashboardModal={() => setBuyerDashboardModalOpen(true)}
+        onOpenMultiStepOnboardingModal={() => setMultiStepOnboardingModalOpen(true)}
+        onOpenShopDetailPortalModal={() => setShopDetailPortalModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards & Homepage Daily Check-in */}
@@ -208,6 +214,16 @@ function AppContent() {
           setBuyerDashboardModalOpen(false);
           setOrderTrackingModalOpen(true);
         }}
+      />
+
+      <MultiStepShopOnboardingModal
+        isOpen={multiStepOnboardingModalOpen}
+        onClose={() => setMultiStepOnboardingModalOpen(false)}
+      />
+
+      <ShopDetailPortalModal
+        isOpen={shopDetailPortalModalOpen}
+        onClose={() => setShopDetailPortalModalOpen(false)}
       />
 
       <ProductDetailModal 
