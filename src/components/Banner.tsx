@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowRight, Briefcase, Utensils, ChevronLeft, ChevronRight, Flame, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, ChevronLeft, ChevronRight, Flame, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -98,8 +98,7 @@ export const Banner: React.FC = () => {
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 text-amber-600" />
-                <span>Điểm Danh Ngay (+{checkInStreak === 7 ? '300' : '50'} Xu)</span>
+                <span>👉 Bấm Nhận +50 Xu Mới</span>
               </>
             )}
           </button>
@@ -115,146 +114,87 @@ export const Banner: React.FC = () => {
         </div>
       )}
 
-      {/* MAIN BANNER GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      {/* MAIN FULL-WIDTH BANNER SLIDER */}
+      <div className="w-full relative rounded-3xl overflow-hidden shadow-xl min-h-[240px] sm:min-h-[320px] md:min-h-[360px] flex flex-col justify-end group">
         
-        {/* KHỐI SLIDER CHÍNH (BÊN TRÁI 2 CỘT) */}
-        <div className="lg:col-span-2 relative rounded-3xl overflow-hidden shadow-xl min-h-[260px] sm:min-h-[340px] flex flex-col justify-end group">
+        {/* Background Image Carousel */}
+        {slides.map((slide, index) => (
+          <div
+            key={slide.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              index === currentSlide ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <img 
+              src={slide.img} 
+              alt={slide.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent" />
+          </div>
+        ))}
+
+        {/* Slide Content Overlay */}
+        <div className="relative z-10 p-6 sm:p-8 space-y-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/90 text-white rounded-full text-xs font-extrabold shadow-sm backdrop-blur-md">
+            <Sparkles className="w-3.5 h-3.5" />
+            {slides[currentSlide].badge}
+          </span>
           
-          {/* Background Image Carousel */}
-          {slides.map((slide, index) => (
-            <div
-              key={slide.id}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                index === currentSlide ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight tracking-tight max-w-xl">
+            {slides[currentSlide].title}
+          </h1>
+          
+          <p className="text-gray-200 text-xs sm:text-sm max-w-lg leading-relaxed line-clamp-2">
+            {slides[currentSlide].subtitle}
+          </p>
+
+          <div className="pt-2 flex items-center gap-4">
+            <button 
+              onClick={() => {
+                setSelectedCategory(slides[currentSlide].catId);
+                document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-2xl text-xs sm:text-sm shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 cursor-pointer"
+            >
+              <span>{slides[currentSlide].ctaText}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Controls */}
+        <button 
+          onClick={prevSlide}
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/70 backdrop-blur-sm transition opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+          title="Trượt sang trái"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        
+        <button 
+          onClick={nextSlide}
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/70 backdrop-blur-sm transition opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+          title="Trượt sang phải"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+
+        {/* Slide Indicator Dots */}
+        <div className="absolute bottom-3 right-4 z-20 flex items-center gap-1.5">
+          {slides.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentSlide(idx)}
+              className={`h-2 rounded-full transition-all cursor-pointer ${
+                idx === currentSlide ? 'w-6 bg-amber-400' : 'w-2 bg-white/50 hover:bg-white/80'
               }`}
-            >
-              <img 
-                src={slide.img} 
-                alt={slide.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent" />
-            </div>
+              title={`Chuyển đến Slide ${idx + 1}`}
+            />
           ))}
-
-          {/* Slide Content Overlay */}
-          <div className="relative z-10 p-6 sm:p-8 space-y-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/90 text-white rounded-full text-xs font-extrabold shadow-sm backdrop-blur-md">
-              <Sparkles className="w-3.5 h-3.5" />
-              {slides[currentSlide].badge}
-            </span>
-            
-            <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight tracking-tight max-w-xl">
-              {slides[currentSlide].title}
-            </h1>
-            
-            <p className="text-gray-200 text-xs sm:text-sm max-w-lg leading-relaxed line-clamp-2">
-              {slides[currentSlide].subtitle}
-            </p>
-
-            <div className="pt-2 flex items-center gap-4">
-              <button 
-                onClick={() => {
-                  setSelectedCategory(slides[currentSlide].catId);
-                  document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-2xl text-xs sm:text-sm shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 cursor-pointer"
-              >
-                <span>{slides[currentSlide].ctaText}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Navigation Controls */}
-          <button 
-            onClick={prevSlide}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/70 backdrop-blur-sm transition opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
-            title="Trượt sang trái"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          
-          <button 
-            onClick={nextSlide}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/70 backdrop-blur-sm transition opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
-            title="Trượt sang phải"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-
-          {/* Slide Indicator Dots */}
-          <div className="absolute bottom-3 right-4 z-20 flex items-center gap-1.5">
-            {slides.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`h-2 rounded-full transition-all cursor-pointer ${
-                  idx === currentSlide ? 'w-6 bg-amber-400' : 'w-2 bg-white/50 hover:bg-white/80'
-                }`}
-                title={`Chuyển đến Slide ${idx + 1}`}
-              />
-            ))}
-          </div>
         </div>
-
-        {/* KHỐI KHUYẾN MÃI LỐI TẮT BÊN CẠNH BANNER (BÊN PHẢI) */}
-        <div className="flex flex-col gap-4 sm:gap-5 justify-between">
-          
-          {/* THẺ XANH (BÊN PHẢI TRÊN) */}
-          <div className="flex-1 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 text-white p-5 sm:p-6 rounded-3xl shadow-md flex flex-col justify-between relative overflow-hidden group hover:shadow-xl transition-all border border-emerald-500/20">
-            <Briefcase className="w-24 h-24 text-white/10 absolute -right-2 -bottom-2 shrink-0 pointer-events-none group-hover:scale-110 transition-transform duration-500" />
-            <div>
-              <span className="inline-block px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] uppercase font-extrabold tracking-wider mb-2 border border-white/20">
-                Tuyển dụng & Tìm việc
-              </span>
-              <h3 className="text-xl sm:text-2xl font-black tracking-tight">Việc làm</h3>
-              <p className="text-emerald-100 text-xs mt-1 max-w-[210px] leading-snug">
-                Hàng ngàn cơ hội việc làm thu nhập hấp dẫn đang chờ bạn khám phá.
-              </p>
-            </div>
-            <button 
-              onClick={() => { 
-                setSelectedCategory('jobs'); 
-                document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }); 
-              }}
-              className="mt-4 inline-flex items-center justify-between px-4 py-2.5 bg-white text-emerald-900 font-extrabold rounded-2xl text-xs shadow-md hover:bg-emerald-50 transition-all w-full group/btn cursor-pointer"
-            >
-              <span>Tìm việc ngay</span>
-              <ArrowRight className="w-4 h-4 text-emerald-700 group-hover/btn:translate-x-1 transition-transform" />
-            </button>
-          </div>
-
-          {/* THẺ CAM (BÊN PHẢI DƯỚI) */}
-          <div className="flex-1 bg-gradient-to-br from-orange-500 via-amber-600 to-orange-700 text-white p-5 sm:p-6 rounded-3xl shadow-md flex flex-col justify-between relative overflow-hidden group hover:shadow-xl transition-all border border-orange-400/20">
-            <Utensils className="w-24 h-24 text-white/10 absolute -right-2 -bottom-2 shrink-0 pointer-events-none group-hover:scale-110 transition-transform duration-500" />
-            <div>
-              <span className="inline-block px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] uppercase font-extrabold tracking-wider mb-2 border border-white/20">
-                Giao siêu tốc 30 phút
-              </span>
-              <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
-                "Giao ngay" <span className="text-xs font-semibold text-amber-100 block">Đồ ăn - Đồ uống</span>
-              </h3>
-              <p className="text-orange-100 text-xs mt-1 max-w-[210px] leading-snug">
-                Thỏa thích đặt các món ăn ngon nóng hổi giao tận nhà.
-              </p>
-            </div>
-            <button 
-              onClick={() => { 
-                setSelectedCategory('food'); 
-                document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }); 
-              }}
-              className="mt-4 inline-flex items-center justify-between px-4 py-2.5 bg-white text-amber-900 font-extrabold rounded-2xl text-xs shadow-md hover:bg-orange-50 transition-all w-full group/btn cursor-pointer"
-            >
-              <span>Đặt món ngay</span>
-              <ArrowRight className="w-4 h-4 text-amber-700 group-hover/btn:translate-x-1 transition-transform" />
-            </button>
-          </div>
-
-        </div>
-
       </div>
+
     </div>
   );
 };
