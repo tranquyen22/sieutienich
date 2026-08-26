@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, Check, Ban, Clock, AlertTriangle, PhoneCall, ShieldAlert } from 'lucide-react';
+import { X, ShieldCheck, Check, Ban, Clock, PhoneCall, ShieldAlert, Key } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 
@@ -9,7 +9,7 @@ interface AdminMerchantReviewModalProps {
 }
 
 export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> = ({ isOpen, onClose }) => {
-  const { allApplications, approveMerchantApplication, rejectMerchantApplication } = useAuth();
+  const { allApplications, approveMerchantApplication, rejectMerchantApplication, isAdmin, startShopImpersonation } = useAuth();
   const { products, deleteProduct } = useShop();
 
   const [activeReviewTab, setActiveReviewTab] = useState<'phase_1' | 'phase_2' | 'revoke_and_takedown'>('phase_1');
@@ -20,14 +20,14 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
 
   if (!isOpen) return null;
 
-  const handleOpenReasonPrompt = (appId: string, type: 'needs_info' | 'reject' | 'revoke') => {
+  const handleOpenReasonModal = (appId: string, action: 'needs_info' | 'reject' | 'revoke') => {
     setSelectedAppId(appId);
-    setActionType(type);
+    setActionType(action);
     setReasonInput('');
     setReasonModalOpen(true);
   };
 
-  const handleConfirmReasonAction = async () => {
+  const handleConfirmReason = () => {
     if (!reasonInput.trim()) {
       alert('Vui lòng nhập lý do cụ thể để gửi thông báo cho Shop!');
       return;
@@ -35,10 +35,8 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
 
     if (selectedAppId) {
       if (actionType === 'reject' || actionType === 'needs_info') {
-        await rejectMerchantApplication(selectedAppId);
-        alert(`Đã gửi phản hồi [${actionType === 'needs_info' ? 'Yêu cầu bổ sung' : 'Từ chối'}] cho Shop với lý do: "${reasonInput}"`);
-      } else if (actionType === 'revoke') {
-        alert(`Đã thu hồi nhãn xác minh của Shop thành công! Lý do báo cho Shop: "${reasonInput}"`);
+        rejectMerchantApplication(selectedAppId);
+        alert(`❌ Đã từ chối / Yêu cầu bổ sung hồ sơ mở shop!\nLý do gửi shop: "${reasonInput}"`);
       }
     }
 
@@ -46,39 +44,49 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
   };
 
   const handleTakedownProduct = (productId: number | string, productName: string) => {
-    const reason = window.prompt(`Nhập lý do gỡ sản phẩm vi phạm "${productName}":`);
-    if (reason && reason.trim()) {
-      deleteProduct(productId);
-      alert(`Đã gỡ sản phẩm vi phạm thành công! Lý do gửi thông báo cho Shop: "${reason}"`);
-    }
+    const reason = prompt(`Nhập lý do chi tiết gỡ sản phẩm vi phạm "${productName}":`, 'Sản phẩm thuộc danh mục cấm hoặc vi phạm bản quyền.');
+    if (!reason) return;
+
+    deleteProduct(productId);
+    alert(`🔴 Đã gỡ sản phẩm "${productName}" khỏi sàn thành công!\nLý do thông báo shop: "${reason}"`);
+  };
+
+  const handleQuickImpersonation = (app: any) => {
+    startShopImpersonation({
+      shop_id: app.id,
+      shop_name: app.shop_name || `Gian hàng ${app.full_name}`,
+      owner_name: app.full_name,
+      phone: app.phone,
+    });
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden relative border border-gray-100 max-h-[90vh] flex flex-col min-w-0"
+        className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 max-h-[92vh] flex flex-col min-w-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-slate-900 text-white shrink-0">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-indigo-400" />
-            <div>
-              <h2 className="text-base font-extrabold text-white">Quản Trị Duyệt Mở Shop & Xác Minh 2 Khâu</h2>
-              <p className="text-[11px] text-slate-300">Khâu 1: Duyệt mở shop • Khâu 2: Thẩm định thực địa • Thu hồi nhãn & Gỡ vi phạm</p>
-            </div>
-          </div>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 relative shrink-0">
           <button 
             type="button"
             onClick={onClose} 
-            className="text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition shrink-0 cursor-pointer"
+            className="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition absolute right-4 top-4 shrink-0 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
+
+          <div className="flex items-center gap-2 text-indigo-300 text-xs font-extrabold uppercase tracking-wider mb-1">
+            <ShieldCheck className="w-4 h-4 text-indigo-400" />
+            <span>Hàng Đợi Quản Trị Hệ Thống (Admin & Staff)</span>
+          </div>
+
+          <h2 className="text-xl sm:text-2xl font-black text-white">Phê Duyệt Mở Shop & Thẩm Định Gian Hàng</h2>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-gray-200 bg-gray-50 p-2 gap-1.5 shrink-0 text-xs font-extrabold">
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-1 p-2 bg-gray-100 border-b border-gray-200 text-xs font-extrabold shrink-0">
           <button
             onClick={() => setActiveReviewTab('phase_1')}
             className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -92,11 +100,11 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
           <button
             onClick={() => setActiveReviewTab('phase_2')}
             className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeReviewTab === 'phase_2' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
+              activeReviewTab === 'phase_2' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
             }`}
           >
             <PhoneCall className="w-4 h-4" />
-            <span>Khâu 2: Thẩm Định Thực Địa</span>
+            <span>Khâu 2: Duyệt Xác Minh Thực Địa</span>
           </button>
 
           <button
@@ -132,38 +140,56 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
                           <span className="text-[11px] text-gray-400">Chủ gian hàng: {app.full_name} ({app.phone})</span>
                         </div>
 
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                          isPending ? 'bg-amber-100 text-amber-800' : app.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                        }`}>
-                          {isPending ? '⏳ Chờ duyệt Khâu 1' : app.status === 'approved' ? '✓ Đã duyệt mở shop' : '❌ Từ chối'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {/* QUICK IMPERSONATION ACCESS BUTTON (FOR TAX/POLICE INSPECTION) */}
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickImpersonation(app)}
+                              className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl font-extrabold text-[11px] border border-amber-300 flex items-center gap-1 shadow-sm cursor-pointer"
+                              title="Đăng nhập nhanh vào shop trả lời cơ quan thuế/công an mà không phải hỏi shop"
+                            >
+                              <Key className="w-3.5 h-3.5 text-amber-600" />
+                              <span>🔑 Vào tài khoản shop</span>
+                            </button>
+                          )}
+
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                            isPending ? 'bg-amber-100 text-amber-800' : app.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {isPending ? '⏳ Chờ duyệt Khâu 1' : app.status === 'approved' ? '✓ Đã duyệt mở shop' : '❌ Từ chối'}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* 3 ACTION BUTTONS WITH REASON PROMPT */}
+                      {/* 3 Decision Action Buttons */}
                       {isPending && (
-                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <div className="grid grid-cols-3 gap-2 pt-1 font-extrabold">
                           <button
-                            onClick={() => approveMerchantApplication(app.id)}
-                            className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1"
+                            onClick={() => {
+                              approveMerchantApplication(app.id);
+                              alert(`🎉 Đã chấp thuận Duyệt Mở Shop Khâu 1 cho gian hàng "${app.shop_name || app.full_name}"!`);
+                            }}
+                            className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center gap-1 cursor-pointer"
                           >
                             <Check className="w-4 h-4" />
-                            <span>1. Duyệt Mở Shop</span>
+                            <span>✓ Duyệt Mở Shop</span>
                           </button>
 
                           <button
-                            onClick={() => handleOpenReasonPrompt(app.id, 'needs_info')}
-                            className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1"
+                            onClick={() => handleOpenReasonModal(app.id, 'needs_info')}
+                            className="py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex items-center justify-center gap-1 cursor-pointer"
                           >
-                            <AlertTriangle className="w-4 h-4" />
-                            <span>2. Yêu Cầu Bổ Sung</span>
+                            <Clock className="w-4 h-4" />
+                            <span>⚠️ Yêu cầu bổ sung</span>
                           </button>
 
                           <button
-                            onClick={() => handleOpenReasonPrompt(app.id, 'reject')}
-                            className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1"
+                            onClick={() => handleOpenReasonModal(app.id, 'reject')}
+                            className="py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl flex items-center justify-center gap-1 cursor-pointer"
                           >
                             <Ban className="w-4 h-4" />
-                            <span>3. Từ Chối (Kèm Lý Do)</span>
+                            <span>❌ Từ chối</span>
                           </button>
                         </div>
                       )}
@@ -174,7 +200,7 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
             </div>
           )}
 
-          {/* TAB 2: PHASE 2 PHYSICAL & PHONE VERIFICATION AUDIT QUEUE */}
+          {/* TAB 2: PHASE 2 VERIFICATION AUDIT QUEUE */}
           {activeReviewTab === 'phase_2' && (
             <div className="space-y-4">
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2 text-emerald-950">
@@ -243,36 +269,43 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
           )}
 
         </div>
+
+        {/* Footer */}
+        <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end shrink-0 text-xs font-extrabold">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl cursor-pointer"
+          >
+            Đóng
+          </button>
+        </div>
       </div>
 
       {/* REASON PROMPT MODAL */}
       {reasonModalOpen && (
-        <div className="fixed inset-0 z-60 bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl p-5 space-y-3">
-            <h3 className="font-black text-gray-900 text-sm">
-              {actionType === 'needs_info' ? '⚠️ Yêu Cầu Shop Bổ Sung Hồ Sơ' : '❌ Lý Do Từ Chối / Thu Hồi'}
-            </h3>
-            <p className="text-xs text-gray-500">Nhập thông báo lý do gửi trực tiếp đến chủ gian hàng:</p>
-            <textarea
-              rows={3}
-              value={reasonInput}
-              onChange={(e) => setReasonInput(e.target.value)}
-              placeholder="VD: Giấy phép đăng ký kinh doanh bị mờ, vui lòng tải lại bản rõ nét..."
-              className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            ></textarea>
-            <div className="flex justify-end gap-2 text-xs font-bold">
-              <button
-                onClick={() => setReasonModalOpen(false)}
-                className="px-3 py-2 bg-gray-200 text-gray-800 rounded-xl cursor-pointer"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleConfirmReasonAction}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-xl cursor-pointer font-black"
-              >
-                Gửi Lý Do & Xác Nhận
-              </button>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 text-xs font-medium shadow-2xl border border-indigo-100">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-rose-600">Nhập Lý Do Bắt Buộc Gửi Shop</h3>
+              <button onClick={() => setReasonModalOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block font-bold text-gray-800">
+                {actionType === 'needs_info' ? 'Lý do yêu cầu bổ sung thông tin:' : 'Lý do từ chối hồ sơ / thu hồi nhãn:'}
+              </label>
+              <textarea
+                rows={3}
+                value={reasonInput}
+                onChange={(e) => setReasonInput(e.target.value)}
+                placeholder="VD: Giấy phép kinh doanh quá hạn, hình ảnh mặt bằng không đạt yêu cầu..."
+                className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+              ></textarea>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 font-extrabold">
+              <button onClick={() => setReasonModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-xl">Hủy</button>
+              <button onClick={handleConfirmReason} className="px-5 py-2 bg-rose-600 text-white rounded-xl shadow-md">Xác Nhận Gửi Thông Báo</button>
             </div>
           </div>
         </div>

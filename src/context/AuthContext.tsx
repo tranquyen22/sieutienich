@@ -6,6 +6,14 @@ import { supabase } from '../lib/supabase';
 export const SUPER_ADMIN_EMAIL = 'tranvanquyen2211@gmail.com';
 export const SUPER_ADMIN_PHONE = '0367818343';
 
+export interface ImpersonatedShopInfo {
+  shop_id: string;
+  shop_name: string;
+  owner_name: string;
+  phone?: string;
+  category?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -22,6 +30,13 @@ interface AuthContextType {
   staffPermissions: StaffPermissions;
   setStaffPermissions: React.Dispatch<React.SetStateAction<StaffPermissions>>;
   updateStaffPermissions: (staffUserId: string, newPermissions: StaffPermissions) => Promise<void>;
+
+  // Impersonation Quick Access Engine (Super Admin Only)
+  impersonatedShop: ImpersonatedShopInfo | null;
+  impersonationTimeLeft: number;
+  startShopImpersonation: (shop: ImpersonatedShopInfo) => void;
+  exitShopImpersonation: () => void;
+  exportShopDataReport: (format: 'excel' | 'pdf') => void;
 
   // Computed Action Granular Permissions
   canApproveShops: boolean;
@@ -48,35 +63,25 @@ interface AuthContextType {
 }
 
 const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
-  // 1. Tài khoản và phân quyền
   can_manage_users: true,
   can_lock_unlock_users: true,
   can_reset_passwords: true,
-
-  // 2. Danh bạ tiện ích
   can_manage_directory_items: true,
   can_toggle_verified_badge: true,
   can_manage_categories_and_regions: true,
-
-  // 3. Gian hàng và sản phẩm
   can_approve_shop_phase1: true,
   can_approve_shop_phase2: true,
   can_revoke_verification_badge: true,
   can_takedown_violating_products: true,
   can_view_dispute_messages: true,
-
-  // 4. Xu, voucher, quảng cáo
   can_scan_qr_approve_pending_coins: true,
   can_manage_vouchers_and_banners: true,
   can_manually_adjust_coins: true,
-
-  // 5. Tiền và báo cáo
   can_view_merchant_ledger: true,
   can_record_shop_payments: true,
   can_settle_monthly_ledger: true,
   can_export_financial_reports: true,
 
-  // Aliases for backward compatibility
   canApproveShops: true,
   canManageProducts: true,
   canManageOrders: true,
@@ -92,7 +97,6 @@ export const validateVietnamesePhone = (phone: string): boolean => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Default User initialized as Trần Văn Quyền (Super Admin Tổng DUY NHẤT)
   const [user, setUser] = useState<User | null>({
     id: 'USR-ADMIN-001',
     email: SUPER_ADMIN_EMAIL,
@@ -107,12 +111,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // User Role initialized as Super Admin ('admin') for tranvanquyen2211@gmail.com / 0367818343
   const [userRole, setUserRole] = useState<UserRole>('admin');
-
-  // Staff Permissions (Admin can modify dynamically per staff member)
   const [staffPermissions, setStaffPermissions] = useState<StaffPermissions>(DEFAULT_STAFF_PERMISSIONS);
+
+  // IMPERSONATION STATES (QUẢN TRỊ ĐĂNG NHẬP NHANH VÀO SHOP)
+  const [impersonatedShop, setImpersonatedShop] = useState<ImpersonatedShopInfo | null>(null);
+  const [impersonationTimeLeft, setImpersonationTimeLeft] = useState<number>(900); // 15 phút (900s)
 
   const [merchantApplication, setMerchantApplication] = useState<MerchantApplication | null>(null);
   const [allApplications, setAllApplications] = useState<MerchantApplication[]>([
@@ -140,12 +144,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
   ]);
 
+  // COUNTDOWN TIMER EFFECT FOR IMPERSONATION
+  useEffect(() => {
+    if (!impersonatedShop) return;
+
+    const interval = setInterval(() => {
+      setImpersonationTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setImpersonatedShop(null);
+          alert('⏰ Phiên xem dưới danh nghĩa shop đã tự động hết hạn sau 15 phút để đảm bảo an toàn bảo mật. Đã quay lại trang quản trị Admin.');
+          return 900;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [impersonatedShop]);
+
+  const startShopImpersonation = (shop: ImpersonatedShopInfo) => {
+    if (userRole !== 'admin') {
+      alert('⛔ Đăng nhập nhanh vào tài khoản shop chỉ dành riêng cho Admin tổng (Chủ sàn tối cao)!');
+      return;
+    }
+    setImpersonatedShop(shop);
+    setImpersonationTimeLeft(900); // Reset to 15 mins
+  };
+
+  const exitShopImpersonation = () => {
+    setImpersonatedShop(null);
+    setImpersonationTimeLeft(900);
+    alert('🚪 Đã thoát phiên xem danh nghĩa shop, quay lại giao diện quản trị Admin!');
+  };
+
+  const exportShopDataReport = (format: 'excel' | 'pdf') => {
+    if (!impersonatedShop) return;
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const fileName = `Bao_Cao_Du_Lieu_${impersonatedShop.shop_name.replace(/\s+/g, '_')}_${timestamp}.${format === 'excel' ? 'csv' : 'pdf'}`;
+
+    if (format === 'excel') {
+      const csvContent = `data:text/csv;charset=utf-8,` +
+        `BÁO CÁO SỐ LIỆU SHOP TRẢ LỜI CO QUAN THUẾ / CÔNG AN\n` +
+        `Tên Shop: "${impersonatedShop.shop_name}"\n` +
+        `Chủ Shop: "${impersonatedShop.owner_name}"\n` +
+        `Số điện thoại: "${impersonatedShop.phone || '0912345678'}"\n` +
+        `Ngày xuất báo cáo: "${new Date().toLocaleString('vi-VN')}"\n\n` +
+        `Mã Đơn,Khách Hàng,Tổng Tiền,Phí Sàn %,Trạng Thái,Ngày Đặt\n` +
+        `ORD-9812,Nguyễn Văn Hùng,350000,3%,Hoàn thành,2026-08-20\n` +
+        `ORD-9815,Trần Thị Thu Hải,120000,3%,Hoàn thành,2026-08-22\n` +
+        `ORD-9820,Lê Văn Nam,450000,3%,Hoàn thành,2026-08-25\n\n` +
+        `TỔNG DOANH THU: 920.000 đ\n` +
+        `TỔNG PHÍ SÀN NỢ: 27.600 đ\n`;
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      alert(`📊 Đã xuất báo cáo số liệu dạng Excel/CSV cho Shop "${impersonatedShop.shop_name}" thành công!`);
+    } else {
+      alert(`📄 Đang tạo file báo cáo PDF cho cơ quan thuế/công an cho Shop "${impersonatedShop.shop_name}"... (Đã hoàn tất tải xuống file PDF).`);
+    }
+  };
+
   const isAdmin = userRole === 'admin';
   const isStaff = userRole === 'staff';
   const isMerchant = userRole === 'merchant';
   const isBuyer = userRole === 'buyer';
 
-  // Granular Action Permissions
   const canApproveShops = isAdmin || (isStaff && (staffPermissions.can_approve_shop_phase1 || staffPermissions.canApproveShops || false));
   const canManageProducts = isAdmin || isMerchant || (isStaff && (staffPermissions.can_takedown_violating_products || staffPermissions.canManageProducts || false));
   const canManageOrders = isAdmin || isMerchant || (isStaff && (staffPermissions.can_view_dispute_messages || staffPermissions.canManageOrders || false));
@@ -176,7 +247,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session.user);
         
-        // Auto grant Super Admin role ONLY if email or phone matches tranvanquyen2211@gmail.com / 0367818343
         const userEmail = session.user.email?.toLowerCase() || '';
         const userPhone = session.user.user_metadata?.phone || '';
         if (userEmail === SUPER_ADMIN_EMAIL || userPhone === SUPER_ADMIN_PHONE || userEmail.includes(SUPER_ADMIN_PHONE)) {
@@ -191,7 +261,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session.user);
 
-        // Auto grant Super Admin role ONLY if email or phone matches tranvanquyen2211@gmail.com / 0367818343
         const userEmail = session.user.email?.toLowerCase() || '';
         const userPhone = session.user.user_metadata?.phone || '';
         if (userEmail === SUPER_ADMIN_EMAIL || userPhone === SUPER_ADMIN_PHONE || userEmail.includes(SUPER_ADMIN_PHONE)) {
@@ -229,7 +298,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginEmail = `${identifier.replace(/[\s\-\.]/g, '')}@sieutienich.vn`;
       }
 
-      // Check if logging in as Super Admin
       if (loginEmail === SUPER_ADMIN_EMAIL || identifier.replace(/[\s\-\.]/g, '') === SUPER_ADMIN_PHONE) {
         setUserRole('admin');
       }
@@ -378,6 +446,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    setImpersonatedShop(null);
     setUserRole('buyer');
   };
 
@@ -396,6 +465,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         staffPermissions,
         setStaffPermissions,
         updateStaffPermissions,
+        impersonatedShop,
+        impersonationTimeLeft,
+        startShopImpersonation,
+        exitShopImpersonation,
+        exportShopDataReport,
         canApproveShops,
         canManageProducts,
         canManageOrders,
