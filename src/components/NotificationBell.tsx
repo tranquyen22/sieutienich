@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, PackageCheck, MessageSquare, CheckCircle2, X } from 'lucide-react';
 import type { AppNotification } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -15,48 +15,42 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Real-time Notification Feed for both Buyer & Shop (Empty for unauthenticated Guest)
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  // Real-time Notification Feed for both Buyer & Shop
+  const [notifications, setNotifications] = useState<AppNotification[]>([
+    {
+      id: 'notif-1',
+      user_id: 'current-user',
+      title: '🚚 Đơn hàng #ORD-9812 đang giao',
+      body: 'Shop "Nông Sản & Lẩu Thái Khoái Châu" đã gửi hàng cho shipper giao tới địa chỉ của bạn.',
+      type: 'order_status_update',
+      order_id: 'ORD-9812',
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
+    },
+    {
+      id: 'notif-2',
+      user_id: 'current-user',
+      title: '💬 Tin nhắn mới từ Shop Khoái Châu',
+      body: 'Shop vừa gửi tin nhắn xác nhận sẵn sàng đóng gói và freeship cho đơn hàng.',
+      type: 'new_message',
+      order_id: 'ORD-9812',
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+    },
+    {
+      id: 'notif-3',
+      user_id: 'current-user',
+      title: '🎉 Thưởng điểm danh +50 Xu Thường',
+      body: 'Bạn vừa nhận +50 Xu Thường cho điểm danh hàng ngày thành công.',
+      type: 'system',
+      is_read: true,
+      created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+    },
+  ]);
 
-  useEffect(() => {
-    if (!user) {
-      setNotifications([]);
-    } else {
-      setNotifications([
-        {
-          id: 'notif-1',
-          user_id: user.id,
-          title: '🚚 Đơn hàng #ORD-9812 đang giao',
-          body: 'Shop "Nông Sản & Lẩu Thái Khoái Châu" đã gửi hàng cho shipper giao tới địa chỉ của bạn.',
-          type: 'order_status_update',
-          order_id: 'ORD-9812',
-          is_read: false,
-          created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-        },
-        {
-          id: 'notif-2',
-          user_id: user.id,
-          title: '💬 Tin nhắn mới từ Shop Khoái Châu',
-          body: 'Shop vừa gửi tin nhắn xác nhận sẵn sàng đóng gói và freeship cho đơn hàng.',
-          type: 'new_message',
-          order_id: 'ORD-9812',
-          is_read: false,
-          created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-        },
-        {
-          id: 'notif-3',
-          user_id: user.id,
-          title: '🎉 Thưởng điểm danh +50 Xu Thường',
-          body: 'Bạn vừa nhận +50 Xu Thường cho điểm danh hàng ngày thành công.',
-          type: 'system',
-          is_read: true,
-          created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-        },
-      ]);
-    }
-  }, [user]);
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  // UNAUTHENTICATED GUEST = BLANK (0 NOTIFICATIONS)
+  const activeNotifications = user ? notifications : [];
+  const unreadCount = activeNotifications.filter((n) => !n.is_read).length;
 
   const handleToggleBell = () => {
     const nextState = !isOpen;
@@ -130,12 +124,12 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
             {/* Notifications Scrollable Stream */}
             <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-1">
-              {notifications.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 text-xs">
-                  Không có thông báo nào.
+              {activeNotifications.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-xs font-semibold">
+                  {user ? 'Không có thông báo nào mới.' : '🔒 Chưa đăng nhập (0 thông báo)'}
                 </div>
               ) : (
-                notifications.map((notif) => (
+                activeNotifications.map((notif) => (
                   <div
                     key={notif.id}
                     onClick={() => {

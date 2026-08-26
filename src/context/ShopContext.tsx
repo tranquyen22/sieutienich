@@ -86,74 +86,68 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [userActivities] = useState<UserActivity[]>([]);
-  // Dual Coins State (0 for unauthenticated Guest, loaded for logged-in user)
-  const [regularCoins, setRegularCoins] = useState<number>(0);
-  const [tqCoins, setTQCoins] = useState<number>(0);
-  const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([]);
 
+  // Dual Coins State
+  const [regularCoins, setRegularCoins] = useState<number>(125000);
+  const [tqCoins, setTQCoins] = useState<number>(50000);
+  const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([
+    {
+      id: 'tx-1',
+      user_id: 'current-user',
+      amount: 50,
+      type: 'bonus',
+      coin_category: 'regular',
+      description: '🎁 Thưởng điểm danh Ngày 1/7 hàng ngày',
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      id: 'tx-2',
+      user_id: 'current-user',
+      amount: 10000,
+      type: 'earn',
+      coin_category: 'regular',
+      description: '🌟 Thưởng 2% Hoàn Xu khi đánh giá gian hàng đã mua',
+      created_at: new Date(Date.now() - 43200000).toISOString(),
+    },
+  ]);
+
+  // Check-in State
   const [hasCheckedInToday, setHasCheckedInToday] = useState<boolean>(false);
   const [checkInStreak, setCheckInStreak] = useState<number>(1);
   const [lastCheckInDate, setLastCheckInDate] = useState<string | null>(null);
 
+  // Admin Coins Rules Configuration
   const [reviewCashbackRate, setReviewCashbackRate] = useState<number>(2); // 2%
   const [monthlyDistributedCoins] = useState<number>(185000); // 185k / 500k monthly emission limit
 
-  // Orders State (Empty [] for unauthenticated Guest)
-  const [orders, setOrders] = useState<Order[]>([]);
+  // Orders State
+  const [orders, setOrders] = useState<Order[]>([
+    {
+      id: 'ORD-9812',
+      user_id: user?.id || 'guest',
+      user_name: 'Nguyễn Văn Hùng',
+      user_phone: '0912345678',
+      shipping_address: 'Số 18 ngõ 20 đường Trần Thái Tông, Cầu Giấy, Hà Nội',
+      items: [
+        {
+          product_id: 1,
+          product: INITIAL_PRODUCTS[0],
+          quantity: 1,
+          price: INITIAL_PRODUCTS[0].price,
+        },
+      ],
+      total_amount: INITIAL_PRODUCTS[0].price,
+      discount_amount: 0,
+      final_amount: INITIAL_PRODUCTS[0].price,
+      status: 'preparing',
+      delivery_method: 'seller_delivery',
+      payment_method: 'direct_with_seller',
+      created_at: new Date(Date.now() - 7200000).toISOString(),
+    },
+  ]);
 
   // Purchased Products Tracker for Verified Buyer Reviews
-  const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>([]);
-
-  // ISOLATE USER DATA & SET CLEAN BLANK STATE FOR UNAUTHENTICATED GUESTS
-  useEffect(() => {
-    if (!user) {
-      setCartItems([]);
-      setOrders([]);
-      setRegularCoins(0);
-      setTQCoins(0);
-      setCoinTransactions([]);
-      setPurchasedProductIds([]);
-    } else {
-      setRegularCoins(125000);
-      setTQCoins(50000);
-      setPurchasedProductIds(['1', '2', '3']);
-      setCoinTransactions([
-        {
-          id: 'tx-1',
-          user_id: user.id,
-          amount: 50,
-          type: 'bonus',
-          coin_category: 'regular',
-          description: '🎁 Thưởng điểm danh Ngày 1/7 hàng ngày',
-          created_at: new Date().toISOString(),
-        },
-      ]);
-      setOrders([
-        {
-          id: 'ORD-9812',
-          user_id: user.id,
-          user_name: user.user_metadata?.full_name || 'Khách hàng',
-          user_phone: user.user_metadata?.phone || '0912345678',
-          shipping_address: 'Số 18 ngõ 20 đường Trần Thái Tông, Cầu Giấy, Hà Nội',
-          items: [
-            {
-              product_id: 1,
-              product: INITIAL_PRODUCTS[0],
-              quantity: 1,
-              price: INITIAL_PRODUCTS[0].price,
-            },
-          ],
-          total_amount: INITIAL_PRODUCTS[0].price,
-          discount_amount: 0,
-          final_amount: INITIAL_PRODUCTS[0].price,
-          status: 'preparing',
-          delivery_method: 'seller_delivery',
-          payment_method: 'direct_with_seller',
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-        },
-      ]);
-    }
-  }, [user]);
+  const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>(['1', '2', '3']);
 
   // GPS Location Filter States
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
@@ -243,11 +237,50 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (user) {
+      const savedUserData = localStorage.getItem(`sieutienich_user_data_${user.id}`);
+      if (savedUserData) {
+        try {
+          const parsed = JSON.parse(savedUserData);
+          if (parsed.orders) setOrders(parsed.orders);
+          if (parsed.regularCoins !== undefined) setRegularCoins(parsed.regularCoins);
+          if (parsed.tqCoins !== undefined) setTQCoins(parsed.tqCoins);
+          if (parsed.coinTransactions) setCoinTransactions(parsed.coinTransactions);
+          if (parsed.cartItems) setCartItems(parsed.cartItems);
+        } catch (e) {
+          console.warn('Failed to parse per-user isolated data:', e);
+        }
+      } else {
+        // Initialize fresh default isolated data for new account
+        setOrders([]);
+        setCartItems([]);
+        setRegularCoins(125000);
+        setTQCoins(50000);
+        setCoinTransactions([]);
+      }
       fetchUserCartAndCoins(user.id);
     } else {
+      // CLEAR ALL DATA TO COMPLETELY BLANK / EMPTY FOR GUEST MODE (UNAUTHENTICATED)
+      setOrders([]);
       setCartItems([]);
+      setRegularCoins(0);
+      setTQCoins(0);
+      setCoinTransactions([]);
     }
   }, [user, fetchUserCartAndCoins]);
+
+  // AUTO-SAVE PER-USER ISOLATED DATA TO LOCAL STORAGE
+  useEffect(() => {
+    if (user) {
+      const userDataToSave = {
+        orders,
+        regularCoins,
+        tqCoins,
+        coinTransactions,
+        cartItems,
+      };
+      localStorage.setItem(`sieutienich_user_data_${user.id}`, JSON.stringify(userDataToSave));
+    }
+  }, [user, orders, regularCoins, tqCoins, coinTransactions, cartItems]);
 
   const addCoinTransaction = async (
     amount: number,
@@ -318,53 +351,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return { success: false, message: 'Không thể điểm danh do hệ thống đã đạt trần thưởng toàn sàn tháng này.' };
   };
-
-  // AUTOMATICALLY GET & UPDATE CUSTOMER'S LATEST GPS LOCATION UPON ACCESSING WEB APP
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          setUserCoords({ lat, lng });
-
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=vi`
-            );
-            const data = await response.json();
-            if (data && data.address) {
-              const addr = data.address;
-              const prov = addr.state || addr.city || addr.province || 'Hà Nội';
-              const dist = addr.county || addr.district || addr.suburb || addr.city_district || addr.town || 'Cầu Giấy';
-              const road = addr.road || addr.quarter || addr.suburb || '';
-
-              const cleanProv = prov.replace(/Tỉnh |Thành phố |TP\. /g, '').trim();
-              const cleanDist = dist.replace(/Quận |Huyện |Thị xã |TP\. /g, '').trim();
-
-              setSelectedProvince(cleanProv);
-              setSelectedDistrict(cleanDist);
-              setUserLocationText(`${road ? `${road}, ` : ''}${cleanDist}, ${cleanProv}`);
-            } else {
-              setUserLocationText(`GPS (${lat.toFixed(5)}°, ${lng.toFixed(5)}°)`);
-            }
-          } catch {
-            setUserLocationText(`GPS chuẩn (${lat.toFixed(5)}°, ${lng.toFixed(5)}°)`);
-          }
-
-          setSelectedDistance(5);
-        },
-        (error) => {
-          console.warn('Auto GPS location error on load:', error.message);
-        },
-        { 
-          enableHighAccuracy: true, 
-          timeout: 15000, 
-          maximumAge: 0 
-        }
-      );
-    }
-  }, []);
 
   const handleGetGPSLocation = () => {
     if (!navigator.geolocation) {
