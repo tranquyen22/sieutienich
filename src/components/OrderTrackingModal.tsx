@@ -424,8 +424,8 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, 
 
                     {/* DYNAMIC ROLE ACTIONS */}
                     <div className="flex items-center gap-2">
-                      {/* INVOICE GENERATION BUTTON */}
-                      {onOpenInvoiceModal && (
+                      {/* INVOICE GENERATION BUTTON (ONLY FOR MERCHANT / ADMIN / STAFF ROLES) */}
+                      {onOpenInvoiceModal && (userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && (
                         <button
                           onClick={() => onOpenInvoiceModal(order)}
                           className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold rounded-xl text-xs border border-emerald-200 transition cursor-pointer"

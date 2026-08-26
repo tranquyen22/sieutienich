@@ -264,29 +264,34 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>Hồ Sơ Khách Hàng (18 Phân Hệ)</span>
                   </button>
 
-                  {/* SHOP DETAIL PORTAL MENU ITEM */}
-                  <button
-                    onClick={() => {
-                      setShowDropdown(false);
-                      onOpenShopDetailPortalModal();
-                    }}
-                    className="w-full text-left px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
-                  >
-                    <Store className="w-4 h-4 text-slate-700" />
-                    <span>Trang Quản Lý Gian Hàng (Shop Portal)</span>
-                  </button>
+                  {/* SHOP DETAIL PORTAL & STATUS TOGGLE (ONLY FOR SHOP / ADMIN / STAFF) */}
+                  {(userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && (
+                    <>
+                      {/* SHOP DETAIL PORTAL MENU ITEM */}
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenShopDetailPortalModal();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                      >
+                        <Store className="w-4 h-4 text-slate-700" />
+                        <span>Trang Quản Lý Gian Hàng (Shop Portal)</span>
+                      </button>
 
-                  {/* SHOP OPEN/TEMPORARILY CLOSED STATUS TOGGLE */}
-                  <button
-                    onClick={() => {
-                      setShowDropdown(false);
-                      onOpenShopStatusToggleModal();
-                    }}
-                    className="w-full text-left px-4 py-2 text-xs font-bold text-orange-900 hover:bg-orange-50 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
-                  >
-                    <Key className="w-4 h-4 text-orange-600" />
-                    <span>Trạng Thái Đang Mở / Tạm Nghỉ Shop</span>
-                  </button>
+                      {/* SHOP OPEN/TEMPORARILY CLOSED STATUS TOGGLE */}
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenShopStatusToggleModal();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-orange-900 hover:bg-orange-50 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                      >
+                        <Key className="w-4 h-4 text-orange-600" />
+                        <span>Trạng Thái Đang Mở / Tạm Nghỉ Shop</span>
+                      </button>
+                    </>
+                  )}
 
                   {/* VÍ XU SIÊU TIỆN ÍCH MENU ITEM */}
                   <button
