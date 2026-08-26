@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck, Plus, Minus, CheckSquare, Square, Truck } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, Coins, Lock, Store, ShieldCheck, Plus, Minus, CheckSquare, Square, Truck, Ticket, Percent } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import type { DeliveryMethod } from '../types';
 
@@ -19,6 +19,7 @@ export const CartDrawer: React.FC = () => {
 
   const [useTQCoins, setUseTQCoins] = useState(false);
   const [useRegularCoins, setUseRegularCoins] = useState(false);
+  const [usePlatformVoucher, setUsePlatformVoucher] = useState(false); // Rule 7
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('seller_delivery');
 
   // Selected item IDs state for combined checkout selection
@@ -56,6 +57,7 @@ export const CartDrawer: React.FC = () => {
   const hasVerifiedItems = selectedCartItems.some((item) => Boolean(item.product.isLicensed));
   const hasUnverifiedItems = selectedCartItems.some((item) => !item.product.isTQStore && !item.product.isLicensed);
 
+  // Rule 5: Coins discount
   let tqDiscount = 0;
   if (useTQCoins && hasTQItems && selectedTotalAmount > 0) {
     tqDiscount = Math.min(tqCoins, Math.floor(selectedTotalAmount * 0.2));
@@ -66,7 +68,15 @@ export const CartDrawer: React.FC = () => {
     regularDiscount = Math.min(regularCoins, Math.floor((selectedTotalAmount - tqDiscount) * 0.1));
   }
 
-  const totalDiscount = tqDiscount + regularDiscount;
+  // Rule 7: Platform Voucher (Only for verified shops)
+  const isEligibleForVoucher = hasVerifiedItems || hasTQItems;
+  const voucherDiscount = usePlatformVoucher && isEligibleForVoucher ? 15000 : 0;
+
+  // Rule 9: Platform fee calculation (0% for unverified, 3% for verified)
+  const platformFeeRate = (hasVerifiedItems || hasTQItems) ? 0.03 : 0.0;
+  const estimatedPlatformFee = Math.floor(selectedTotalAmount * platformFeeRate);
+
+  const totalDiscount = tqDiscount + regularDiscount + voucherDiscount;
   const finalTotalAmount = Math.max(0, selectedTotalAmount - totalDiscount);
 
   const handleCheckout = async () => {
@@ -82,7 +92,7 @@ export const CartDrawer: React.FC = () => {
       await addCoinTransaction(-regularDiscount, `🛒 Giảm giá đơn mua gộp bằng Xu Thường`, 'spend', 'regular');
     }
 
-    // Create Intermediary Order in Stage 1: pending_seller_confirm (Chờ shop xác nhận)
+    // Create Intermediary Order in Stage 1
     await createOrder({
       user_id: 'guest',
       user_name: 'Khách hàng',
@@ -95,14 +105,14 @@ export const CartDrawer: React.FC = () => {
       total_amount: selectedTotalAmount,
       discount_amount: totalDiscount,
       final_amount: finalTotalAmount,
-      status: 'pending_seller_confirm', // Stage 1
-      delivery_method: deliveryMethod, // seller_delivery or customer_pickup
+      status: 'pending_seller_confirm',
+      delivery_method: deliveryMethod,
       payment_method: 'direct_with_seller',
     });
 
     const methodLabel = deliveryMethod === 'seller_delivery' ? '🚚 Shop giao hàng tận nơi' : '🏬 Đến cửa hàng lấy';
 
-    alert(`Đặt hàng thành công!\n- Đơn hàng khởi tạo: Giai đoạn 1 (Chờ shop xác nhận)\n- Phương thức nhận hàng: ${methodLabel}\n- Thanh toán: Khách và Shop tự thanh toán & giao dịch trực tiếp\n\nBạn và Shop sẽ nhận được tín hiệu cập nhật tự động sau mỗi 5-10 giây!`);
+    alert(`Đặt hàng thành công!\n- Phương thức: ${methodLabel}\n- Phí sàn áp dụng: ${platformFeeRate > 0 ? '3% (Shop đã xác minh)' : '0% (Shop chưa xác minh - Miễn phí sàn)'}\n- Tín hiệu đơn tự động đồng bộ thời gian thực (5-10s)!`);
     
     // Remove ONLY selected items from cart
     for (const item of selectedCartItems) {
@@ -237,19 +247,28 @@ export const CartDrawer: React.FC = () => {
                     {/* Shop Verification Badge */}
                     <div className="pt-2 border-t border-gray-100 text-[10px]">
                       {isTQ ? (
-                        <div className="text-amber-800 font-bold flex items-center gap-1">
-                          <Store className="w-3 h-3 text-amber-600 shrink-0" />
-                          <span>👑 Shop TQ</span>
+                        <div className="text-amber-800 font-bold flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <Store className="w-3 h-3 text-amber-600 shrink-0" />
+                            <span>👑 Shop TQ</span>
+                          </span>
+                          <span className="text-gray-400">Phí sàn: 3%</span>
                         </div>
                       ) : isVerified ? (
-                        <div className="text-emerald-800 font-bold flex items-center gap-1">
-                          <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
-                          <span>✓ Đã xác minh</span>
+                        <div className="text-emerald-800 font-bold flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>✓ Đã xác minh</span>
+                          </span>
+                          <span className="text-gray-400">Phí sàn: 3%</span>
                         </div>
                       ) : (
-                        <div className="text-gray-500 font-semibold flex items-center gap-1">
-                          <Lock className="w-3 h-3 text-amber-500 shrink-0" />
-                          <span>🔒 Chưa xác minh</span>
+                        <div className="text-gray-500 font-semibold flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-amber-500 shrink-0" />
+                            <span>🔒 Chưa xác minh</span>
+                          </span>
+                          <span className="text-emerald-600 font-bold">Phí sàn: 0% (Miễn phí)</span>
                         </div>
                       )}
                     </div>
@@ -303,14 +322,14 @@ export const CartDrawer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Coin Options Panel */}
+              {/* Coin & Voucher Options Panel */}
               <div className="bg-white p-3 rounded-2xl border border-gray-200 space-y-2">
                 <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5 border-b border-gray-100 pb-1.5">
                   <Coins className="w-4 h-4 text-amber-500" />
-                  <span>Áp dụng Xu giảm giá cho đơn đã tích:</span>
+                  <span>Ưu đãi & Voucher (Quy định loại Shop):</span>
                 </div>
 
-                {/* Option 1: Xu TQ */}
+                {/* Option 1: Xu TQ (Rule 5) */}
                 <label className={`flex items-center justify-between p-2 rounded-xl border text-xs transition cursor-pointer ${
                   !hasTQItems ? 'opacity-50 pointer-events-none bg-gray-50' : useTQCoins ? 'bg-amber-50 border-amber-300' : 'bg-white border-gray-100'
                 }`}>
@@ -329,7 +348,7 @@ export const CartDrawer: React.FC = () => {
                   </span>
                 </label>
 
-                {/* Option 2: Xu Thường */}
+                {/* Option 2: Xu Thường (Rule 5) */}
                 <label className={`flex items-center justify-between p-2 rounded-xl border text-xs transition cursor-pointer ${
                   hasUnverifiedItems && !hasVerifiedItems && !hasTQItems ? 'opacity-50 pointer-events-none bg-gray-50' : useRegularCoins ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-gray-100'
                 }`}>
@@ -347,6 +366,28 @@ export const CartDrawer: React.FC = () => {
                     {hasVerifiedItems || hasTQItems ? `-${regularDiscount.toLocaleString()} đ` : 'Chỉ dùng ở Shop xác minh'}
                   </span>
                 </label>
+
+                {/* Option 3: Voucher Sàn (Rule 7) */}
+                <label className={`flex items-center justify-between p-2 rounded-xl border text-xs transition cursor-pointer ${
+                  !isEligibleForVoucher ? 'opacity-50 pointer-events-none bg-gray-50' : usePlatformVoucher ? 'bg-purple-50 border-purple-300' : 'bg-white border-gray-100'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      checked={usePlatformVoucher} 
+                      disabled={!isEligibleForVoucher}
+                      onChange={(e) => setUsePlatformVoucher(e.target.checked)}
+                      className="rounded text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="font-bold text-gray-800 flex items-center gap-1">
+                      <Ticket className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Voucher Sàn (PLATFORM10K)</span>
+                    </span>
+                  </div>
+                  <span className="font-extrabold text-purple-600">
+                    {isEligibleForVoucher ? '-15.000 đ' : '× Không dùng ở Shop chưa xác minh'}
+                  </span>
+                </label>
               </div>
 
               {/* Price Calculation */}
@@ -355,9 +396,21 @@ export const CartDrawer: React.FC = () => {
                   <span>Tạm tính ({selectedCartItems.length} đơn đã tích):</span>
                   <span>{selectedTotalAmount.toLocaleString('vi-VN')} đ</span>
                 </div>
+
+                {/* Rule 9: Fee summary info */}
+                <div className="flex justify-between text-gray-400 text-[11px]">
+                  <span className="flex items-center gap-1">
+                    <Percent className="w-3 h-3" />
+                    <span>Phí sàn thu Shop:</span>
+                  </span>
+                  <span className={platformFeeRate > 0 ? 'text-gray-600 font-bold' : 'text-emerald-600 font-bold'}>
+                    {platformFeeRate > 0 ? `3% (~${estimatedPlatformFee.toLocaleString()}đ)` : '0% (Không thu phí)'}
+                  </span>
+                </div>
+
                 {totalDiscount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-bold">
-                    <span>Giảm giá từ Xu:</span>
+                    <span>Giảm giá từ Xu & Voucher:</span>
                     <span>-{totalDiscount.toLocaleString('vi-VN')} đ</span>
                   </div>
                 )}

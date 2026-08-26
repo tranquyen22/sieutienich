@@ -539,6 +539,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       product.distanceKm <= Number(selectedDistance);
 
     return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
+  }).sort((a, b) => {
+    // Rule 4: Shop Đã xác minh & Shop TQ được ĐẨY LÊN TRONG TÌM KIẾM
+    const scoreA = (a.isTQStore ? 2 : 0) + (a.isLicensed ? 1 : 0);
+    const scoreB = (b.isTQStore ? 2 : 0) + (b.isLicensed ? 1 : 0);
+    return scoreB - scoreA;
   });
 
   const addToCart = async (product: Product, quantityToAdd: number = 1) => {

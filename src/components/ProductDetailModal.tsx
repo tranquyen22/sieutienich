@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Check, Plus, Minus, PhoneCall, User, MessageSquare, Send, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, Star, MapPin, Phone, ShieldCheck, Store, Lock, Check, Plus, Minus, PhoneCall, User, MessageSquare, Send, Sparkles, CheckCircle2, BookmarkCheck, MessageCircle } from 'lucide-react';
 import type { Product, ProductReview } from '../types';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -10,10 +10,11 @@ interface ProductDetailModalProps {
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClose }) => {
-  const { addToCart, addCoinTransaction, purchasedProductIds } = useShop();
+  const { addToCart, addCoinTransaction, purchasedProductIds, createOrder } = useShop();
   const { user } = useAuth();
   const [added, setAdded] = useState(false);
   const [quantity, setQuantity] = useState<number>(1);
+  const [reserved, setReserved] = useState(false);
 
   // Review submission state
   const [newComment, setNewComment] = useState('');
@@ -64,6 +65,35 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
     addToCart(product, quantity);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
+  };
+
+  // Rule 6: Reserve Goods Feature (Nhận đặt giữ hàng - Chỉ áp dụng Shop xác minh)
+  const handleReserveGoods = async () => {
+    if (!isEligibleShopForReview) {
+      alert('⚠️ Tính năng Đặt Giữ Hàng chỉ dành cho Cửa Hàng Đã Xác Minh & Shop TQ Official!');
+      return;
+    }
+
+    await createOrder({
+      user_id: user?.id || 'guest',
+      user_name: user?.user_metadata?.full_name || 'Khách đặt giữ',
+      items: [{ product_id: product.id, product, quantity, price: product.price }],
+      total_amount: product.price * quantity,
+      discount_amount: 0,
+      final_amount: product.price * quantity,
+      status: 'pending_seller_confirm',
+      delivery_method: 'customer_pickup', // Đặt giữ hàng đến lấy
+      payment_method: 'direct_with_seller',
+    });
+
+    setReserved(true);
+    alert(`📌 Đặt Giữ Hàng Thành Công!\n- Cửa hàng ${product.name} sẽ giữ món hàng cho bạn trong 24h.\n- Phương thức: Khách đến cửa hàng lấy.`);
+    setTimeout(() => setReserved(false), 3000);
+  };
+
+  // Rule 8: Direct messaging with customer / shop
+  const handleDirectChat = () => {
+    alert(`💬 Mở cửa sổ Nhắn Tin Trực Tiếp với Shop: ${product.contactName || 'Chủ Gian Hàng'} (${phoneNumber})\nCả Shop chưa xác minh và đã xác minh đều được nhắn tin trao đổi trực tiếp!`);
   };
 
   const handleAddReview = async (e: React.FormEvent) => {
@@ -231,6 +261,43 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                   <span>Giấy phép kinh doanh: {product.licenseNo}</span>
                 </div>
               )}
+            </div>
+
+            {/* Rule 6 & Rule 8: RESERVE GOODS & DIRECT CHAT FEATURE BUTTONS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              {/* Rule 8: Direct Messaging for both shop types */}
+              <button
+                type="button"
+                onClick={handleDirectChat}
+                className="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-extrabold rounded-2xl border border-indigo-200 transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4 text-indigo-600" />
+                <span>💬 Nhắn tin với Khách / Shop</span>
+              </button>
+
+              {/* Rule 6: Reserve Goods (Only for Verified Shop) */}
+              <button
+                type="button"
+                onClick={handleReserveGoods}
+                className={`p-2.5 font-extrabold rounded-2xl border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  isEligibleShopForReview
+                    ? reserved ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border-purple-200'
+                    : 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'
+                }`}
+                title={isEligibleShopForReview ? 'Đặt giữ hàng tại Shop' : 'Chỉ áp dụng cho Shop Đã Xác Minh & Shop TQ'}
+              >
+                {isEligibleShopForReview ? (
+                  <>
+                    <BookmarkCheck className="w-4 h-4 text-purple-600" />
+                    <span>{reserved ? '✓ Đã đặt giữ hàng' : '📌 Đặt Giữ Hàng Tại Shop'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-gray-400" />
+                    <span>🔒 Đặt giữ hàng (Cần xác minh)</span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Product Description */}
