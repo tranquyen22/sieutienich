@@ -12,7 +12,7 @@ interface PublicDirectoryModalProps {
 }
 
 export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOpen, onClose }) => {
-  const { isAdmin, canManageDirectory, canToggleVerifiedBadge, canManageCategories } = useAuth();
+  const { isAdmin } = useAuth();
 
   // Dynamic Categories List (Admin & Authorized Staff Can Add/Edit)
   const [categories, setCategories] = useState<DirectoryCategory[]>([
@@ -160,10 +160,10 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
     );
   };
 
-  // Toggle Verified Badge Action (Only Staff with can_toggle_verified_badge or Admin)
+  // Toggle Verified Badge Action (Only Super Admin)
   const handleToggleVerified = (id: string, currentStatus: boolean) => {
-    if (!canToggleVerifiedBadge && !isAdmin) {
-      alert('⛔ Chỉ Nhân viên được cấp quyền "Gắn và gỡ nhãn đã xác minh" hoặc Admin mới thực hiện được!');
+    if (!isAdmin) {
+      alert('⛔ Chỉ duy nhất Admin Tổng mới có quyền Gắn và gỡ nhãn Đã Xác Minh!');
       return;
     }
 
@@ -174,7 +174,7 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
           return {
             ...item,
             is_verified: nextState,
-            verified_by: nextState ? (isAdmin ? 'Admin Tổng' : 'Nhân Viên Cấp Quyền') : undefined,
+            verified_by: nextState ? 'Admin Tổng (Trần Văn Quyền)' : undefined,
             verified_at: nextState ? new Date().toISOString() : undefined,
           };
         }
@@ -191,11 +191,16 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
       prev.map((e) => (e.id === item.id ? { ...e, report_wrong_number_count: e.report_wrong_number_count + 1 } : e))
     );
 
-    alert(`⚠️ Đã gửi Báo Số Sai cho mục "${item.title}"!\nBáo cáo đã được chuyển về Hàng đợi Admin/Nhân viên rà soát kiểm tra. Cảm ơn bạn đã phản hồi!`);
+    alert(`⚠️ Đã gửi Báo Số Sai cho mục "${item.title}"!\nBáo cáo đã được chuyển về Hàng đợi Admin rà soát kiểm tra. Cảm ơn bạn đã phản hồi!`);
   };
 
-  // Create New Directory Entry (Staff & Admin Only)
+  // Create New Directory Entry (Admin Only)
   const handleCreateEntry = () => {
+    if (!isAdmin) {
+      alert('⛔ Chỉ duy nhất Admin Tổng mới có quyền Thêm mục danh bạ mới!');
+      return;
+    }
+
     if (!newTitle || !newPhone || !newAddress) {
       alert('Vui lòng điền Tên dịch vụ, Số điện thoại và Địa chỉ!');
       return;
@@ -210,7 +215,7 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
       province: newProvince,
       district: newDistrict,
       distance_km: newDistance,
-      is_verified: false, // MẶC ĐỊNH ĐĂNG MỚI LÀ CHƯA XÁC MINH
+      is_verified: false,
       report_wrong_number_count: 0,
       created_at: new Date().toISOString(),
     };
@@ -221,11 +226,16 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
     setNewPhone('');
     setNewAddress('');
 
-    alert(`🎉 Đã thêm mục danh bạ mới "${newEntryItem.title}"!\n📌 Nhãn mặc định: CHƯA XÁC MINH (Cần Admin/Nhân viên kiểm tra thực địa để gắn nhãn ✅).`);
+    alert(`🎉 Đã thêm mục danh bạ mới "${newEntryItem.title}"!\n📌 Nhãn mặc định: CHƯA XÁC MINH (Cần Admin kiểm tra thực địa để gắn nhãn ✅).`);
   };
 
-  // Create New Category (Admin & Staff Only)
+  // Create New Category (Admin Only)
   const handleCreateCategory = () => {
+    if (!isAdmin) {
+      alert('⛔ Chỉ duy nhất Admin Tổng mới có quyền Thêm danh mục mới!');
+      return;
+    }
+
     if (!newCategoryName.trim()) return;
 
     const newCatObj: DirectoryCategory = {
@@ -265,28 +275,26 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-xl sm:text-2xl font-black text-white">Danh Bạ Dịch Vụ & Tiện Ích Đội Ngũ</h2>
 
-            {/* Action Buttons for Staff / Admin */}
-            <div className="flex items-center gap-2 shrink-0">
-              {canManageCategories && (
+            {/* Action Buttons for Super Admin Only */}
+            {isAdmin && (
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setAddCategoryModalOpen(true)}
                   className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-xl font-bold text-xs border border-slate-700 cursor-pointer flex items-center gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Thêm Danh Mục</span>
+                  <span>+ Thêm Danh Mục (Chỉ Admin)</span>
                 </button>
-              )}
 
-              {canManageDirectory && (
                 <button
                   onClick={() => setAddEntryModalOpen(true)}
                   className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 text-white rounded-xl font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>+ Thêm Mục Danh Bạ Mới</span>
+                  <span>+ Thêm Mục Danh Bạ Mới (Chỉ Admin)</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -454,8 +462,8 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
                       ⚠️ Báo số sai
                     </button>
 
-                    {/* Admin / Staff Verification Toggle Button */}
-                    {(canToggleVerifiedBadge || isAdmin) && (
+                    {/* Admin Verification Toggle Button */}
+                    {isAdmin && (
                       <button
                         type="button"
                         onClick={() => handleToggleVerified(item.id, item.is_verified)}

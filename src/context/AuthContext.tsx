@@ -478,9 +478,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserRole('buyer');
   };
 
-  const canManageDirectory = isAdmin || Boolean(staffPermissions.can_manage_directory_items);
-  const canToggleVerifiedBadge = isAdmin || Boolean(staffPermissions.can_toggle_verified_badge);
-  const canManageCategories = isAdmin || Boolean(staffPermissions.can_manage_categories_and_regions);
+  const canManageDirectory = isAdmin;
+  const canToggleVerifiedBadge = isAdmin;
+  const canManageCategories = isAdmin;
 
   return (
     <AuthContext.Provider
