@@ -107,10 +107,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem(SESSION_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed.user || null;
+        if (parsed && typeof parsed === 'object' && parsed.user && typeof parsed.user === 'object' && parsed.user.id) {
+          return parsed.user;
+        }
       }
     } catch (e) {
       console.warn('Failed to parse persistent user session:', e);
+      try { localStorage.removeItem(SESSION_STORAGE_KEY); } catch {}
     }
     return null;
   });
@@ -122,7 +125,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem(SESSION_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed.userRole || 'buyer';
+        if (parsed && typeof parsed === 'object' && typeof parsed.userRole === 'string') {
+          return parsed.userRole as UserRole;
+        }
       }
     } catch (e) {
       console.warn('Failed to parse persistent user role:', e);

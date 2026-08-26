@@ -18,10 +18,15 @@
     <meta name="apple-mobile-web-app-title" content="Siêu Tiện Ích" />
     <link rel="apple-touch-icon" href="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=192&q=80" />
 
-    <!-- Register PWA Service Worker -->
+    <!-- Register PWA Service Worker & Purge Stale Cache -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (let reg of registrations) {
+              reg.update();
+            }
+          });
           navigator.serviceWorker.register('/sw.js').catch((err) => {
             console.log('ServiceWorker registration failed: ', err);
           });
