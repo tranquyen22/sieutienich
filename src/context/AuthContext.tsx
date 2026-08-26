@@ -99,11 +99,45 @@ export const validateVietnamesePhone = (phone: string): boolean => {
   return vnPhoneRegex.test(cleanPhone);
 };
 
+const SESSION_STORAGE_KEY = 'sieutienich_persistent_user_session';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.user || null;
+      }
+    } catch (e) {
+      console.warn('Failed to parse persistent user session:', e);
+    }
+    return null;
+  });
+
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>('buyer');
+  const [userRole, setUserRole] = useState<UserRole>(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.userRole || 'buyer';
+      }
+    } catch (e) {
+      console.warn('Failed to parse persistent user role:', e);
+    }
+    return 'buyer';
+  });
+
+  // AUTO-SAVE SESSION TO LOCAL STORAGE (AUTO-LOGIN ON REFRESH)
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ user, userRole }));
+    } else {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  }, [user, userRole]);
   const [staffPermissions, setStaffPermissions] = useState<StaffPermissions>(DEFAULT_STAFF_PERMISSIONS);
 
   // IMPERSONATION STATES (QUẢN TRỊ ĐĂNG NHẬP NHANH VÀO SHOP)
@@ -471,7 +505,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Supabase signOut error:', e);
+    }
+    localStorage.removeItem(SESSION_STORAGE_KEY);
     setUser(null);
     setSession(null);
     setImpersonatedShop(null);
