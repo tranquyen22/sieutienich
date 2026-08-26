@@ -38,7 +38,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMultiStepOnboardingModal,
   onOpenShopDetailPortalModal,
   onOpenShopStatusToggleModal,
-  onOpenAccountRoleAccessMatrixModal,
   onOpenAdminUserManagementModal,
   onOpenAdminDashboardModal,
 }) => {
@@ -226,17 +225,7 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
                     )}
 
-                    {/* 4-TIER RBAC ROLE MATRIX MODAL */}
-                    <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        onOpenAccountRoleAccessMatrixModal();
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-amber-900 hover:bg-amber-50 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
-                    >
-                      <Key className="w-4 h-4 text-amber-600" />
-                      <span>🛡️ Bốn Loại Tài Khoản & Ma Trận Phân Quyền</span>
-                    </button>
+
 
                     {/* BUYER DASHBOARD PORTAL MENU ITEM */}
                     <button
