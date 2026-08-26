@@ -64,6 +64,11 @@ export interface Product {
   licenseNo?: string;
   contactName?: string;
   phone?: string;
+  // Shop Operating Status (Tự chọn Tạm nghỉ vs Bị sàn khóa)
+  isShopTemporarilyClosed?: boolean; // Shop tự gạt tạm nghỉ
+  isShopSuspended?: boolean;         // Bị sàn khóa do nợ quá mốc hoặc vi phạm
+  shopCloseReason?: string;          // VD: "Quán nghỉ bán chiều T2", "Thợ đi làm xa 3 ngày"
+  operatingHours?: OperatingHours[];
   // Dynamic Category & Variants
   variants?: ProductVariant[];
   soldCount?: number; // Tổng số lượt đã bán / đã phục vụ
@@ -229,6 +234,8 @@ export interface MerchantApplication {
   status: 'pending_review' | 'approved' | 'rejected' | 'needs_info';
   status_reason?: string;
   verification_phase?: 'phase_1_opening' | 'phase_2_audit'; // Phase 1: Mở Shop, Phase 2: Xác minh thực địa
+  is_temporarily_closed?: boolean; // Shop tự chọn tạm nghỉ
+  close_reason?: string;          // Lý do tạm nghỉ
   created_at: string;
 }
 

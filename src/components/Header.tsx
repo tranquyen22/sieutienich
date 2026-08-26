@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, ShieldCheck, Coins, PackageCheck, Settings, DollarSign, MapPin, MessageSquare, Store, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import { NotificationBell } from './NotificationBell';
@@ -18,6 +18,7 @@ interface HeaderProps {
   onOpenBuyerDashboardModal: () => void;
   onOpenMultiStepOnboardingModal: () => void;
   onOpenShopDetailPortalModal: () => void;
+  onOpenShopStatusToggleModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -33,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenBuyerDashboardModal,
   onOpenMultiStepOnboardingModal,
   onOpenShopDetailPortalModal,
+  onOpenShopStatusToggleModal,
 }) => {
   const { 
     user, 
@@ -269,13 +271,27 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </div>
 
+                    {/* SHOP OPEN / PAUSE SELF TOGGLE SWITCH LINK */}
+                    {(userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && (
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenShopStatusToggleModal();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-black text-amber-900 bg-amber-50 hover:bg-amber-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                      >
+                        <Clock className="w-4 h-4 text-amber-600" />
+                        <span>🏪 Bật/Tắt Trạng Thái Đang Mở & Tạm Nghỉ</span>
+                      </button>
+                    )}
+
                     {/* MULTI-STEP SHOP ONBOARDING WIZARD LINK */}
                     <button
                       onClick={() => {
                         setShowDropdown(false);
                         onOpenMultiStepOnboardingModal();
                       }}
-                      className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                      className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
                     >
                       <Store className="w-4 h-4 text-emerald-600" />
                       <span>🏪 Đăng Ký Mở Shop 4 Bước (Wizard)</span>

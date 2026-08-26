@@ -89,10 +89,10 @@ export const CartDrawer: React.FC = () => {
     }
 
     if (tqDiscount > 0) {
-      await addCoinTransaction(-tqDiscount, `🛒 Giảm giá đơn mua gộp bằng Xu TQ`, 'spend', 'tq');
+      await addCoinTransaction(tqDiscount, 'spend', '🛒 Giảm giá đơn mua gộp bằng Xu TQ', 'tq');
     }
     if (regularDiscount > 0) {
-      await addCoinTransaction(-regularDiscount, `🛒 Giảm giá đơn mua gộp bằng Xu Thường`, 'spend', 'regular');
+      await addCoinTransaction(regularDiscount, 'spend', '🛒 Giảm giá đơn mua gộp bằng Xu Thường', 'regular');
     }
 
     // Create Intermediary Order in Stage 1

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, MapPin, Store, CheckCircle, Star, Lock } from 'lucide-react';
+import { Plus, Trash2, Check, PhoneCall, ShieldCheck, Phone, MapPin, Store, CheckCircle, Star, Lock, AlertOctagon, Clock, PauseCircle } from 'lucide-react';
 import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
 
@@ -12,8 +12,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
   const { addToCart, deleteProduct } = useShop();
   const [added, setAdded] = React.useState(false);
 
+  const isClosed = Boolean(product.isShopTemporarilyClosed);
+  const isSuspended = Boolean(product.isShopSuspended);
+  const isOrderingBlocked = isClosed || isSuspended;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isOrderingBlocked) {
+      alert(isSuspended 
+        ? '🔴 Shop hiện đang bị Sàn tạm khóa do quá hạn công nợ hoặc vi phạm quy định.' 
+        : `🟠 Shop hiện đang TẠM NGHỈ (${product.shopCloseReason || 'Mở lại theo lịch'}). Vui lòng quay lại sau!`);
+      return;
+    }
     addToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
@@ -67,13 +77,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
   return (
     <div 
       onClick={() => onSelectProduct && onSelectProduct(product)}
-      className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group relative w-full min-w-0 cursor-pointer"
+      className={`bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group relative w-full min-w-0 cursor-pointer ${
+        isSuspended 
+          ? 'border-rose-300 opacity-80' 
+          : isClosed 
+          ? 'border-amber-300 bg-amber-50/20 opacity-90' 
+          : 'border-gray-100'
+      }`}
     >
       <div className="relative h-48 w-full overflow-hidden bg-gray-100">
         <img 
           src={product.img} 
           alt={product.name} 
-          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+            isOrderingBlocked ? 'grayscale-[30%]' : ''
+          }`}
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80';
           }}
@@ -104,6 +122,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
           )}
         </div>
 
+        {/* PROMINENT SHOP OPEN / PAUSE / SUSPENDED CARD BADGE */}
+        <div className="absolute top-3 right-3">
+          {isSuspended ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600/95 text-white backdrop-blur-md rounded-xl text-[10px] font-black shadow-md border border-rose-400">
+              <AlertOctagon className="w-3 h-3 shrink-0" />
+              <span>🔴 Bị Sàn Khóa</span>
+            </span>
+          ) : isClosed ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600/95 text-white backdrop-blur-md rounded-xl text-[10px] font-black shadow-md border border-amber-300">
+              <PauseCircle className="w-3 h-3 shrink-0" />
+              <span>🟠 Tạm Nghỉ</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600/95 text-white backdrop-blur-md rounded-xl text-[10px] font-black shadow-md border border-emerald-300">
+              <Clock className="w-3 h-3 shrink-0" />
+              <span>🟢 Đang Mở Cửa</span>
+            </span>
+          )}
+        </div>
+
         {/* Lodging Business License Badge */}
         {isLodging && (
           <div className="absolute bottom-3 left-3 right-3 max-w-full">
@@ -121,7 +159,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
             deleteProduct(product.id);
           }}
           title="Xóa mục tiện ích này"
-          className="absolute top-3 right-3 p-1.5 bg-white/80 hover:bg-rose-500 text-gray-400 hover:text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm cursor-pointer"
+          className="absolute bottom-3 right-3 p-1.5 bg-white/80 hover:bg-rose-500 text-gray-400 hover:text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm cursor-pointer"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -158,30 +196,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
             </span>
           </div>
 
-          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors break-words">
+          <h3 className="text-sm font-extrabold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug break-words">
             {product.name}
           </h3>
 
-          {/* Clickable Google Maps Location Link */}
-          {(product.district || product.locationName) && (
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              title="Bấm vào đây để mở Google Maps chỉ đường trực tiếp"
-              className="mt-1.5 flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline truncate group/map"
-            >
-              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-bounce" />
-              <span className="truncate">
-                {product.district ? product.district : ''} 
-                {product.distanceKm !== undefined ? ` • cách ${product.distanceKm} km` : ''}
+          {/* Location & Google Maps Link */}
+          <div className="flex items-center justify-between gap-1 text-[11px] text-gray-500 mt-1 min-w-0">
+            <span className="flex items-center gap-1 truncate font-medium" title={fullAddress}>
+              <MapPin className="w-3 h-3 text-indigo-500 shrink-0" />
+              <span className="truncate">{fullAddress}</span>
+            </span>
+
+            {product.distanceKm !== undefined && (
+              <span className="text-indigo-600 font-extrabold shrink-0 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                {product.distanceKm} km
               </span>
-              <span className="text-[9px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200 shrink-0 font-extrabold ml-1">
-                🗺️ Chỉ đường GMap
-              </span>
-            </a>
-          )}
+            )}
+          </div>
 
           {/* Contact / License Info */}
           {product.contactName && (
@@ -191,7 +222,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
             </p>
           )}
 
-          {product.description && (
+          {/* TEMPORARY CLOSED OR SUSPENDED STATUS BANNER IN CARD BODY */}
+          {isClosed && (
+            <div className="mt-2 p-2 bg-amber-100/90 border border-amber-300 rounded-xl text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+              <PauseCircle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+              <span className="truncate">⏸️ {product.shopCloseReason || 'Shop tạm nghỉ - Tạm ngưng nhận đơn'}</span>
+            </div>
+          )}
+
+          {isSuspended && (
+            <div className="mt-2 p-2 bg-rose-100/90 border border-rose-300 rounded-xl text-[11px] font-bold text-rose-900 flex items-center gap-1.5">
+              <AlertOctagon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <span className="truncate">🔴 Shop bị Sàn tạm khóa (Quá hạn công nợ)</span>
+            </div>
+          )}
+
+          {product.description && !isClosed && !isSuspended && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2 break-words">
               {product.description}
             </p>
@@ -209,25 +255,42 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
           {/* Special CTA for Lodging & Transport: Direct Phone Call */}
           {isLodging || isTransport ? (
             <a
-              href={`tel:${phoneNumber.replace(/[^0-9]/g, '')}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-200 transition shrink-0 max-w-[55%] truncate"
+              href={isOrderingBlocked ? undefined : `tel:${phoneNumber.replace(/[^0-9]/g, '')}`}
+              onClick={(e) => {
+                if (isOrderingBlocked) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  alert(isSuspended ? '🔴 Shop hiện bị khóa do nợ công nợ!' : '🟠 Shop tạm nghỉ!');
+                } else {
+                  e.stopPropagation();
+                }
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-md transition shrink-0 max-w-[55%] truncate ${
+                isOrderingBlocked
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200'
+              }`}
               title={`Gọi ngay ${phoneNumber}`}
             >
-              <PhoneCall className="w-3.5 h-3.5 animate-bounce shrink-0" />
-              <span className="truncate">Gọi ({phoneNumber})</span>
+              <PhoneCall className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{isOrderingBlocked ? 'Tạm Ngưng' : `Gọi (${phoneNumber})`}</span>
             </a>
           ) : (
             <button 
               onClick={handleAddToCart} 
-              className={`p-2 rounded-xl font-medium transition-all duration-200 flex items-center gap-1 shrink-0 cursor-pointer ${
-                added 
+              disabled={isOrderingBlocked}
+              className={`p-2 rounded-xl font-bold text-xs transition-all duration-200 flex items-center gap-1 shrink-0 cursor-pointer ${
+                isOrderingBlocked
+                  ? 'bg-amber-100 text-amber-800 border border-amber-300 cursor-not-allowed'
+                  : added 
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' 
                   : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-sm'
               }`}
-              title="Thêm vào danh sách tiện ích của bạn"
+              title={isOrderingBlocked ? 'Shop đang tạm nghỉ - Tạm ngưng nhận đơn' : 'Thêm vào giỏ hàng'}
             >
-              {added ? (
+              {isOrderingBlocked ? (
+                <span>Tạm nghỉ</span>
+              ) : added ? (
                 <Check className="w-4 h-4" />
               ) : (
                 <Plus className="w-4 h-4" />

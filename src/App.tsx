@@ -19,6 +19,7 @@ import { DirectMessagingModal } from './components/DirectMessagingModal';
 import { BuyerDashboardModal } from './components/BuyerDashboardModal';
 import { MultiStepShopOnboardingModal } from './components/MultiStepShopOnboardingModal';
 import { ShopDetailPortalModal } from './components/ShopDetailPortalModal';
+import { ShopStatusToggleModal } from './components/ShopStatusToggleModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import type { Product, CustomerAddress } from './types';
@@ -36,6 +37,7 @@ function AppContent() {
   const [buyerDashboardModalOpen, setBuyerDashboardModalOpen] = useState(false);
   const [multiStepOnboardingModalOpen, setMultiStepOnboardingModalOpen] = useState(false);
   const [shopDetailPortalModalOpen, setShopDetailPortalModalOpen] = useState(false);
+  const [shopStatusToggleModalOpen, setShopStatusToggleModalOpen] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
 
   // Customer Saved Addresses State
@@ -103,6 +105,7 @@ function AppContent() {
         onOpenBuyerDashboardModal={() => setBuyerDashboardModalOpen(true)}
         onOpenMultiStepOnboardingModal={() => setMultiStepOnboardingModalOpen(true)}
         onOpenShopDetailPortalModal={() => setShopDetailPortalModalOpen(true)}
+        onOpenShopStatusToggleModal={() => setShopStatusToggleModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards & Homepage Daily Check-in */}
@@ -224,6 +227,11 @@ function AppContent() {
       <ShopDetailPortalModal
         isOpen={shopDetailPortalModalOpen}
         onClose={() => setShopDetailPortalModalOpen(false)}
+      />
+
+      <ShopStatusToggleModal
+        isOpen={shopStatusToggleModalOpen}
+        onClose={() => setShopStatusToggleModalOpen(false)}
       />
 
       <ProductDetailModal 

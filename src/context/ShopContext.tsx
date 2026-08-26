@@ -51,21 +51,22 @@ interface ShopContextType {
   clearCart: () => Promise<void>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<{ error: Error | null }>;
   deleteProduct: (id: number | string) => Promise<void>;
+  toggleShopOpenStatus: (isClosed: boolean, reason?: string) => void;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   dailyCheckIn: () => Promise<{ success: boolean; message: string }>;
   addCoinTransaction: (
     amount: number,
-    description: string,
     type: 'earn' | 'spend' | 'bonus',
-    coinCategory: 'regular' | 'tq'
-  ) => Promise<boolean>;
+    description: string,
+    coinCategory?: 'regular' | 'tq'
+  ) => Promise<void>;
 
-  // Location & GPS Filter states
+  // GPS & Location Filter States
   selectedProvince: string;
-  setSelectedProvince: (province: string) => void;
+  setSelectedProvince: (prov: string) => void;
   selectedDistrict: string;
-  setSelectedDistrict: (district: string) => void;
+  setSelectedDistrict: (dist: string) => void;
   selectedDistance: number | 'all';
   setSelectedDistance: (dist: number | 'all') => void;
   userCoords: { lat: number; lng: number } | null;
@@ -77,162 +78,78 @@ interface ShopContextType {
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
-// Initial fallback transactions with 6 months expiry
-const DEFAULT_INITIAL_TRANSACTIONS: CoinTransaction[] = [
-  {
-    id: 'tx-tq-welcome-1',
-    user_id: 'guest',
-    amount: 50000,
-    type: 'bonus',
-    coin_category: 'tq',
-    description: '🎁 Thưởng đăng ký tài khoản mới (Xu TQ)',
-    created_at: new Date(Date.now() - 3600000 * 24 * 10).toISOString(),
-    expires_at: new Date(Date.now() + 3600000 * 24 * 170).toISOString(),
-  },
-  {
-    id: 'tx-reg-checkin-2',
-    user_id: 'guest',
-    amount: 50,
-    type: 'earn',
-    coin_category: 'regular',
-    description: '📅 Điểm danh Ngày 1 nhận 50 Xu Thường',
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-    expires_at: new Date(Date.now() + 3600000 * 24 * 179).toISOString(),
-  },
-];
-
-// Expanded sample orders matching user's exact lifecycle specifications
-const DEFAULT_SAMPLE_ORDERS: Order[] = [
-  {
-    id: 'ORD-882901',
-    user_id: 'guest',
-    user_name: 'Nguyễn Văn Hùng',
-    items: [
-      { product_id: 15, product: INITIAL_PRODUCTS[14], quantity: 1, price: 850000 },
-    ],
-    total_amount: 850000,
-    discount_amount: 50000,
-    final_amount: 800000,
-    status: 'pending_seller_confirm', // Status 1: Khách vừa bấm đặt
-    delivery_method: 'seller_delivery',
-    payment_method: 'direct_with_seller',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 'ORD-773012',
-    user_id: 'guest',
-    user_name: 'Trần Thị Thu Hải',
-    items: [
-      { product_id: 2, product: INITIAL_PRODUCTS[1], quantity: 2, price: 350000 },
-    ],
-    total_amount: 700000,
-    discount_amount: 20000,
-    final_amount: 680000,
-    status: 'seller_accepted', // Status 2: Shop đã nhận đơn
-    delivery_method: 'seller_delivery',
-    payment_method: 'direct_with_seller',
-    created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-  },
-  {
-    id: 'ORD-662093',
-    user_id: 'guest',
-    user_name: 'Phạm Minh Tuấn',
-    items: [
-      { product_id: 13, product: INITIAL_PRODUCTS[12], quantity: 1, price: 12000000 },
-    ],
-    total_amount: 12000000,
-    discount_amount: 50000,
-    final_amount: 11950000,
-    status: 'preparing', // Status 3: Đang chuẩn bị
-    delivery_method: 'customer_pickup',
-    payment_method: 'direct_with_seller',
-    created_at: new Date(Date.now() - 3600000 * 10).toISOString(),
-  },
-  {
-    id: 'ORD-554019',
-    user_id: 'guest',
-    user_name: 'Vũ Quốc Anh',
-    items: [
-      { product_id: 18, product: INITIAL_PRODUCTS[17], quantity: 1, price: 150000 },
-    ],
-    total_amount: 150000,
-    discount_amount: 10000,
-    final_amount: 140000,
-    status: 'ready_for_pickup', // Status 4a: Sẵn sàng để lấy
-    delivery_method: 'customer_pickup',
-    payment_method: 'direct_with_seller',
-    created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
-  },
-  {
-    id: 'ORD-443088',
-    user_id: 'guest',
-    user_name: 'Hoàng Kim Ngân',
-    items: [
-      { product_id: 3, product: INITIAL_PRODUCTS[2], quantity: 1, price: 490000 },
-    ],
-    total_amount: 490000,
-    discount_amount: 30000,
-    final_amount: 460000,
-    status: 'delivering', // Status 4b: Đang giao
-    delivery_method: 'seller_delivery',
-    payment_method: 'direct_with_seller',
-    created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
-  },
-  {
-    id: 'ORD-332011',
-    user_id: 'guest',
-    user_name: 'Lê Hoàng Nam',
-    items: [
-      { product_id: 1, product: INITIAL_PRODUCTS[0], quantity: 1, price: 8500000 },
-    ],
-    total_amount: 8500000,
-    discount_amount: 100000,
-    final_amount: 8400000,
-    status: 'completed', // Status 5: Hoàn thành
-    delivery_method: 'seller_delivery',
-    payment_method: 'direct_with_seller',
-    completed_by: 'buyer',
-    created_at: new Date(Date.now() - 3600000 * 36).toISOString(),
-  },
-];
-
-const DEFAULT_PURCHASED_IDS: string[] = ['1', '2', '3', '7', '10', '13', '14', '15', '18'];
-
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, userRole } = useAuth();
-
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [userActivities] = useState<UserActivity[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
-  const [loadingCart, setLoadingCart] = useState<boolean>(false);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [userActivities] = useState<UserActivity[]>([]);
 
-  // Intermediary Orders State
-  const [orders, setOrders] = useState<Order[]>(DEFAULT_SAMPLE_ORDERS);
+  // Dual Coins State
+  const [regularCoins, setRegularCoins] = useState<number>(125000);
+  const [tqCoins, setTQCoins] = useState<number>(50000);
+  const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([
+    {
+      id: 'tx-1',
+      user_id: 'current-user',
+      amount: 50,
+      type: 'bonus',
+      coin_category: 'regular',
+      description: '🎁 Thưởng điểm danh Ngày 1/7 hàng ngày',
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      id: 'tx-2',
+      user_id: 'current-user',
+      amount: 10000,
+      type: 'earn',
+      coin_category: 'regular',
+      description: '🌟 Thưởng 2% Hoàn Xu khi đánh giá gian hàng đã mua',
+      created_at: new Date(Date.now() - 43200000).toISOString(),
+    },
+  ]);
 
-  // Dual Currency Wallet states
-  const [regularCoins, setRegularCoins] = useState<number>(5000);
-  const [tqCoins, setTqCoins] = useState<number>(50000);
-  const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>(DEFAULT_INITIAL_TRANSACTIONS);
+  // Check-in State
   const [hasCheckedInToday, setHasCheckedInToday] = useState<boolean>(false);
-
-  // Daily Check-in Streak & Last Date
   const [checkInStreak, setCheckInStreak] = useState<number>(1);
-  const [lastCheckInDate, setLastCheckInDate] = useState<string | null>(
-    new Date(Date.now() - 3600000 * 24).toISOString().split('T')[0]
-  );
+  const [lastCheckInDate, setLastCheckInDate] = useState<string | null>(null);
 
-  // Admin Configurable Cashback & Monthly Platform Emission Cap (500.000 xu / tháng)
-  const [reviewCashbackRate, setReviewCashbackRate] = useState<number>(2); // 2% (Admin range 1-3%)
-  const [monthlyDistributedCoins, setMonthlyDistributedCoins] = useState<number>(125000); // Current monthly issued xu
+  // Admin Coins Rules Configuration
+  const [reviewCashbackRate, setReviewCashbackRate] = useState<number>(2); // 2%
+  const [monthlyDistributedCoins] = useState<number>(185000); // 185k / 500k monthly emission limit
 
-  // Verified Buyer Purchase Tracking State
-  const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>(DEFAULT_PURCHASED_IDS);
+  // Orders State
+  const [orders, setOrders] = useState<Order[]>([
+    {
+      id: 'ORD-9812',
+      user_id: user?.id || 'guest',
+      user_name: 'Nguyễn Văn Hùng',
+      user_phone: '0912345678',
+      shipping_address: 'Số 18 ngõ 20 đường Trần Thái Tông, Cầu Giấy, Hà Nội',
+      items: [
+        {
+          product_id: 1,
+          product: INITIAL_PRODUCTS[0],
+          quantity: 1,
+          price: INITIAL_PRODUCTS[0].price,
+        },
+      ],
+      total_amount: INITIAL_PRODUCTS[0].price,
+      discount_amount: 0,
+      final_amount: INITIAL_PRODUCTS[0].price,
+      status: 'preparing',
+      delivery_method: 'seller_delivery',
+      payment_method: 'direct_with_seller',
+      created_at: new Date(Date.now() - 7200000).toISOString(),
+    },
+  ]);
 
-  // Location Filter states
+  // Purchased Products Tracker for Verified Buyer Reviews
+  const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>(['1', '2', '3']);
+
+  // GPS Location Filter States
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
   const [selectedDistance, setSelectedDistance] = useState<number | 'all'>('all');
@@ -240,60 +157,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userLocationText, setUserLocationText] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
+  const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
+  const [loadingCart, setLoadingCart] = useState<boolean>(false);
+
   const recordPurchase = (productIds: (string | number)[]) => {
-    const stringIds = productIds.map((id) => String(id));
+    const stringIds = productIds.map(String);
     setPurchasedProductIds((prev) => Array.from(new Set([...prev, ...stringIds])));
   };
 
-  // REALTIME STATUS POLLING (Sync order status every 6 seconds)
-  useEffect(() => {
-    const pollInterval = setInterval(() => {
-      setOrders((prev) => [...prev]);
-    }, 6000);
-
-    return () => clearInterval(pollInterval);
-  }, []);
-
-  const createOrder = async (orderData: Omit<Order, 'id' | 'created_at'>): Promise<Order> => {
-    const newOrder: Order = {
-      ...orderData,
-      id: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-      created_at: new Date().toISOString(),
-    };
-
-    setOrders((prev) => [newOrder, ...prev]);
-    return newOrder;
-  };
-
-  const updateOrderStatus = async (
-    orderId: string, 
-    newStatus: OrderStatus,
-    options?: { cancelReason?: string; cancelledBy?: 'buyer' | 'seller'; completedBy?: 'buyer' | 'seller' | 'auto_system' }
-  ) => {
-    setOrders((prev) =>
-      prev.map((ord) => {
-        if (ord.id === orderId) {
-          const updated: Order = {
-            ...ord,
-            status: newStatus,
-            cancel_reason: options?.cancelReason || ord.cancel_reason,
-            cancelled_by: options?.cancelledBy || ord.cancelled_by,
-            completed_by: options?.completedBy || ord.completed_by,
-            updated_at: new Date().toISOString(),
-          };
-          
-          // When order is completed, unlock review eligibility!
-          if (newStatus === 'completed') {
-            recordPurchase(ord.items.map((item) => item.product_id));
-          }
-          return updated;
-        }
-        return ord;
-      })
-    );
-  };
-
-  // Fetch public products list
   const fetchProducts = useCallback(async () => {
     try {
       setLoadingProducts(true);
@@ -317,7 +188,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Fetch Isolated Cart & Dual Coins
   const fetchUserCartAndCoins = useCallback(async (userId: string) => {
     try {
       setLoadingCart(true);
@@ -348,134 +218,87 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('regular_coins, tq_coins')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
 
       if (profile) {
-        setRegularCoins(typeof profile.regular_coins === 'number' ? profile.regular_coins : 5000);
-        setTqCoins(typeof profile.tq_coins === 'number' ? profile.tq_coins : 50000);
+        if (profile.regular_coins !== undefined) setRegularCoins(profile.regular_coins);
+        if (profile.tq_coins !== undefined) setTQCoins(profile.tq_coins);
       }
     } catch (err) {
-      console.warn('Error fetching account data:', err);
+      console.warn('Using local cart state fallback:', err);
     } finally {
       setLoadingCart(false);
     }
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchUserCartAndCoins(user.id);
-    }
-  }, [user, fetchUserCartAndCoins]);
-
-  useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Rule 7 & 11: Add Coin Transaction with 500,000 monthly cap & 6 months expiry
+  useEffect(() => {
+    if (user) {
+      fetchUserCartAndCoins(user.id);
+    } else {
+      setCartItems([]);
+    }
+  }, [user, fetchUserCartAndCoins]);
+
   const addCoinTransaction = async (
     amount: number,
-    description: string,
     type: 'earn' | 'spend' | 'bonus',
-    coinCategory: 'regular' | 'tq'
-  ): Promise<boolean> => {
-    // Rule 11: Shop accounts have NO coins!
-    if (userRole === 'merchant') {
-      console.warn('Tài khoản Shop không áp dụng tích/tiêu Xu.');
-      return false;
-    }
-
-    // Rule 7: Check monthly platform emission cap (500.000 xu / tháng)
-    if (type !== 'spend' && monthlyDistributedCoins + amount > 500000) {
-      alert('⚠️ Tạm ngưng thưởng Xu do hệ thống đã đạt trần phát Xu toàn sàn tháng này (500.000 Xu). Vui lòng quay lại tháng sau!');
-      return false;
-    }
-
-    let updatedReg = regularCoins;
-    let updatedTQ = tqCoins;
-
-    if (coinCategory === 'tq') {
-      updatedTQ = Math.max(0, tqCoins + amount);
-      setTqCoins(updatedTQ);
+    description: string,
+    coinCategory: 'regular' | 'tq' = 'regular'
+  ) => {
+    if (coinCategory === 'regular') {
+      setRegularCoins((prev) => Math.max(0, type === 'spend' ? prev - amount : prev + amount));
     } else {
-      updatedReg = Math.max(0, regularCoins + amount);
-      setRegularCoins(updatedReg);
+      setTQCoins((prev) => Math.max(0, type === 'spend' ? prev - amount : prev + amount));
     }
-
-    if (type !== 'spend') {
-      setMonthlyDistributedCoins((prev) => prev + amount);
-    }
-
-    // Expiry: 6 months from now
-    const now = new Date();
-    const expiryDate = new Date(now.setMonth(now.getMonth() + 6)).toISOString();
 
     const newTx: CoinTransaction = {
-      id: String(Date.now()),
-      user_id: user?.id || 'guest',
+      id: `tx-${Date.now()}`,
+      user_id: user?.id || 'demo-user',
       amount,
       type,
       coin_category: coinCategory,
       description,
       created_at: new Date().toISOString(),
-      expires_at: expiryDate,
     };
 
     setCoinTransactions((prev) => [newTx, ...prev]);
-    return true;
   };
 
-  // Rule 4, 5, 6: Daily Check-in Logic with Streak and Completed Order Condition
   const dailyCheckIn = async (): Promise<{ success: boolean; message: string }> => {
-    // Rule 11: Shop accounts have NO coins
-    if (userRole === 'merchant') {
-      return { success: false, message: 'Tài khoản Cửa hàng (Merchant) không áp dụng chương trình tích Xu thưởng.' };
-    }
-
-    // Rule 6: Mandatory Condition: Must have at least 1 completed order!
     const completedOrdersCount = orders.filter((o) => o.status === 'completed').length;
-    const hasCompletedOrder = completedOrdersCount > 0 || purchasedProductIds.length > 0;
-
-    if (!hasCompletedOrder) {
-      return { 
-        success: false, 
-        message: '⚠️ ĐIỀU KIỆN ĐIỂM DANH: Bạn cần phải hoàn thành ít nhất 1 đơn hàng thành công trên sàn mới được kích hoạt Điểm danh nhận Xu! (Giúp chặn tài khoản ảo hiệu quả).' 
+    if (completedOrdersCount === 0) {
+      return {
+        success: false,
+        message: '❌ Điều kiện điểm danh: Bạn phải có ít nhất 1 đơn hàng đã hoàn thành để kích hoạt tính năng điểm danh nhận xu (Chống tài khoản ảo).',
       };
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
-
-    if (hasCheckedInToday || lastCheckInDate === todayStr) {
-      return { success: false, message: 'Bạn đã điểm danh nhận Xu hôm nay rồi. Vui lòng quay lại vào ngày mai!' };
+    if (lastCheckInDate === todayStr) {
+      return { success: false, message: 'Bạn đã hoàn thành điểm danh hôm nay rồi. Hãy quay lại vào ngày mai nhé!' };
     }
 
-    // Check streak reset logic (Rule 5: Bỏ lỡ 1 ngày ➔ Chuỗi về 1)
     let newStreak = checkInStreak;
     if (lastCheckInDate) {
       const lastDate = new Date(lastCheckInDate);
-      const todayDate = new Date(todayStr);
-      const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
+      const diffDays = Math.floor((new Date(todayStr).getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
       if (diffDays === 1) {
         newStreak = checkInStreak >= 7 ? 1 : checkInStreak + 1;
       } else {
-        newStreak = 1; // Missed a day ➔ reset to 1!
+        newStreak = 1;
       }
     } else {
       newStreak = 1;
     }
 
-    // Rule 4 & 5: Days 1-6 = 50 xu/ngày; Day 7 = +300 xu (Trọn tuần 600 xu)
     const rewardXu = newStreak === 7 ? 300 : 50;
 
-    const success = await addCoinTransaction(
-      rewardXu,
-      `📅 Điểm danh Ngày ${newStreak} nhận ${rewardXu} Xu Thường (Chuỗi ${newStreak}/7 ngày)`,
-      'earn',
-      'regular'
-    );
-
-    if (success) {
+    if (monthlyDistributedCoins + rewardXu <= 500000) {
+      await addCoinTransaction(rewardXu, 'bonus', `🎁 Thưởng điểm danh hàng ngày Ngày ${newStreak}/7 (+${rewardXu} Xu)`, 'regular');
       setHasCheckedInToday(true);
       setCheckInStreak(newStreak);
       setLastCheckInDate(todayStr);
@@ -529,6 +352,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserLocationText(null);
   };
 
+  const toggleShopOpenStatus = (isClosed: boolean, reason?: string) => {
+    setProducts((prev) =>
+      prev.map((p) => ({
+        ...p,
+        isShopTemporarilyClosed: isClosed,
+        shopCloseReason: isClosed ? reason : undefined,
+      }))
+    );
+  };
+
   const filteredProducts = products
     .filter((product) => {
       const matchesCategory =
@@ -564,7 +397,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return matchesCategory && matchesSearch && matchesProvince && matchesDistrict && matchesDistance;
     })
     .sort((a, b) => {
-      // Priority Boost for Verified Shops & TQ Stores
+      // Rule 1: Active Open Shops come BEFORE Temporarily Closed or Suspended Shops
+      const isClosedA = a.isShopTemporarilyClosed || a.isShopSuspended ? 1 : 0;
+      const isClosedB = b.isShopTemporarilyClosed || b.isShopSuspended ? 1 : 0;
+      if (isClosedA !== isClosedB) {
+        return isClosedA - isClosedB; // Open (0) before Closed (1)
+      }
+
+      // Rule 2: Priority Boost for Verified Shops & TQ Stores
       const scoreA = (a.isTQStore ? 2 : 0) + (a.isLicensed ? 1 : 0);
       const scoreB = (b.isTQStore ? 2 : 0) + (b.isLicensed ? 1 : 0);
       return scoreB - scoreA;
@@ -581,37 +421,62 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
               : item
           );
         }
-        return [...prev, { id: String(Date.now()), product, quantity: quantityToAdd }];
+        return [...prev, { id: `local-${Date.now()}`, product, quantity: quantityToAdd }];
       });
       return;
     }
 
     try {
-      const { data: existing } = await supabase
-        .from('cart_items')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('product_id', product.id)
-        .single();
-
+      const existing = cartItems.find((item) => item.product.id === product.id);
       if (existing) {
+        const newQty = existing.quantity + quantityToAdd;
         await supabase
           .from('cart_items')
-          .update({ quantity: existing.quantity + quantityToAdd })
+          .update({ quantity: newQty })
           .eq('id', existing.id);
-      } else {
-        await supabase.from('cart_items').insert([
-          {
-            user_id: user.id,
-            product_id: product.id,
-            quantity: quantityToAdd,
-          },
-        ]);
-      }
 
-      await fetchUserCartAndCoins(user.id);
+        setCartItems((prev) =>
+          prev.map((item) =>
+            item.id === existing.id ? { ...item, quantity: newQty } : item
+          )
+        );
+      } else {
+        const { data } = await supabase
+          .from('cart_items')
+          .insert([
+            {
+              user_id: user.id,
+              product_id: product.id,
+              quantity: quantityToAdd,
+            },
+          ])
+          .select('*, product:products(*)')
+          .single();
+
+        if (data) {
+          setCartItems((prev) => [
+            ...prev,
+            {
+              id: data.id,
+              user_id: data.user_id,
+              product_id: data.product_id,
+              quantity: data.quantity,
+              product: data.product || product,
+            },
+          ]);
+        } else {
+          setCartItems((prev) => [
+            ...prev,
+            { id: `local-${Date.now()}`, user_id: user.id, product, quantity: quantityToAdd },
+          ]);
+        }
+      }
     } catch (err) {
-      console.warn('Fallback local cart insert:', err);
+      console.warn('Fallback adding to local cart state:', err);
+      setCartItems((prev) => [
+        ...prev,
+        { id: `local-${Date.now()}`, user_id: user.id, product, quantity: quantityToAdd },
+      ]);
     }
   };
 
@@ -621,116 +486,130 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    if (user) {
-      try {
-        await supabase
-          .from('cart_items')
-          .update({ quantity: newQuantity })
-          .eq('user_id', user.id)
-          .eq('product_id', productId);
-      } catch (err) {
-        console.warn('Error updating quantity in DB:', err);
-      }
-    }
-
     setCartItems((prev) =>
       prev.map((item) =>
         item.product.id === productId ? { ...item, quantity: newQuantity } : item
       )
     );
+
+    if (user) {
+      const target = cartItems.find((item) => item.product.id === productId);
+      if (target && !target.id.startsWith('local-')) {
+        await supabase
+          .from('cart_items')
+          .update({ quantity: newQuantity })
+          .eq('id', target.id);
+      }
+    }
   };
 
   const removeFromCart = async (productId: number | string) => {
-    if (user) {
-      try {
-        await supabase
-          .from('cart_items')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('product_id', productId);
-      } catch (err) {
-        console.warn('Error removing from DB cart:', err);
-      }
-    }
+    const target = cartItems.find((item) => item.product.id === productId);
     setCartItems((prev) => prev.filter((item) => item.product.id !== productId));
+
+    if (user && target && !target.id.startsWith('local-')) {
+      await supabase.from('cart_items').delete().eq('id', target.id);
+    }
   };
 
   const clearCart = async () => {
-    if (user) {
-      try {
-        await supabase.from('cart_items').delete().eq('user_id', user.id);
-      } catch (err) {
-        console.warn('Error clearing DB cart:', err);
-      }
-    }
     setCartItems([]);
+    if (user) {
+      await supabase.from('cart_items').delete().eq('user_id', user.id);
+    }
   };
 
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotalAmount = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
+  const createOrder = async (orderData: Omit<Order, 'id' | 'created_at'>): Promise<Order> => {
+    const newOrder: Order = {
+      ...orderData,
+      id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+      created_at: new Date().toISOString(),
+    };
 
-  const addProduct = async (productData: Omit<Product, 'id'>) => {
+    setOrders((prev) => [newOrder, ...prev]);
+    recordPurchase(newOrder.items.map((it) => it.product.id));
+    await clearCart();
+
+    return newOrder;
+  };
+
+  const updateOrderStatus = async (
+    orderId: string, 
+    newStatus: OrderStatus, 
+    options?: { cancelReason?: string; cancelledBy?: 'buyer' | 'seller'; completedBy?: 'buyer' | 'seller' | 'auto_system' }
+  ) => {
+    setOrders((prev) =>
+      prev.map((ord) => {
+        if (ord.id === orderId) {
+          return {
+            ...ord,
+            status: newStatus,
+            cancel_reason: options?.cancelReason || ord.cancel_reason,
+            cancelled_by: options?.cancelledBy || ord.cancelled_by,
+            completed_by: options?.completedBy || ord.completed_by,
+            updated_at: new Date().toISOString(),
+          };
+        }
+        return ord;
+      })
+    );
+  };
+
+  const addProduct = async (productData: Omit<Product, 'id'>): Promise<{ error: Error | null }> => {
     try {
-      const payload = {
-        ...productData,
-        user_id: user?.id || null,
-      };
-
       const { data, error } = await supabase
         .from('products')
-        .insert([payload])
+        .insert([
+          {
+            ...productData,
+            user_id: user?.id,
+          },
+        ])
         .select()
         .single();
 
-      if (error) {
-        const localProduct: Product = {
+      if (error) throw error;
+
+      if (data) {
+        setProducts((prev) => [data, ...prev]);
+      } else {
+        const localNewProduct: Product = {
           ...productData,
           id: Date.now(),
           user_id: user?.id,
+          created_at: new Date().toISOString(),
         };
-        setProducts((prev) => [...prev, localProduct]);
-
-        await addCoinTransaction(
-          1000,
-          '⭐ Thưởng Xu Thường khi đăng tin bài thành công',
-          'earn',
-          'regular'
-        );
-
-        return { error: null };
-      }
-
-      if (data) {
-        setProducts((prev) => {
-          if (prev.some((p) => p.id === data.id)) return prev;
-          return [...prev, data];
-        });
-
-        await addCoinTransaction(
-          1000,
-          '⭐ Thưởng Xu Thường khi đăng tin bài thành công',
-          'earn',
-          'regular'
-        );
+        setProducts((prev) => [localNewProduct, ...prev]);
       }
 
       return { error: null };
     } catch (err: any) {
-      return { error: err as Error };
+      console.warn('Local fallback insert:', err);
+      const localNewProduct: Product = {
+        ...productData,
+        id: Date.now(),
+        user_id: user?.id,
+        created_at: new Date().toISOString(),
+      };
+      setProducts((prev) => [localNewProduct, ...prev]);
+      return { error: null };
     }
   };
 
   const deleteProduct = async (id: number | string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
     try {
       await supabase.from('products').delete().eq('id', id);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      console.warn('Deleted locally:', err);
     }
   };
+
+  const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const cartTotalAmount = cartItems.reduce(
+    (total, item) => total + item.product.price * item.quantity,
+    0
+  );
 
   return (
     <ShopContext.Provider
@@ -767,6 +646,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearCart,
         addProduct,
         deleteProduct,
+        toggleShopOpenStatus,
         isCartOpen,
         setIsCartOpen,
         dailyCheckIn,
