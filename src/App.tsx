@@ -13,6 +13,7 @@ import { CoinWalletModal } from './components/CoinWalletModal';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { StaffPermissionModal } from './components/StaffPermissionModal';
+import { MerchantReconciliationModal } from './components/MerchantReconciliationModal';
 import { CartDrawer } from './components/CartDrawer';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import type { Product } from './types';
@@ -24,6 +25,7 @@ function AppContent() {
   const [coinWalletModalOpen, setCoinWalletModalOpen] = useState(false);
   const [orderTrackingModalOpen, setOrderTrackingModalOpen] = useState(false);
   const [staffPermissionModalOpen, setStaffPermissionModalOpen] = useState(false);
+  const [merchantReconciliationModalOpen, setMerchantReconciliationModalOpen] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
 
   return (
@@ -36,6 +38,7 @@ function AppContent() {
         onOpenCoinWalletModal={() => setCoinWalletModalOpen(true)}
         onOpenOrderTrackingModal={() => setOrderTrackingModalOpen(true)}
         onOpenStaffPermissionModal={() => setStaffPermissionModalOpen(true)}
+        onOpenMerchantReconciliationModal={() => setMerchantReconciliationModalOpen(true)}
       />
 
       {/* BANNER Carousel & Side Cards */}
@@ -79,8 +82,8 @@ function AppContent() {
                 <RefreshCw className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-gray-900">Sàn Giao Dịch Trung Gian RBAC</h4>
-                <p className="text-xs text-gray-500 mt-0.5">Phân quyền 4 Cấp: Admin ➔ Staff ➔ Shop ➔ Buyer.</p>
+                <h4 className="font-bold text-sm text-gray-900">Đối Soát Công Nợ Sàn ⇄ Shop</h4>
+                <p className="text-xs text-gray-500 mt-0.5">Chốt sổ ngày 1 hàng tháng • Cấn trừ hai chiều 7 ngày.</p>
               </div>
             </div>
           </div>
@@ -110,6 +113,11 @@ function AppContent() {
       <StaffPermissionModal
         isOpen={staffPermissionModalOpen}
         onClose={() => setStaffPermissionModalOpen(false)}
+      />
+
+      <MerchantReconciliationModal
+        isOpen={merchantReconciliationModalOpen}
+        onClose={() => setMerchantReconciliationModalOpen(false)}
       />
 
       <ProductDetailModal 

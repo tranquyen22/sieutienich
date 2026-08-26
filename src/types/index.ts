@@ -151,6 +151,35 @@ export interface MerchantApplication {
   created_at: string;
 }
 
+// Merchant Financial Ledger & Settlement System (Công nợ giữa sàn và shop)
+export interface MerchantFinancials {
+  shop_id: string;
+  shop_name: string;
+  is_verified: boolean;
+  total_sales: number;
+  shop_debt_fee: number;          // Shop nợ sàn: phí sàn theo % (chỉ shop đã xác minh)
+  platform_debt_reimburse: number; // Sàn nợ shop: bù tiền khách dùng xu/voucher
+  net_balance: number;            // Cấn trừ 2 chiều: (>0 = Shop nợ Sàn, <0 = Sàn nợ Shop)
+  debt_limit: number;             // Mốc trần nợ (Mặc định 1.000.000đ, Admin chỉnh được)
+  is_suspended: boolean;          // Tạm dừng shop nếu nợ quá mốc 1 triệu
+  last_settled_at: string;
+  settlement_status?: 'settled' | 'pending_payment' | 'overdue';
+}
+
+export interface SettlementRecord {
+  id: string;
+  shop_id: string;
+  shop_name: string;
+  period: string; // VD: 'Tháng 08/2026'
+  shop_debt_fee: number;
+  platform_debt_reimburse: number;
+  net_amount: number;
+  who_pays: 'shop_pays_platform' | 'platform_pays_shop' | 'balanced';
+  deadline_date: string; // Trong vòng 7 ngày
+  status: 'pending' | 'completed';
+  created_at: string;
+}
+
 export interface CategoryInfo {
   id: Category;
   name: string;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock, Coins, PackageCheck, Settings } from 'lucide-react';
+import { ShoppingBag, Search, User as UserIcon, LogOut, Plus, ChevronDown, Store, ShieldCheck, Clock, Coins, PackageCheck, Settings, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import type { UserRole } from '../types';
@@ -11,6 +11,7 @@ interface HeaderProps {
   onOpenCoinWalletModal: () => void;
   onOpenOrderTrackingModal: () => void;
   onOpenStaffPermissionModal: () => void;
+  onOpenMerchantReconciliationModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -19,7 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdminReviewModal,
   onOpenCoinWalletModal,
   onOpenOrderTrackingModal,
-  onOpenStaffPermissionModal
+  onOpenStaffPermissionModal,
+  onOpenMerchantReconciliationModal
 }) => {
   const { 
     user, 
@@ -250,12 +252,26 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <PackageCheck className="w-4 h-4 text-indigo-600" />
-                        <span>Theo dõi đơn hàng (4 bước)</span>
+                        <span>Theo dõi đơn hàng (5 bước)</span>
                       </div>
                       <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">
                         {orders.length}
                       </span>
                     </button>
+
+                    {/* RECONCILIATION & FINANCIAL LEDGER BUTTON (Merchant & Admin) */}
+                    {(userRole === 'merchant' || userRole === 'admin' || userRole === 'staff') && (
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          onOpenMerchantReconciliationModal();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-extrabold text-emerald-800 hover:bg-emerald-50 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
+                      >
+                        <DollarSign className="w-4 h-4 text-emerald-600" />
+                        <span>Đối soát Công nợ (Sàn ⇄ Shop)</span>
+                      </button>
+                    )}
 
                     {/* ADMIN STAFF PERMISSION MANAGEMENT BUTTON */}
                     {isAdmin && (
