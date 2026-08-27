@@ -131,13 +131,39 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
     },
   ]);
 
-  // Fetch & Sync Real-Time Directory Entries from Supabase
+  // Helper function to sync state, localStorage, and broadcast event to all open sessions/tabs
+  const syncAndUpdateEntries = (newList: DirectoryEntry[]) => {
+    setEntries(newList);
+    try {
+      localStorage.setItem('sieutienich_sos_directory_v2', JSON.stringify(newList));
+      window.dispatchEvent(new CustomEvent('sos_directory_updated', { detail: newList }));
+    } catch (err) {
+      console.warn('Storage sync error:', err);
+    }
+  };
+
+  // Fetch & Sync Real-Time Directory Entries from Supabase & LocalStorage across all sessions
   useEffect(() => {
+    // 1. Initial Load from LocalStorage for instant render
+    const savedLocal = localStorage.getItem('sieutienich_sos_directory_v2');
+    if (savedLocal) {
+      try {
+        const parsed = JSON.parse(savedLocal);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setEntries(parsed);
+        }
+      } catch (e) {
+        console.warn('Local directory parse error:', e);
+      }
+    }
+
+    // 2. Fetch from Supabase backend
     const fetchSupabaseEntries = async () => {
       try {
         const { data, error } = await supabase.from('directory_entries').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
           setEntries(data as DirectoryEntry[]);
+          localStorage.setItem('sieutienich_sos_directory_v2', JSON.stringify(data));
         }
       } catch (err) {
         console.warn('Supabase directory entries fetch note:', err);
@@ -145,6 +171,41 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
     };
 
     fetchSupabaseEntries();
+
+    // 3. Supabase Realtime Postgres Changes Subscription
+    const channel = supabase
+      .channel('realtime:directory_entries')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'directory_entries' }, () => {
+        fetchSupabaseEntries();
+      })
+      .subscribe();
+
+    // 4. Listen for Cross-Tab & Same-Tab sync events
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sieutienich_sos_directory_v2' && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue);
+          if (Array.isArray(updated)) setEntries(updated);
+        } catch (err) {
+          console.warn('Storage sync error:', err);
+        }
+      }
+    };
+
+    const handleCustomSync = (e: any) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setEntries(e.detail);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('sos_directory_updated', handleCustomSync);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('sos_directory_updated', handleCustomSync);
+    };
   }, []);
 
   // Location & Radius Filter States
@@ -237,19 +298,19 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
     }
 
     const nextState = !currentStatus;
-    setEntries((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          return {
-            ...item,
-            is_verified: nextState,
-            verified_by: nextState ? 'Admin Tổng' : undefined,
-            verified_at: nextState ? new Date().toISOString() : undefined,
-          };
-        }
-        return item;
-      })
-    );
+    const updatedList = entries.map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
+          is_verified: nextState,
+          verified_by: nextState ? 'Admin Tổng' : undefined,
+          verified_at: nextState ? new Date().toISOString() : undefined,
+        };
+      }
+      return item;
+    });
+
+    syncAndUpdateEntries(updatedList);
 
     try {
       await supabase.from('directory_entries').update({
@@ -266,9 +327,8 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
 
   // Report Wrong Number Action (For Buyers - ONLY REPORT, CANNOT EDIT NUMBER)
   const handleReportWrongNumber = (item: DirectoryEntry) => {
-    setEntries((prev) =>
-      prev.map((e) => (e.id === item.id ? { ...e, report_wrong_number_count: e.report_wrong_number_count + 1 } : e))
-    );
+    const updatedList = entries.map((e) => (e.id === item.id ? { ...e, report_wrong_number_count: e.report_wrong_number_count + 1 } : e));
+    syncAndUpdateEntries(updatedList);
 
     alert(`⚠️ Đã gửi Báo Số Sai cho mục "${item.title}"!\nBáo cáo đã được chuyển về Hàng đợi Admin rà soát kiểm tra. Cảm ơn bạn đã phản hồi!`);
   };
@@ -310,7 +370,8 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
       created_at: new Date().toISOString(),
     };
 
-    setEntries((prev) => prev.map((e) => (e.id === editingEntryId ? updatedItem : e)));
+    const updatedList = entries.map((e) => (e.id === editingEntryId ? updatedItem : e));
+    syncAndUpdateEntries(updatedList);
     setEditEntryModalOpen(false);
 
     try {
@@ -327,7 +388,8 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
     if (!isAdmin) return;
     if (!confirm(`⚠️ Bạn có chắc chắn muốn XÓA mục danh bạ "${title}" khỏi hệ thống?`)) return;
 
-    setEntries((prev) => prev.filter((e) => e.id !== id));
+    const updatedList = entries.filter((e) => e.id !== id);
+    syncAndUpdateEntries(updatedList);
 
     try {
       await supabase.from('directory_entries').delete().eq('id', id);
@@ -365,7 +427,8 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
       created_at: new Date().toISOString(),
     };
 
-    setEntries((prev) => [newEntryItem, ...prev]);
+    const updatedList = [newEntryItem, ...entries];
+    syncAndUpdateEntries(updatedList);
     setAddEntryModalOpen(false);
     setNewTitle('');
     setNewPhone('');
