@@ -478,10 +478,11 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
                     {/* Direct Call Button (tel:) */}
                     <a
                       href={`tel:${item.phone}`}
-                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer text-xs"
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer text-xs font-black"
+                      title={`Bấm để chuyển sang cuộc gọi điện thoại tự động nhập số ${item.phone}`}
                     >
                       <Phone className="w-4 h-4 fill-white" />
-                      <span>Gọi Ngay ({item.phone})</span>
+                      <span>Gọi Ngay</span>
                     </a>
 
                     {/* Direct SOS Messaging Button */}
