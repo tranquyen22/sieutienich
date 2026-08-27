@@ -66,13 +66,8 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
   // Individual Chat Messages Stream state
   const [chatMessages, setChatMessages] = useState<Record<string, SingleChatMessage[]>>({});
 
+  // 1. Fetch Real Chat Messages from Supabase when user changes
   useEffect(() => {
-    if (!user) {
-      setThreads([]);
-      setChatMessages({});
-      return;
-    }
-
     const fetchRealChatMessages = async () => {
       try {
         const { data, error } = await supabase
@@ -95,7 +90,7 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
               sender_role: msg.sender_role || 'buyer',
               content: msg.content,
               created_at: msg.created_at,
-              is_me: msg.sender_id === user.id,
+              is_me: user ? (msg.sender_id === user.id) : false,
             });
 
             threadMap[tid] = {
@@ -110,12 +105,14 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
             };
           });
 
-          setChatMessages(grouped);
-          const threadList = Object.values(threadMap);
-          setThreads(threadList);
-          if (threadList.length > 0 && !activeThreadId) {
-            setActiveThreadId(threadList[0].id);
-          }
+          setChatMessages((prev) => ({ ...grouped, ...prev }));
+          setThreads((prev) => {
+            const fetchedList = Object.values(threadMap);
+            const map = new Map<string, ChatThread>();
+            prev.forEach((t) => map.set(t.id, t));
+            fetchedList.forEach((t) => map.set(t.id, t));
+            return Array.from(map.values());
+          });
         }
       } catch (err) {
         console.warn('Supabase fetch chat messages note:', err);
@@ -125,7 +122,7 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
     fetchRealChatMessages();
   }, [user]);
 
-  // AUTO-TRIGGER NEW CHAT THREAD WHEN BUYER CLICKS FROM PRODUCT PAGE OR SOS DIRECTORY
+  // 2. AUTO-TRIGGER & ACTIVATE NEW CHAT THREAD WHEN BUYER CLICKS ANY SOS DIRECTORY OR PRODUCT
   useEffect(() => {
     if (isOpen && (initialTargetShopName || initialProductName || initialTargetPhone)) {
       const isSOSDirectory = !initialProductName;
@@ -133,78 +130,82 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
       const targetPhoneKey = initialTargetPhone ? initialTargetPhone.replace(/\D/g, '') : '';
       
       // Form structured thread ID for SOS accounts
-      const targetThreadId = targetPhoneKey ? `thread-sos-${targetPhoneKey}` : `thread-auto-${Date.now()}`;
-      
-      // Check if thread already exists with this shop / SOS service by ID or name
-      const existingThread = threads.find((t) => t.id === targetThreadId || t.partner_name === targetName);
+      const targetThreadId = targetPhoneKey 
+        ? `thread-sos-${targetPhoneKey}` 
+        : `thread-target-${encodeURIComponent(targetName)}`;
       
       const defaultMessage = isSOSDirectory
         ? `🆘 Chào đội dịch vụ cứu hộ "${targetName}"${initialTargetPhone ? ` (${initialTargetPhone})` : ''}, tôi đang cần hỗ trợ khẩn cấp. Vui lòng phản hồi!`
         : `Chào shop, mình đang quan tâm sản phẩm "${initialProductName}" ${initialProductPrice ? `- Giá: ${initialProductPrice.toLocaleString()} đ` : ''}. Shop cho mình hỏi hàng có sẵn giao ngay không ạ?`;
 
-      if (existingThread) {
-        setActiveThreadId(existingThread.id);
-        setMobileViewMode('detail');
-      } else {
-        const newThread: ChatThread = {
-          id: targetThreadId,
-          partner_name: targetName,
-          partner_avatar: isSOSDirectory
-            ? 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=150&q=80'
-            : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
-          partner_role: isSOSDirectory ? 'directory' : 'merchant',
-          last_message: defaultMessage,
-          last_message_time: 'Vừa xong',
-          unread_count: 0,
-          is_online: true,
-        };
+      const newThread: ChatThread = {
+        id: targetThreadId,
+        partner_name: targetName,
+        partner_avatar: isSOSDirectory
+          ? 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=150&q=80'
+          : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
+        partner_role: isSOSDirectory ? 'directory' : 'merchant',
+        last_message: defaultMessage,
+        last_message_time: 'Vừa xong',
+        unread_count: 0,
+        is_online: true,
+      };
 
-        const newInitialMsg: SingleChatMessage = {
-          id: `msg-auto-${Date.now()}`,
-          thread_id: targetThreadId,
-          sender_name: user?.user_metadata?.full_name || 'Khách Hàng',
-          sender_role: userRole || 'buyer',
-          content: defaultMessage,
-          product_name: initialProductName,
-          product_price: initialProductPrice,
-          created_at: new Date().toISOString(),
-          is_me: true,
-        };
+      const newInitialMsg: SingleChatMessage = {
+        id: `msg-auto-${Date.now()}`,
+        thread_id: targetThreadId,
+        sender_name: user?.user_metadata?.full_name || 'Khách Hàng',
+        sender_role: userRole || 'buyer',
+        content: defaultMessage,
+        product_name: initialProductName,
+        product_price: initialProductPrice,
+        created_at: new Date().toISOString(),
+        is_me: true,
+      };
 
-        setThreads((prev) => [newThread, ...prev]);
-        setChatMessages((prev) => ({
+      setThreads((prev) => {
+        const exists = prev.some((t) => t.id === targetThreadId || t.partner_name === targetName);
+        if (exists) return prev;
+        return [newThread, ...prev];
+      });
+
+      setChatMessages((prev) => {
+        if (prev[targetThreadId] && prev[targetThreadId].length > 0) return prev;
+        return {
           ...prev,
           [targetThreadId]: [newInitialMsg],
-        }));
-        setActiveThreadId(targetThreadId);
-        setMobileViewMode('detail');
+        };
+      });
 
-        // Persist initial SOS rescue message to Supabase direct_messages table
-        if (user) {
-          supabase.from('direct_messages').insert([
-            {
-              id: newInitialMsg.id,
-              thread_id: targetThreadId,
-              sender_id: user.id || user.phone,
-              sender_name: newInitialMsg.sender_name,
-              sender_role: newInitialMsg.sender_role,
-              receiver_id: initialTargetPhone || targetName,
-              content: defaultMessage,
-              created_at: newInitialMsg.created_at,
-            }
-          ]).then(({ error }) => {
-            if (error) console.warn('Supabase initial SOS message sync note:', error);
-          });
-        }
+      // ALWAYS ACTIVATE THIS TARGET THREAD AND SET MOBILE VIEW MODE TO DETAIL!
+      setActiveThreadId(targetThreadId);
+      setMobileViewMode('detail');
+
+      // Persist initial SOS rescue message to Supabase direct_messages table
+      if (user) {
+        supabase.from('direct_messages').insert([
+          {
+            id: newInitialMsg.id,
+            thread_id: targetThreadId,
+            sender_id: user.id || user.phone,
+            sender_name: newInitialMsg.sender_name,
+            sender_role: newInitialMsg.sender_role,
+            receiver_id: initialTargetPhone || targetName,
+            content: defaultMessage,
+            created_at: newInitialMsg.created_at,
+          }
+        ]).then(({ error }) => {
+          if (error) console.warn('Supabase initial SOS message sync note:', error);
+        });
       }
     }
   }, [isOpen, initialTargetShopName, initialProductName, initialProductPrice, initialTargetPhone]);
 
   if (!isOpen) return null;
 
-  const userThreads = user ? threads : [];
+  const userThreads = threads;
   const activeThread = userThreads.find((t) => t.id === activeThreadId) || userThreads[0];
-  const activeMessages = (user && activeThread) ? (chatMessages[activeThread.id] || []) : [];
+  const activeMessages = activeThread ? (chatMessages[activeThread.id] || []) : [];
 
   const filteredThreads = userThreads.filter((t) => 
     t.partner_name.toLowerCase().includes(searchThreadTerm.toLowerCase()) ||
