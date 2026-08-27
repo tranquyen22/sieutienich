@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, Check, Ban, Clock, PhoneCall, ShieldAlert, Key } from 'lucide-react';
+import { X, ShieldCheck, Check, Ban, Clock, PhoneCall, ShieldAlert, Key, Truck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
+import type { FulfillmentPolicy } from '../types';
 
 interface AdminMerchantReviewModalProps {
   isOpen: boolean;
@@ -10,9 +11,13 @@ interface AdminMerchantReviewModalProps {
 
 export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> = ({ isOpen, onClose }) => {
   const { allApplications, approveMerchantApplication, rejectMerchantApplication, isAdmin, startShopImpersonation } = useAuth();
-  const { products, deleteProduct } = useShop();
+  const { 
+    products, deleteProduct, 
+    adminPlatformFulfillmentPolicy, setAdminPlatformFulfillmentPolicy,
+    adminShopFulfillmentOverrides, setAdminShopFulfillmentOverride 
+  } = useShop();
 
-  const [activeReviewTab, setActiveReviewTab] = useState<'phase_1' | 'phase_2' | 'revoke_and_takedown'>('phase_1');
+  const [activeReviewTab, setActiveReviewTab] = useState<'phase_1' | 'phase_2' | 'revoke_and_takedown' | 'admin_fulfillment'>('phase_1');
   const [reasonModalOpen, setReasonModalOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<'needs_info' | 'reject' | 'revoke' | 'takedown_product'>('reject');
@@ -114,7 +119,17 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
             }`}
           >
             <ShieldAlert className="w-4 h-4" />
-            <span>Thu Hồi Nhãn & Gỡ SP Vi Phạm</span>
+            <span>Thu Hồi Nhãn & Gỡ SP</span>
+          </button>
+
+          <button
+            onClick={() => setActiveReviewTab('admin_fulfillment')}
+            className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeReviewTab === 'admin_fulfillment' ? 'bg-amber-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Truck className="w-4 h-4" />
+            <span>🚚 Quyền Hạn Giao Hàng</span>
           </button>
         </div>
 
@@ -265,6 +280,119 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* TAB 4: ADMIN SUPREME FULFILLMENT CONTROLS */}
+          {activeReviewTab === 'admin_fulfillment' && (
+            <div className="space-y-5 animate-in fade-in duration-200">
+              
+              {/* GLOBAL PLATFORM-WIDE POLICY SETTING */}
+              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong className="text-sm font-black text-amber-950 block">1. Cấu Hình Quy Định Giao Hàng TOÀN SÀN:</strong>
+                    <span className="text-amber-800 text-[11px] font-medium">Áp dụng mặc định cho tất cả gian hàng trên ứng dụng.</span>
+                  </div>
+                  <span className="px-2.5 py-1 bg-amber-600 text-white font-black text-[10px] rounded-lg uppercase">Quyền Admin Tối Cao</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminPlatformFulfillmentPolicy('allow_all');
+                      alert('🟢 Đã đặt chính sách TOÀN SÀN: "Cho phép các Shop tự cài đặt tùy chỉnh"!');
+                    }}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition ${
+                      adminPlatformFulfillmentPolicy === 'allow_all' 
+                        ? 'bg-emerald-600 text-white border-emerald-600 font-extrabold shadow-md' 
+                        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <strong className="block text-xs">🟢 Cho phép các Shop tự cài đặt</strong>
+                    <span className="text-[10px] opacity-90 block mt-0.5">Mặc định: Shop tự gạt giao hàng hoặc tự lấy.</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminPlatformFulfillmentPolicy('force_pickup_only');
+                      alert('🔒 Đã khóa TOÀN SÀN sang chế độ: "CHỈ CHO KHÁCH TỰ ĐẾN LẤY HÀNG"! Tất cả các shop đều áp dụng quy định này.');
+                    }}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition ${
+                      adminPlatformFulfillmentPolicy === 'force_pickup_only' 
+                        ? 'bg-amber-600 text-white border-amber-600 font-extrabold shadow-md' 
+                        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <strong className="block text-xs">🏪 Ép TOÀN SÀN: Chỉ tự đến lấy</strong>
+                    <span className="text-[10px] opacity-90 block mt-0.5">Khóa quyền giao hàng toàn sàn, khách tự đến quán.</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminPlatformFulfillmentPolicy('force_delivery_only');
+                      alert('🔒 Đã khóa TOÀN SÀN sang chế độ: "BẮT BUỘC GIAO HÀNG TẬN NƠI"! Tất cả các shop đều phải có giao hàng.');
+                    }}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition ${
+                      adminPlatformFulfillmentPolicy === 'force_delivery_only' 
+                        ? 'bg-indigo-600 text-white border-indigo-600 font-extrabold shadow-md' 
+                        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <strong className="block text-xs">🚚 Ép TOÀN SÀN: Bắt buộc Giao Hàng</strong>
+                    <span className="text-[10px] opacity-90 block mt-0.5">Yêu cầu tất cả shop phải có dịch vụ giao tận nhà.</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* PER-SHOP CUSTOM OVERRIDE TABLE */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-gray-900 text-xs">2. Tùy Chỉnh Ép Cấu Hình Riêng Cho Từng Gian Hàng Cụ Thể:</h3>
+                  <span className="text-[11px] text-gray-500 font-medium">Yêu cầu của Admin trên quyền hạn của Shop</span>
+                </div>
+
+                <div className="space-y-2">
+                  {(allApplications || []).length === 0 ? (
+                    <div className="p-4 bg-gray-50 text-gray-400 rounded-xl text-center">Chưa có danh sách gian hàng để thiết lập.</div>
+                  ) : (
+                    (allApplications || []).map((app) => {
+                      const shopId = app.id;
+                      const currentOverride = adminShopFulfillmentOverrides[shopId] || 'allow_all';
+
+                      return (
+                        <div key={app.id} className="p-3 bg-gray-50 border border-gray-200 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <strong className="font-extrabold text-gray-900 block text-xs">{app.shop_name || `Gian hàng ${app.full_name}`}</strong>
+                            <span className="text-[10px] text-gray-500">Chủ shop: {app.full_name} | SĐT: {app.phone}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-gray-600">Ép cấu hình:</span>
+                            <select
+                              value={currentOverride}
+                              onChange={(e) => {
+                                const val = e.target.value as FulfillmentPolicy;
+                                setAdminShopFulfillmentOverride(shopId, val);
+                                alert(`🔒 Đã cập nhật quyền Admin ép riêng cho shop "${app.shop_name || app.full_name}": [${val}]`);
+                              }}
+                              className="px-2.5 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-black text-indigo-900 focus:ring-2 focus:ring-amber-500"
+                            >
+                              <option value="allow_all">🟢 Mặc định (Cho phép Shop tự gạt)</option>
+                              <option value="force_pickup_only">🏪 Ép Shop CHỈ BÁN TỰ ĐẾN LẤY HÀNG</option>
+                              <option value="force_delivery_only">🚚 Ép Shop BẮT BUỘC GIAO HÀNG TẬN NƠI</option>
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
             </div>
           )}
 

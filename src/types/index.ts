@@ -49,6 +49,8 @@ export interface CategoryDocument {
   is_valid: boolean;
 }
 
+export type FulfillmentPolicy = 'allow_all' | 'force_delivery_only' | 'force_pickup_only';
+
 export interface Product {
   id: number | string;
   name: string;
@@ -66,6 +68,8 @@ export interface Product {
   latitude?: number;
   longitude?: number;
   google_maps_url?: string;
+  allowDelivery?: boolean; // Shop có hỗ trợ giao hàng tận nơi
+  allowPickup?: boolean;   // Shop hỗ trợ khách tự đến lấy
   variants?: ProductVariant[]; // Danh sách nhiều Size, Màu...
   reviews?: ProductReview[];
   rating?: number;

@@ -14,7 +14,8 @@ export const CartDrawer: React.FC = () => {
     regularCoins, 
     tqCoins, 
     addCoinTransaction, 
-    createOrder
+    createOrder,
+    getEffectiveFulfillmentMode
   } = useShop();
 
   const [useTQCoins, setUseTQCoins] = useState(false);
@@ -29,10 +30,21 @@ export const CartDrawer: React.FC = () => {
     setSelectedItemIds(safeCartItems.map((item) => item.id));
   }, [cartItems]);
 
-  if (!isCartOpen) return null;
-
   const selectedCartItems = safeCartItems.filter((item) => selectedItemIds.includes(item.id));
   const isAllSelected = safeCartItems.length > 0 && selectedItemIds.length === safeCartItems.length;
+
+  const isDeliveryDisabledByShop = selectedCartItems.some((item) => {
+    const mode = getEffectiveFulfillmentMode(item.product.user_id, item.product);
+    return !mode.allowDelivery;
+  });
+
+  useEffect(() => {
+    if (isDeliveryDisabledByShop && deliveryMethod !== 'customer_pickup') {
+      setDeliveryMethod('customer_pickup');
+    }
+  }, [isDeliveryDisabledByShop, deliveryMethod]);
+
+  if (!isCartOpen) return null;
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
@@ -296,18 +308,34 @@ export const CartDrawer: React.FC = () => {
               
               {/* Delivery Method Selection */}
               <div className="bg-white p-3 rounded-2xl border border-gray-200 space-y-2">
-                <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5 border-b border-gray-100 pb-1.5">
-                  <Truck className="w-4 h-4 text-indigo-600" />
-                  <span>Chọn phương thức nhận hàng:</span>
+                <div className="text-xs font-bold text-gray-900 flex items-center justify-between border-b border-gray-100 pb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-indigo-600" />
+                    <span>Phương thức nhận hàng:</span>
+                  </span>
+                  {isDeliveryDisabledByShop && (
+                    <span className="text-[10px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+                      🔒 CHỈ BÁN TỰ ĐẾN LẤY
+                    </span>
+                  )}
                 </div>
 
+                {isDeliveryDisabledByShop && (
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-900 font-bold">
+                    ⚠️ Đơn hàng có chứa sản phẩm thuộc Shop chỉ bán khách tự đến lấy hàng (Không hỗ trợ giao tận nơi).
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <label className={`p-2 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
-                    deliveryMethod === 'seller_delivery' ? 'bg-indigo-50 border-indigo-400 font-extrabold text-indigo-900' : 'bg-white border-gray-200 text-gray-600'
+                  <label className={`p-2 rounded-xl border flex items-center gap-2 transition ${
+                    isDeliveryDisabledByShop
+                      ? 'bg-gray-100 border-gray-200 text-gray-400 opacity-50 cursor-not-allowed'
+                      : deliveryMethod === 'seller_delivery' ? 'bg-indigo-50 border-indigo-400 font-extrabold text-indigo-900 cursor-pointer' : 'bg-white border-gray-200 text-gray-600 cursor-pointer'
                   }`}>
                     <input 
                       type="radio" 
-                      name="deliveryMethod" 
+                      name="deliveryMethod"
+                      disabled={isDeliveryDisabledByShop} 
                       checked={deliveryMethod === 'seller_delivery'}
                       onChange={() => setDeliveryMethod('seller_delivery')}
                       className="text-indigo-600 focus:ring-indigo-500"

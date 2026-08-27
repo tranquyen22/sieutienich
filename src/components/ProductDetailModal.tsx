@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { 
   X, Star, MapPin, Lock, Check, Plus, Minus, 
-  PhoneCall, BookmarkCheck, MessageCircle, PauseCircle, ThumbsUp, CheckCircle2, Navigation 
+  PhoneCall, BookmarkCheck, MessageCircle, PauseCircle, ThumbsUp, CheckCircle2, Navigation, Truck, ShoppingBag 
 } from 'lucide-react';
 import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
 
 interface ProductDetailModalProps {
   product: Product | null;
+  isOpen?: boolean;
   onClose: () => void;
-  onOpenDirectMessagingModal?: (productInfo?: { shopName?: string; productId?: string | number; productName?: string; productPrice?: number }) => void;
+  onOpenDirectMessagingModal?: (productInfo?: { shopName: string; productId: number | string; productName: string; productPrice: number }) => void;
+  onOpenReviewFeedModal?: () => void;
 }
 
-export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClose, onOpenDirectMessagingModal }) => {
-  const { addToCart } = useShop();
+export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ 
+  product, 
+  onClose, 
+  onOpenDirectMessagingModal,
+}) => {
+  const { addToCart, getEffectiveFulfillmentMode } = useShop();
   const [added, setAdded] = useState(false);
   const [quantity, setQuantity] = useState<number>(1);
   const [reserved, setReserved] = useState(false);
@@ -234,13 +240,37 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                 </div>
               </div>
 
-              {/* Location & Address Pin & Google Maps Navigation Button */}
+              {/* Location & Address Pin & Google Maps Navigation Button & Fulfillment Badge */}
               {(() => {
                 const mapsNavigationUrl = product.google_maps_url || 
                   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${product.district ? `${product.district}, ` : ''}${product.province || 'Hà Nội'}`)}`;
 
+                const effectiveFulfillment = getEffectiveFulfillmentMode(product.user_id, product);
+
                 return (
-                  <div className="p-3 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2">
+                  <div className="p-3 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2.5">
+                    
+                    {/* Fulfillment Method Status Badge */}
+                    <div className={`p-2.5 rounded-xl border flex items-center justify-between font-bold text-xs ${
+                      !effectiveFulfillment.allowDelivery
+                        ? 'bg-amber-100 border-amber-300 text-amber-950'
+                        : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {!effectiveFulfillment.allowDelivery ? (
+                          <>
+                            <ShoppingBag className="w-4 h-4 text-amber-700 shrink-0" />
+                            <span>🏪 CHỈ BÁN TỰ ĐẾN LẤY HÀNG (Không hỗ trợ giao tận nhà)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>🚚 Có giao hàng tận nơi & 🏪 Khách tự đến lấy</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="flex items-start gap-2 text-gray-700">
                       <MapPin className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                       <div>

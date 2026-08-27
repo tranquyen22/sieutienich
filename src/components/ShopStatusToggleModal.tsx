@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { X, Store, PauseCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Store, PauseCircle, CheckCircle2, Truck, ShoppingBag, ShieldAlert } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 interface ShopStatusToggleModalProps {
   isOpen: boolean;
@@ -8,19 +9,32 @@ interface ShopStatusToggleModalProps {
 }
 
 export const ShopStatusToggleModal: React.FC<ShopStatusToggleModalProps> = ({ isOpen, onClose }) => {
-  const { toggleShopOpenStatus } = useShop();
+  const { toggleShopOpenStatus, getEffectiveFulfillmentMode, setShopFulfillmentSettings } = useShop();
+  const { user } = useAuth();
+
+  const shopId = user?.id || 'default-shop';
+  const effectiveFulfillment = getEffectiveFulfillmentMode(shopId);
 
   const [isTemporarilyClosed, setIsTemporarilyClosed] = useState(false);
   const [closeReason, setCloseReason] = useState('Quán nghỉ bán buổi chiều, mở lại lúc 17:30');
+  
+  const [allowDelivery, setAllowDelivery] = useState(effectiveFulfillment.allowDelivery);
+  const [allowPickup, setAllowPickup] = useState(effectiveFulfillment.allowPickup);
+
+  useEffect(() => {
+    setAllowDelivery(effectiveFulfillment.allowDelivery);
+    setAllowPickup(effectiveFulfillment.allowPickup);
+  }, [effectiveFulfillment.allowDelivery, effectiveFulfillment.allowPickup]);
 
   if (!isOpen) return null;
 
   const handleSaveToggle = () => {
     toggleShopOpenStatus(isTemporarilyClosed, isTemporarilyClosed ? closeReason : undefined);
+    setShopFulfillmentSettings(shopId, { allowDelivery, allowPickup });
 
     alert(isTemporarilyClosed 
-      ? `🟠 Cửa hàng đã được gạt sang trạng thái TẠM NGHỈ!\nLý do: "${closeReason}"\n• Không nhận đơn mới (sản phẩm vẫn hiển thị cho khách lưu lại).\n• Các đơn đang chạy vẫn xử lý bình thường.` 
-      : '🟢 Cửa hàng đã MỞ CỬA hoạt động trở lại! Sẵn sàng nhận đơn hàng mới.');
+      ? `🟠 Cửa hàng đã gạt TẠM NGHỈ!\nLý do: "${closeReason}"\nCài đặt hình thức phục vụ: ${allowDelivery ? '🚚 Giao hàng' : ''} ${allowPickup ? '🏪 Tự lấy' : ''}` 
+      : `🟢 Đã lưu trạng thái & cấu hình phục vụ Shop thành công!\n• Giao hàng tận nơi: ${allowDelivery ? 'BẬT' : 'TẮT'}\n• Tự đến lấy hàng: ${allowPickup ? 'BẬT' : 'TẮT'}`);
 
     onClose();
   };
@@ -43,10 +57,10 @@ export const ShopStatusToggleModal: React.FC<ShopStatusToggleModalProps> = ({ is
 
           <div className="flex items-center gap-2 text-amber-300 text-xs font-extrabold uppercase tracking-wider mb-1">
             <Store className="w-4 h-4 text-amber-400" />
-            <span>Quản Lý Trạng Thái Gian Hàng (Shop Tự Gạt)</span>
+            <span>Quản Lý Trạng Thái & Phương Thức Phục Vụ Shop</span>
           </div>
 
-          <h2 className="text-xl font-black text-white">Đang Mở Cửa & Tạm Nghỉ</h2>
+          <h2 className="text-xl font-black text-white">Đang Mở Cửa & Hình Thức Nhận Đơn</h2>
         </div>
 
         {/* Scrollable Body */}
@@ -56,7 +70,7 @@ export const ShopStatusToggleModal: React.FC<ShopStatusToggleModalProps> = ({ is
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <strong className="text-gray-900 font-extrabold text-sm block">Trạng thái hoạt động gian hàng:</strong>
+                <strong className="text-gray-900 font-extrabold text-sm block">1. Trạng thái hoạt động gian hàng:</strong>
                 <span className="text-gray-500 text-[11px]">Bật/Tắt tức thì hoặc để máy gạt tự động theo lịch mở cửa.</span>
               </div>
 
@@ -108,15 +122,83 @@ export const ShopStatusToggleModal: React.FC<ShopStatusToggleModalProps> = ({ is
             </div>
           )}
 
+          {/* 2. FULFILLMENT METHOD TOGGLE SECTION (DELIVERY VS PICKUP) */}
+          <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between">
+              <strong className="text-indigo-950 font-extrabold text-sm block flex items-center gap-1.5">
+                <Truck className="w-4 h-4 text-indigo-600" />
+                <span>2. Cài đặt Hình Thức Nhận Hàng của Shop:</span>
+              </strong>
+              {effectiveFulfillment.isOverriddenByAdmin && (
+                <span className="px-2 py-0.5 bg-amber-500 text-white rounded-md text-[10px] font-black uppercase">
+                  🔒 ĐƯỢC ADMIN CÀI ĐẶT
+                </span>
+              )}
+            </div>
+
+            {effectiveFulfillment.isOverriddenByAdmin && (
+              <div className="p-3 bg-amber-100 border border-amber-300 rounded-xl text-amber-950 space-y-1">
+                <div className="font-extrabold text-xs flex items-center gap-1.5 text-amber-900">
+                  <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Quyền hạn Admin sàn đang có hiệu lực tối cao:</span>
+                </div>
+                <p className="text-[11px] font-medium leading-relaxed">
+                  {effectiveFulfillment.adminReason}
+                </p>
+                <p className="text-[10px] italic text-amber-800">
+                  (Shop không thể thay đổi cài đặt này ngoại trừ khi Admin gỡ bỏ cấu hình đè).
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2 pt-1">
+              <label className={`flex items-center justify-between p-3 rounded-xl border transition ${
+                allowDelivery ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-gray-100 border-gray-200 text-gray-400'
+              } ${effectiveFulfillment.isOverriddenByAdmin ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <div className="flex items-center gap-2.5">
+                  <Truck className={`w-5 h-5 ${allowDelivery ? 'text-emerald-600' : 'text-gray-400'}`} />
+                  <div>
+                    <strong className="block text-xs font-black">🚚 Có giao hàng tận nơi (Door-to-door Delivery)</strong>
+                    <span className="text-[10px] text-gray-500 block">Shop/Shipper mang hàng đến tận nhà cho khách.</span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  disabled={effectiveFulfillment.isOverriddenByAdmin}
+                  checked={allowDelivery}
+                  onChange={(e) => setAllowDelivery(e.target.checked)}
+                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+              </label>
+
+              <label className={`flex items-center justify-between p-3 rounded-xl border transition ${
+                allowPickup ? 'bg-blue-50 border-blue-300 text-blue-950' : 'bg-gray-100 border-gray-200 text-gray-400'
+              } ${effectiveFulfillment.isOverriddenByAdmin ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <div className="flex items-center gap-2.5">
+                  <ShoppingBag className={`w-5 h-5 ${allowPickup ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <div>
+                    <strong className="block text-xs font-black">🏪 Chỉ bán cho khách tự đến lấy hàng (Self-pickup)</strong>
+                    <span className="text-[10px] text-gray-500 block">Khách hàng theo bản đồ chỉ đường đến tận gian hàng lấy đồ.</span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  disabled={effectiveFulfillment.isOverriddenByAdmin}
+                  checked={allowPickup}
+                  onChange={(e) => setAllowPickup(e.target.checked)}
+                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+              </label>
+            </div>
+          </div>
+
           {/* Explanatory Rules List */}
           <div className="p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl space-y-2 text-indigo-950">
-            <strong className="font-extrabold text-xs block text-indigo-900">📌 Quy Tắc Vận Hành Trạng Thái Tạm Nghỉ:</strong>
+            <strong className="font-extrabold text-xs block text-indigo-900">📌 Quy Tắc Vận Hành & Quyền Hạn Admin Sàn:</strong>
             <ul className="list-disc pl-4 space-y-1 text-[11px] font-medium leading-relaxed">
-              <li><strong>Không nhận đơn mới:</strong> Khách không thể bấm Đặt hàng/Thêm vào giỏ.</li>
-              <li><strong>Đơn đang chạy vẫn xử lý:</strong> Các đơn hàng đã đặt trước đó vẫn tiếp tục giao bình thường.</li>
-              <li><strong>Hàng vẫn giữ nguyên:</strong> Sản phẩm KHÔNG bị xóa khỏi sàn, khách vẫn tìm thấy để lưu thích hôm sau.</li>
-              <li><strong>Sắp xếp tìm kiếm:</strong> Shop tạm nghỉ tự động tụt xuống bên dưới kết quả tìm kiếm.</li>
-              <li><strong>Khác biệt với bị khóa:</strong> Tạm nghỉ do Shop tự chọn khác hoàn toàn với bị Sàn khóa do nợ công nợ (`is_suspended`).</li>
+              <li><strong>Shop tự chọn:</strong> Tùy chọn gạt Giao hàng hoặc Tự lấy hàng theo khả năng vận hành của shop.</li>
+              <li><strong>Admin đè quyền:</strong> Admin sàn có quyền lực tối cao khóa toàn sàn hoặc khóa tùy chỉnh từng shop sang "Chỉ tự đến lấy" hoặc "Bắt buộc giao hàng".</li>
+              <li><strong>Hiển thị khách hàng:</strong> Khung giỏ hàng tự động chọn chế độ Tự đến lấy nếu shop tắt giao hàng tận nơi.</li>
             </ul>
           </div>
 
@@ -134,7 +216,7 @@ export const ShopStatusToggleModal: React.FC<ShopStatusToggleModalProps> = ({ is
             onClick={handleSaveToggle}
             className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md cursor-pointer font-black"
           >
-            Lưu Trạng Thái Gian Hàng
+            Lưu Trạng Thái & Cấu Hình
           </button>
         </div>
 

@@ -1,9 +1,16 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import type { Product, CartItem, Category, UserActivity, CoinTransaction, Order, OrderStatus } from '../types';
+import type { Product, CartItem, Category, UserActivity, CoinTransaction, Order, OrderStatus, FulfillmentPolicy } from '../types';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { removeVietnameseAccents } from '../utils/vietnamese';
+
+interface EffectiveFulfillmentMode {
+  allowDelivery: boolean;
+  allowPickup: boolean;
+  isOverriddenByAdmin: boolean;
+  adminReason?: string;
+}
 
 interface ShopContextType {
   products: Product[];
@@ -38,6 +45,15 @@ interface ShopContextType {
   // Verified Buyer Purchase Tracking
   purchasedProductIds: string[];
   recordPurchase: (productIds: (string | number)[]) => void;
+
+  // Shop & Admin Delivery / Pickup Fulfillment Controls
+  adminPlatformFulfillmentPolicy: FulfillmentPolicy;
+  adminShopFulfillmentOverrides: Record<string, FulfillmentPolicy>;
+  shopFulfillmentSettings: Record<string, { allowDelivery: boolean; allowPickup: boolean }>;
+  getEffectiveFulfillmentMode: (shopId?: string, product?: Product) => EffectiveFulfillmentMode;
+  setShopFulfillmentSettings: (shopId: string, settings: { allowDelivery: boolean; allowPickup: boolean }) => void;
+  setAdminPlatformFulfillmentPolicy: (policy: FulfillmentPolicy) => void;
+  setAdminShopFulfillmentOverride: (shopId: string, policy: FulfillmentPolicy) => void;
 
   selectedCategory: Category;
   searchQuery: string;
@@ -159,6 +175,86 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [loadingCart, setLoadingCart] = useState<boolean>(false);
+
+  // Shop & Admin Fulfillment Settings State
+  const [adminPlatformFulfillmentPolicy, setAdminPlatformFulfillmentPolicy] = useState<FulfillmentPolicy>('allow_all');
+  const [adminShopFulfillmentOverrides, setAdminShopFulfillmentOverrides] = useState<Record<string, FulfillmentPolicy>>({});
+  const [shopFulfillmentSettings, setShopFulfillmentSettingsState] = useState<Record<string, { allowDelivery: boolean; allowPickup: boolean }>>({});
+
+  const setShopFulfillmentSettings = (shopId: string, settings: { allowDelivery: boolean; allowPickup: boolean }) => {
+    setShopFulfillmentSettingsState((prev) => ({ ...prev, [shopId]: settings }));
+  };
+
+  const setAdminShopFulfillmentOverride = (shopId: string, policy: FulfillmentPolicy) => {
+    setAdminShopFulfillmentOverrides((prev) => ({ ...prev, [shopId]: policy }));
+  };
+
+  const getEffectiveFulfillmentMode = useCallback((shopId?: string, product?: Product): EffectiveFulfillmentMode => {
+    const targetShopId = shopId || (product?.user_id) || 'default-shop';
+
+    // 1. CHECK HIGHEST PRIORITY: Specific Admin Shop Override
+    const customAdminOverride = adminShopFulfillmentOverrides[targetShopId];
+    if (customAdminOverride === 'force_pickup_only') {
+      return {
+        allowDelivery: false,
+        allowPickup: true,
+        isOverriddenByAdmin: true,
+        adminReason: '🔒 Admin sàn ép cấu hình riêng cho Gian Hàng này: CHỈ CHO KHÁCH TỰ ĐẾN LẤY HÀNG',
+      };
+    }
+    if (customAdminOverride === 'force_delivery_only') {
+      return {
+        allowDelivery: true,
+        allowPickup: false,
+        isOverriddenByAdmin: true,
+        adminReason: '🔒 Admin sàn ép cấu hình riêng cho Gian Hàng này: BẮT BUỘC GIAO HÀNG TẬN NƠI',
+      };
+    }
+
+    // 2. CHECK SECOND PRIORITY: Platform-wide Admin Global Policy
+    if (adminPlatformFulfillmentPolicy === 'force_pickup_only') {
+      return {
+        allowDelivery: false,
+        allowPickup: true,
+        isOverriddenByAdmin: true,
+        adminReason: '🔒 Admin cài đặt chính sách TOÀN SÀN: CHỈ BÁN KHÁCH TỰ ĐẾN LẤY HÀNG',
+      };
+    }
+    if (adminPlatformFulfillmentPolicy === 'force_delivery_only') {
+      return {
+        allowDelivery: true,
+        allowPickup: false,
+        isOverriddenByAdmin: true,
+        adminReason: '🔒 Admin cài đặt chính sách TOÀN SÀN: BẮT BUỘC GIAO HÀNG TẬN NƠI',
+      };
+    }
+
+    // 3. DEFAULT: Follow Shop's own toggle
+    const shopSetting = shopFulfillmentSettings[targetShopId];
+    if (shopSetting) {
+      return {
+        allowDelivery: shopSetting.allowDelivery,
+        allowPickup: shopSetting.allowPickup,
+        isOverriddenByAdmin: false,
+      };
+    }
+
+    // Product item override fallback
+    if (product && product.allowDelivery !== undefined) {
+      return {
+        allowDelivery: Boolean(product.allowDelivery),
+        allowPickup: product.allowPickup !== undefined ? Boolean(product.allowPickup) : true,
+        isOverriddenByAdmin: false,
+      };
+    }
+
+    // Default: Both Delivery & Pickup allowed
+    return {
+      allowDelivery: true,
+      allowPickup: true,
+      isOverriddenByAdmin: false,
+    };
+  }, [adminPlatformFulfillmentPolicy, adminShopFulfillmentOverrides, shopFulfillmentSettings]);
 
   const recordPurchase = (productIds: (string | number)[]) => {
     const stringIds = productIds.map(String);
@@ -766,6 +862,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsCartOpen,
         dailyCheckIn,
         addCoinTransaction,
+        adminPlatformFulfillmentPolicy,
+        adminShopFulfillmentOverrides,
+        shopFulfillmentSettings,
+        getEffectiveFulfillmentMode,
+        setShopFulfillmentSettings,
+        setAdminPlatformFulfillmentPolicy,
+        setAdminShopFulfillmentOverride,
         selectedProvince,
         setSelectedProvince,
         selectedDistrict,
