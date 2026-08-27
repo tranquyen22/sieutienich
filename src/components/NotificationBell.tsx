@@ -13,7 +13,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   onOpenOrderTrackingModal,
   onOpenDirectMessagingModal,
 }) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   // Real-time Notification Feed for both Buyer & Shop
@@ -30,11 +30,18 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
         const { data, error } = await supabase
           .from('notifications')
           .select('*')
-          .eq('user_id', user.id)
+          .or(`user_id.eq.${user.id},target_scope.eq.to_all,user_id.eq.broadcast`)
           .order('created_at', { ascending: false });
 
         if (!error && data) {
-          setNotifications(data);
+          const filtered = data.filter((n: AppNotification) => {
+            if (n.user_id === user.id || n.user_id === user.phone) return true;
+            if (n.target_scope === 'to_all') return true;
+            if (n.target_scope === 'to_merchants' && (userRole === 'merchant' || userRole === 'admin')) return true;
+            if (n.target_scope === 'to_staff' && (userRole === 'staff' || userRole === 'admin')) return true;
+            return false;
+          });
+          setNotifications(filtered);
         }
       } catch (err) {
         console.warn('Supabase fetch notifications note:', err);
@@ -42,7 +49,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     };
 
     fetchRealNotifications();
-  }, [user]);
+  }, [user, userRole]);
 
   // UNAUTHENTICATED GUEST = BLANK (0 NOTIFICATIONS)
   const activeNotifications = user ? notifications : [];

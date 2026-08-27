@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
   X, ShieldCheck, Clock, AlertTriangle, TrendingUp, Users, 
-  Coins, FileText, AlertCircle, CheckCircle2, DollarSign, Wallet
+  Coins, FileText, AlertCircle, CheckCircle2, DollarSign, Wallet, Send
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { AdminBroadcastNotificationModal } from './AdminBroadcastNotificationModal';
 
 interface AdminDashboardPortalModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const AdminDashboardPortalModal: React.FC<AdminDashboardPortalModalProps>
   onOpenAdminPlatformAnalyticsModal,
 }) => {
   const { allApplications } = useAuth();
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
 
   // Action Queue Pending Item Counts
   const [pendingItems] = useState({
@@ -112,17 +114,28 @@ export const AdminDashboardPortalModal: React.FC<AdminDashboardPortalModalProps>
                 </div>
               </div>
 
-              {totalPendingWork === 0 ? (
-                <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-2xl font-black text-xs">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>🎉 Hôm nay xong việc!</span>
-                </div>
-              ) : (
-                <div className="bg-amber-100 text-amber-900 px-3 py-1.5 rounded-2xl font-black text-xs flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4 text-amber-600" />
-                  <span>Còn {totalPendingWork} việc cần xử lý</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBroadcastModalOpen(true)}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-2xl font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5 text-purple-200" />
+                  <span>📢 Gửi Thông Báo Hệ Thống</span>
+                </button>
+
+                {totalPendingWork === 0 ? (
+                  <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-2xl font-black text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>🎉 Hôm nay xong việc!</span>
+                  </div>
+                ) : (
+                  <div className="bg-amber-100 text-amber-900 px-3 py-1.5 rounded-2xl font-black text-xs flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                    <span>Còn {totalPendingWork} việc cần xử lý</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 7 Action Items Grid */}
@@ -392,6 +405,11 @@ export const AdminDashboardPortalModal: React.FC<AdminDashboardPortalModalProps>
         </div>
 
       </div>
+
+      <AdminBroadcastNotificationModal
+        isOpen={isBroadcastModalOpen}
+        onClose={() => setIsBroadcastModalOpen(false)}
+      />
     </div>
   );
 };

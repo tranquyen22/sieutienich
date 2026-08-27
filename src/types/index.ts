@@ -134,6 +134,8 @@ export interface DirectMessage {
   is_read: boolean;
 }
 
+export type NotificationTargetScope = 'to_all' | 'to_merchants' | 'to_staff' | 'to_specific';
+
 export interface AppNotification {
   id: string;
   user_id: string;
@@ -141,7 +143,8 @@ export interface AppNotification {
   message?: string;
   body?: string;
   order_id?: string;
-  type: 'order' | 'coin' | 'message' | 'system' | 'order_status_update' | 'new_order' | 'new_message';
+  type: 'order' | 'coin' | 'message' | 'system' | 'order_status_update' | 'new_order' | 'new_message' | 'admin_broadcast';
+  target_scope?: NotificationTargetScope;
   is_read: boolean;
   created_at: string;
   link_url?: string;
