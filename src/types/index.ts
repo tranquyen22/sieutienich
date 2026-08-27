@@ -317,6 +317,8 @@ export interface DirectoryEntry {
   title: string;
   category_id: string;
   phone: string;
+  linked_user_id?: string;
+  linked_user_phone?: string;
   address: string;
   province: string;
   district: string;

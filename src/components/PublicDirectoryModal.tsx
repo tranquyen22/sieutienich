@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   X, Phone, MapPin, Navigation, AlertTriangle, Plus, Search, 
-  CheckCircle2, ExternalLink
+  CheckCircle2, ExternalLink, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { DirectoryCategory, DirectoryEntry } from '../types';
@@ -9,9 +9,14 @@ import type { DirectoryCategory, DirectoryEntry } from '../types';
 interface PublicDirectoryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenDirectMessagingModal?: (targetShopName?: string, productName?: string, productPrice?: number, targetUserId?: string) => void;
 }
 
-export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOpen, onClose }) => {
+export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
+  isOpen,
+  onClose,
+  onOpenDirectMessagingModal,
+}) => {
   const { isAdmin } = useAuth();
 
   // Dynamic Categories List (Admin & Authorized Staff Can Add/Edit)
@@ -142,6 +147,7 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('cong_an');
   const [newPhone, setNewPhone] = useState('');
+  const [newLinkedPhone, setNewLinkedPhone] = useState('');
   const [newAddress, setNewAddress] = useState('');
   const [newProvince, setNewProvince] = useState('Hưng Yên');
   const [newDistrict, setNewDistrict] = useState('Khoái Châu');
@@ -242,10 +248,11 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
     }
 
     const newEntryItem: DirectoryEntry = {
-      id: `DIR-${Math.floor(100 + Math.random() * 900)}`,
+      id: `SOS-${Math.floor(100 + Math.random() * 900)}`,
       title: newTitle,
       category_id: newCategory,
       phone: newPhone,
+      linked_user_phone: newLinkedPhone.trim() || newPhone.trim(),
       address: newAddress,
       province: newProvince,
       district: newDistrict,
@@ -255,10 +262,11 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
       created_at: new Date().toISOString(),
     };
 
-    setEntries([newEntryItem, ...entries]);
+    setEntries((prev) => [newEntryItem, ...prev]);
     setAddEntryModalOpen(false);
     setNewTitle('');
     setNewPhone('');
+    setNewLinkedPhone('');
     setNewAddress('');
 
     alert(`🎉 Đã thêm mục danh bạ mới "${newEntryItem.title}"!\n📌 Nhãn mặc định: CHƯA XÁC MINH (Cần Admin kiểm tra thực địa để gắn nhãn ✅).`);
@@ -476,6 +484,21 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
                       <span>Gọi Ngay ({item.phone})</span>
                     </a>
 
+                    {/* Direct SOS Messaging Button */}
+                    {onOpenDirectMessagingModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenDirectMessagingModal(item.title, undefined, undefined, item.linked_user_phone || item.phone);
+                        }}
+                        className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer text-xs font-black"
+                      >
+                        <MessageSquare className="w-4 h-4 text-indigo-200" />
+                        <span>💬 Nhắn Tin Cứu Hộ</span>
+                      </button>
+                    )}
+
                     {/* Google Maps Directions Button */}
                     <a
                       href={mapsUrl}
@@ -574,6 +597,17 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
                   onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="0912345678"
                   className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-indigo-900 mb-1">📱 SĐT / Tài khoản dịch vụ cứu hộ liên kết (Để nhận tin nhắn SOS)</label>
+                <input
+                  type="text"
+                  value={newLinkedPhone}
+                  onChange={(e) => setNewLinkedPhone(e.target.value)}
+                  placeholder="Nhập SĐT / User ID tài khoản nhận tin (Để trống sẽ lấy SĐT gọi thẳng)"
+                  className="w-full p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-xl font-bold text-indigo-950 focus:bg-white"
                 />
               </div>
 

@@ -238,7 +238,18 @@ function AppContent() {
       <AdminUserManagementModal isOpen={adminUserManagementModalOpen} onClose={() => setAdminUserManagementModalOpen(false)} />
       
       {/* PUBLIC UTILITIES & SERVICES DIRECTORY MODAL */}
-      <PublicDirectoryModal isOpen={publicDirectoryModalOpen} onClose={() => setPublicDirectoryModalOpen(false)} />
+      <PublicDirectoryModal
+        isOpen={publicDirectoryModalOpen}
+        onClose={() => setPublicDirectoryModalOpen(false)}
+        onOpenDirectMessagingModal={(targetShopName, productName, productPrice) => {
+          setMessagingTargetInfo({
+            shopName: targetShopName || '',
+            productName: productName || '',
+            productPrice: productPrice,
+          });
+          setDirectMessagingModalOpen(true);
+        }}
+      />
 
       {/* SUPER ADMIN PLATFORM ANALYTICS & ADVANCED EXCEL EXPORT MODAL */}
       <AdminPlatformAnalyticsModal isOpen={adminAnalyticsModalOpen} onClose={() => setAdminAnalyticsModalOpen(false)} />

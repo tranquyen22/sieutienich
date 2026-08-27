@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Send, ShoppingBag, ShieldCheck, Search, MessageSquare, 
-  Phone, ArrowLeft, Image
+  Phone, ArrowLeft, Image, MapPin, Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -59,6 +59,7 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
   const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [searchThreadTerm, setSearchThreadTerm] = useState<string>('');
   const [inputMessage, setInputMessage] = useState<string>('');
+  const [isSendingGPS, setIsSendingGPS] = useState(false);
 
   // Individual Chat Messages Stream state
   const [chatMessages, setChatMessages] = useState<Record<string, SingleChatMessage[]>>({});
@@ -304,6 +305,71 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleSendGPSLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS!');
+      return;
+    }
+
+    setIsSendingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        const gpsMsgText = `🆘 VỊ TRÍ CỨU HỘ KHẨN CẤP CỦA TÔI:\n📍 Vị trí GPS hiện tại: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n🗺️ Chỉ đường Google Maps: ${mapsUrl}`;
+
+        const currentTid = activeThreadId || 'thread-default';
+        const newMsg: SingleChatMessage = {
+          id: `msg-gps-${Date.now()}`,
+          thread_id: currentTid,
+          sender_name: user?.user_metadata?.full_name || 'Khách Hàng Cần Cứu Hộ',
+          sender_role: userRole,
+          content: gpsMsgText,
+          created_at: new Date().toISOString(),
+          is_me: true,
+        };
+
+        setChatMessages((prev) => ({
+          ...prev,
+          [currentTid]: [...(prev[currentTid] || []), newMsg],
+        }));
+
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === currentTid
+              ? { ...t, last_message: '📍 [Đã gửi Vị trí GPS Cứu hộ khẩn cấp]', last_message_time: 'Vừa xong' }
+              : t
+          )
+        );
+
+        if (user) {
+          try {
+            await supabase.from('direct_messages').insert([
+              {
+                id: newMsg.id,
+                thread_id: newMsg.thread_id,
+                sender_id: user.id,
+                sender_name: newMsg.sender_name,
+                sender_role: newMsg.sender_role,
+                content: newMsg.content,
+                created_at: newMsg.created_at,
+              },
+            ]);
+          } catch (err) {
+            console.warn('Supabase GPS messaging sync note:', err);
+          }
+        }
+
+        setIsSendingGPS(false);
+      },
+      (error) => {
+        setIsSendingGPS(false);
+        alert(`Không thể lấy vị trí GPS: ${error.message}. Vui lòng bật quyền vị trí GPS trên thiết bị!`);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
       <div 
@@ -533,6 +599,21 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
                   >
                     <Image className="w-4 h-4 text-indigo-600" />
                   </label>
+
+                  {/* SOS GPS Location Share Button */}
+                  <button
+                    type="button"
+                    onClick={handleSendGPSLocation}
+                    disabled={isSendingGPS}
+                    className="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-full cursor-pointer transition shrink-0 border border-rose-200 flex items-center justify-center font-bold text-xs"
+                    title="Gửi vị trí định vị GPS thực tế kèm bản đồ Google Maps cho đội cứu hộ"
+                  >
+                    {isSendingGPS ? (
+                      <Loader2 className="w-4 h-4 text-rose-600 animate-spin" />
+                    ) : (
+                      <MapPin className="w-4 h-4 text-rose-600" />
+                    )}
+                  </button>
 
                   <input
                     type="text"
