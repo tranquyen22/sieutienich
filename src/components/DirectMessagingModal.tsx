@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Send, ShoppingBag, ShieldCheck, Search, MessageSquare, 
-  Phone, ArrowLeft, Image, MapPin, Loader2, Zap
+  Phone, ArrowLeft, Image, MapPin, Loader2, Zap, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -372,6 +372,8 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
         }
 
         setIsSendingGPS(false);
+        // Direct open Google Maps link in a new browser tab for immediate navigation
+        window.open(mapsUrl, '_blank');
       },
       (error) => {
         setIsSendingGPS(false);
@@ -596,7 +598,39 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
                               : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
                           }`}
                         >
-                          {msg.content}
+                          {(() => {
+                            const mapsMatch = msg.content.match(/(https?:\/\/(?:www\.)?google\.com\/maps[^\s]+)/i);
+                            if (mapsMatch) {
+                              const mapsUrl = mapsMatch[0];
+                              const textBefore = msg.content.replace(mapsUrl, '').trim();
+
+                              return (
+                                <div className="space-y-2.5">
+                                  {textBefore && <p className="whitespace-pre-wrap font-bold">{textBefore}</p>}
+                                  <a
+                                    href={mapsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-3 bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 hover:from-rose-700 hover:to-red-700 text-white rounded-xl shadow-md flex items-center justify-between gap-2.5 transition cursor-pointer text-xs font-black group border border-rose-400/30 no-underline"
+                                    title="Bấm vào đây để mở chỉ đường trực tiếp trên ứng dụng Google Maps"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="p-2 bg-white/20 rounded-xl group-hover:scale-110 transition shrink-0">
+                                        <MapPin className="w-5 h-5 text-white animate-bounce" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <span className="block text-white font-black text-xs uppercase tracking-wider">🗺️ BẢN ĐỒ GOOGLE MAPS</span>
+                                        <span className="block text-rose-100 text-[11px] font-extrabold truncate">Bấm để mở định vị chỉ đường ngay ➔</span>
+                                      </div>
+                                    </div>
+                                    <ExternalLink className="w-4 h-4 text-white shrink-0 group-hover:translate-x-1 transition" />
+                                  </a>
+                                </div>
+                              );
+                            }
+
+                            return <p className="whitespace-pre-wrap">{msg.content}</p>;
+                          })()}
                         </div>
                       </div>
                     );
