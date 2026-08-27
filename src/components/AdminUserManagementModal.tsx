@@ -580,6 +580,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
               <option value="admin">👑 Admin tổng</option>
               <option value="staff">💼 Nhân viên</option>
               <option value="merchant">🏪 Chủ shop</option>
+              <option value="service_247">🆘 Dịch vụ 24/7</option>
               <option value="buyer">👤 Khách hàng</option>
             </select>
           </div>
@@ -665,6 +666,18 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
                             }`}
                           >
                             🏪 Chủ shop {u.roles.includes('merchant') ? '✓' : '+'}
+                          </button>
+                        )}
+
+                        {/* Service 24/7 Role Toggle */}
+                        {!isSuperAdminUser && (
+                          <button
+                            onClick={() => handleToggleRole(u, 'service_247')}
+                            className={`px-2 py-0.5 rounded-md font-extrabold text-[10px] transition cursor-pointer ${
+                              u.roles.includes('service_247') ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                          >
+                            🆘 Dịch vụ 24/7 {u.roles.includes('service_247') ? '✓' : '+'}
                           </button>
                         )}
 
@@ -872,6 +885,7 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
                 >
                   <option value="buyer">👤 Khách hàng</option>
                   <option value="merchant">🏪 Chủ shop (Chờ duyệt khâu 1)</option>
+                  <option value="service_247">🆘 Dịch vụ 24/7 (Đội cứu hộ / Danh bạ tiện ích)</option>
                   <option value="staff">💼 Nhân viên (Chọn bộ phận bên dưới)</option>
                 </select>
               </div>

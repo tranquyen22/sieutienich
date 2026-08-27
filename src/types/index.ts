@@ -115,7 +115,7 @@ export interface CustomerAddress {
   google_maps_url?: string;
 }
 
-export type UserRole = 'admin' | 'staff' | 'merchant' | 'buyer';
+export type UserRole = 'admin' | 'staff' | 'merchant' | 'buyer' | 'service_247';
 
 export interface DirectMessage {
   id: string;
