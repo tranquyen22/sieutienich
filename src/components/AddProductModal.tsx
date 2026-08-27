@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  X, PlusCircle, Loader2, ShieldCheck, AlertTriangle, Lock, Sparkles, Sliders
+  X, PlusCircle, Loader2, ShieldCheck, AlertTriangle, Lock, Sparkles, Sliders, MapPin, Navigation
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +24,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [licenseNo] = useState('');
   const [province, setProvince] = useState('Hà Nội');
   const [district, setDistrict] = useState('Cầu Giấy');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('');
+  const [isLocatingGPS, setIsLocatingGPS] = useState(false);
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
   
   // DYNAMIC INDUSTRY-SPECIFIC FIELDS STATES
   // 1. Fashion Fields
@@ -146,6 +149,31 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     }
   };
 
+  const handleGetProductGPSLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
+      return;
+    }
+
+    setIsLocatingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        setGpsCoords({ lat, lng });
+        setGoogleMapsUrl(mapUrl);
+        setIsLocatingGPS(false);
+        alert(`📍 Đã lấy tọa độ GPS vị trí gian hàng thành công!\nTọa độ: ${lat.toFixed(5)}°, ${lng.toFixed(5)}°\nLink Google Maps: "${mapUrl}"`);
+      },
+      (err) => {
+        setIsLocatingGPS(false);
+        alert(`Không thể xác định vị trí GPS (${err.message}). Bạn có thể dán thủ công link Google Maps!`);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -205,6 +233,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       province,
       district,
       locationName: `${district}, ${province}`,
+      google_maps_url: googleMapsUrl.trim() || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${district}, ${province}`)}`,
+      latitude: gpsCoords?.lat,
+      longitude: gpsCoords?.lng,
     });
 
     setLoading(false);
@@ -643,35 +674,76 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          {/* 4. ADDRESS / LOCATION */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-black text-gray-900 mb-1">5. Tỉnh / Thành Phố *</label>
-              <select
-                value={province}
-                onChange={(e) => {
-                  setProvince(e.target.value);
-                  setDistrict('Trung tâm');
-                }}
-                className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+          {/* 4. ADDRESS / LOCATION & DIRECT GPS MAPS LINK */}
+          <div className="space-y-3 p-3.5 bg-indigo-50/60 border border-indigo-100 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <label className="block font-black text-indigo-950 text-xs flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-indigo-600" />
+                <span>5. Địa Chỉ & Định Vị Google Maps Chỉ Đường</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleGetProductGPSLocation}
+                disabled={isLocatingGPS}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-extrabold flex items-center gap-1 transition shadow cursor-pointer disabled:opacity-50"
+                title="Bấm để lấy vị trí GPS hiện tại của gian hàng"
               >
-                {VIETNAM_PROVINCES.map((p) => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
-                ))}
-              </select>
+                {isLocatingGPS ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang tìm GPS...</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="w-3.5 h-3.5 text-indigo-200 animate-pulse" />
+                    <span>📍 Lấy vị trí GPS gian hàng</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1 text-[11px]">Tỉnh / Thành Phố *</label>
+                <select
+                  value={province}
+                  onChange={(e) => {
+                    setProvince(e.target.value);
+                    setDistrict('Trung tâm');
+                  }}
+                  className="w-full p-2 bg-white border border-gray-300 rounded-xl font-bold text-xs"
+                >
+                  {VIETNAM_PROVINCES.map((p) => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1 text-[11px]">Quận / Huyện / TP *</label>
+                <select
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full p-2 bg-white border border-gray-300 rounded-xl font-bold text-xs"
+                >
+                  {currentDistricts.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>
-              <label className="block font-black text-gray-900 mb-1">6. Quận / Huyện / TP *</label>
-              <select
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
-              >
-                {currentDistricts.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+              <label className="block font-bold text-gray-700 mb-1 text-[11px]">
+                Đường dẫn Google Maps Chỉ Đường (Tự động hoặc dán thủ công):
+              </label>
+              <input
+                type="text"
+                value={googleMapsUrl}
+                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                placeholder={`VD: https://maps.app.goo.gl/... hoặc https://www.google.com/maps?q=lat,lng`}
+                className="w-full p-2 bg-white border border-gray-300 rounded-xl font-medium text-xs focus:ring-2 focus:ring-indigo-500"
+              />
             </div>
           </div>
 

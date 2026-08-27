@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   X, Star, MapPin, Lock, Check, Plus, Minus, 
-  PhoneCall, BookmarkCheck, MessageCircle, PauseCircle, ThumbsUp, CheckCircle2 
+  PhoneCall, BookmarkCheck, MessageCircle, PauseCircle, ThumbsUp, CheckCircle2, Navigation 
 } from 'lucide-react';
 import type { Product } from '../types';
 import { useShop } from '../context/ShopContext';
@@ -234,29 +234,36 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
                 </div>
               </div>
 
-              {/* Location & Address Pin */}
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl space-y-1">
-                <div className="flex items-start gap-2 text-gray-700">
-                  <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="font-bold text-gray-900 block text-xs">Vị trí trực tiếp:</strong>
-                    <span className="text-[11px] text-gray-600 block">
-                      {product.locationName || `${product.district || 'Khoái Châu'}, ${product.province || 'Hưng Yên'}`}
-                    </span>
-                  </div>
-                </div>
+              {/* Location & Address Pin & Google Maps Navigation Button */}
+              {(() => {
+                const mapsNavigationUrl = product.google_maps_url || 
+                  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${product.district ? `${product.district}, ` : ''}${product.province || 'Hà Nội'}`)}`;
 
-                {product.google_maps_url && (
-                  <a
-                    href={product.google_maps_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-900 rounded-lg text-[10px] font-extrabold hover:bg-emerald-200 transition"
-                  >
-                    🗺️ Xem vị trí bản đồ Google Maps
-                  </a>
-                )}
-              </div>
+                return (
+                  <div className="p-3 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2">
+                    <div className="flex items-start gap-2 text-gray-700">
+                      <MapPin className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="font-extrabold text-gray-900 block text-xs">Vị trí trực tiếp gian hàng:</strong>
+                        <span className="text-[11px] text-gray-600 block font-medium">
+                          {product.locationName || `${product.district || 'Khoái Châu'}, ${product.province || 'Hưng Yên'}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <a
+                      href={mapsNavigationUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-black text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer border border-emerald-500 active:scale-98"
+                      title="Bấm để mở trình duyệt / ứng dụng Google Maps chỉ đường trực tiếp tới vị trí gian hàng"
+                    >
+                      <Navigation className="w-4 h-4 text-emerald-200 animate-pulse" />
+                      <span>🗺️ Mở Google Maps Chỉ Đường Đến Gian Hàng</span>
+                    </a>
+                  </div>
+                );
+              })()}
 
               {/* Direct Communication Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
