@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, ShieldCheck, UserCheck, Lock, Unlock, Key, RotateCcw, 
   Eye, Search, Trash2, Edit3, Filter, Clock, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import type { AdminManagedUser, UserAccountAuditLog, UserRole, AccountLifecycleStatus, StaffPermissions } from '../types';
 
 interface AdminUserManagementModalProps {
@@ -13,8 +14,40 @@ interface AdminUserManagementModalProps {
 
 export type StaffDepartmentKey = 'pos_counter' | 'directory_entry' | 'audit_reviewer' | 'customer_support' | 'finance_accounting';
 
+const SUPER_ADMIN_USER: AdminManagedUser = {
+  id: 'USR-ADMIN-001',
+  full_name: 'Trần Văn Quyền',
+  phone: '0367818343',
+  email: 'tranvanquyen2211@gmail.com',
+  address: 'Chủ sàn tối cao — Toàn quyền quản trị hệ thống',
+  avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80',
+  roles: ['admin'],
+  status: 'active',
+  internal_notes: '👑 Tài khoản Admin tổng DUY NHẤT của Chủ sàn. Bất tử: Không ai khóa hay xóa được!',
+  must_change_password_on_first_login: false,
+  orders_count: 50,
+  regular_coins: 999999,
+  tq_coins: 999999,
+  reviews_written_count: 20,
+  report_count: 0,
+  active_devices: ['iPhone 16 Pro Max (Hà Nội)', 'MacBook Pro M3 Max'],
+  created_at: new Date(Date.now() - 86400000 * 365).toISOString(),
+  audit_logs: [
+    {
+      id: 'log-0',
+      user_id: 'USR-ADMIN-001',
+      admin_name: 'Hệ Thống',
+      action_type: 'create',
+      before_state: 'Khởi tạo hệ thống',
+      after_state: 'Khởi tạo tài khoản Admin Tổng DUY NHẤT (Trần Văn Quyền)',
+      reason: 'Khởi tạo tài khoản chủ sàn tối cao',
+      timestamp: new Date(Date.now() - 86400000 * 365).toISOString(),
+    },
+  ],
+};
+
 export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> = ({ isOpen, onClose }) => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, allApplications } = useAuth();
 
   // Initial Managed Users Database with all 5 Standard Lifecycle States
   const [usersList, setUsersList] = useState<AdminManagedUser[]>([
@@ -155,6 +188,47 @@ export const AdminUserManagementModal: React.FC<AdminUserManagementModalProps> =
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  useEffect(() => {
+    const fetchRealUsers = async () => {
+      try {
+        const { data: profiles } = await supabase.from('profiles').select('*');
+        if (profiles && profiles.length > 0) {
+          const mappedUsers: AdminManagedUser[] = profiles.map((p: any) => ({
+            id: p.id || `USR-${p.phone}`,
+            full_name: p.full_name || 'Người dùng mới',
+            phone: p.phone || 'Chưa cập nhật',
+            email: p.email || `${p.phone}@sieutienich.vn`,
+            address: p.address || 'Thành viên hệ thống Siêu Tiện Ích',
+            avatar_url: p.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80',
+            roles: p.role === 'admin' ? ['admin'] : p.role === 'merchant' ? ['buyer', 'merchant'] : ['buyer'],
+            status: 'active',
+            internal_notes: p.role === 'admin' ? '👑 Admin tối cao' : 'Thành viên tài khoản thực tế trên hệ thống',
+            must_change_password_on_first_login: false,
+            orders_count: 0,
+            regular_coins: p.regular_coins || 0,
+            tq_coins: p.tq_coins || 0,
+            reviews_written_count: 0,
+            report_count: 0,
+            active_devices: ['Thiết bị web/mobile'],
+            created_at: p.created_at || new Date().toISOString(),
+            audit_logs: [],
+          }));
+
+          const hasSuperAdmin = mappedUsers.some((u) => u.phone === '0367818343' || u.email === 'tranvanquyen2211@gmail.com');
+          if (!hasSuperAdmin) {
+            setUsersList([SUPER_ADMIN_USER, ...mappedUsers]);
+          } else {
+            setUsersList(mappedUsers);
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase profiles fetch note:', err);
+      }
+    };
+
+    fetchRealUsers();
+  }, [allApplications]);
 
   // Selected User Inspector State
   const [selectedUser, setSelectedUser] = useState<AdminManagedUser | null>(null);

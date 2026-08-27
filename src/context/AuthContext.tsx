@@ -150,30 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [impersonationTimeLeft, setImpersonationTimeLeft] = useState<number>(900); // 15 phút (900s)
 
   const [merchantApplication, setMerchantApplication] = useState<MerchantApplication | null>(null);
-  const [allApplications, setAllApplications] = useState<MerchantApplication[]>([
-    {
-      id: 'app-demo-1',
-      user_id: 'user-demo-1',
-      user_email: 'shopkhoaichau@gmail.com',
-      full_name: 'Trần Văn Hùng',
-      phone: '0912345678',
-      shop_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
-      status: 'pending_review',
-      verification_phase: 'phase_1_opening',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'app-demo-2',
-      user_id: 'user-demo-2',
-      user_email: 'homestayhungyen@gmail.com',
-      full_name: 'Lê Thị Thu',
-      phone: '0987654321',
-      shop_name: 'Homestay & Cho Thuê Kiot Khoái Châu',
-      status: 'approved',
-      verification_phase: 'phase_2_audit',
-      created_at: new Date().toISOString(),
-    },
-  ]);
+  const [allApplications, setAllApplications] = useState<MerchantApplication[]>([]);
 
   // COUNTDOWN TIMER EFFECT FOR IMPERSONATION
   useEffect(() => {
@@ -268,9 +245,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch (err) {
-      console.warn('Using initial mock applications list:', err);
+      console.warn('Supabase fetchApplications note:', err);
     }
   }, [user]);
+
+  useEffect(() => {
+    fetchApplications();
+  }, [fetchApplications]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

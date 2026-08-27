@@ -137,30 +137,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [monthlyDistributedCoins] = useState<number>(185000); // 185k / 500k monthly emission limit
 
   // Orders State
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 'ORD-9812',
-      user_id: user?.id || 'guest',
-      user_name: 'Nguyễn Văn Hùng',
-      user_phone: '0912345678',
-      shipping_address: 'Số 18 ngõ 20 đường Trần Thái Tông, Cầu Giấy, Hà Nội',
-      items: [
-        {
-          product_id: 1,
-          product: INITIAL_PRODUCTS[0],
-          quantity: 1,
-          price: INITIAL_PRODUCTS[0].price,
-        },
-      ],
-      total_amount: INITIAL_PRODUCTS[0].price,
-      discount_amount: 0,
-      final_amount: INITIAL_PRODUCTS[0].price,
-      status: 'preparing',
-      delivery_method: 'seller_delivery',
-      payment_method: 'direct_with_seller',
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-    },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   // Purchased Products Tracker for Verified Buyer Reviews
   const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>(['1', '2', '3']);
@@ -327,9 +304,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const fetchOrders = useCallback(async () => {
+    try {
+      let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+      if (user) {
+        query = query.eq('user_id', user.id);
+      }
+      const { data, error } = await query;
+      if (!error && data) {
+        setOrders(data);
+      }
+    } catch (e) {
+      console.warn('Supabase fetchOrders note:', e);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    fetchOrders();
+  }, [fetchProducts, fetchOrders]);
 
   useEffect(() => {
     if (user) {
