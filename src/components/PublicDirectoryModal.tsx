@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, Phone, MapPin, Navigation, AlertTriangle, Plus, Search, 
-  CheckCircle2, ExternalLink, MessageSquare
+  CheckCircle2, ExternalLink, MessageSquare, Edit3, Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import type { DirectoryCategory, DirectoryEntry } from '../types';
 
 interface PublicDirectoryModalProps {
@@ -130,6 +131,22 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
     },
   ]);
 
+  // Fetch & Sync Real-Time Directory Entries from Supabase
+  useEffect(() => {
+    const fetchSupabaseEntries = async () => {
+      try {
+        const { data, error } = await supabase.from('directory_entries').select('*').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          setEntries(data as DirectoryEntry[]);
+        }
+      } catch (err) {
+        console.warn('Supabase directory entries fetch note:', err);
+      }
+    };
+
+    fetchSupabaseEntries();
+  }, []);
+
   // Location & Radius Filter States
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
@@ -141,6 +158,7 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
 
   // Sub-modal states for Admin & Staff CRUD
   const [addEntryModalOpen, setAddEntryModalOpen] = useState(false);
+  const [editEntryModalOpen, setEditEntryModalOpen] = useState(false);
   const [addCategoryModalOpen, setAddCategoryModalOpen] = useState(false);
 
   // Add New Entry Form States
@@ -152,6 +170,16 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
   const [newProvince, setNewProvince] = useState('Hưng Yên');
   const [newDistrict, setNewDistrict] = useState('Khoái Châu');
   const [newDistance] = useState(2.5);
+
+  // Edit Entry Form States
+  const [editingEntryId, setEditingEntryId] = useState<string>('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState('cong_an');
+  const [editPhone, setEditPhone] = useState('');
+  const [editLinkedPhone, setEditLinkedPhone] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editProvince, setEditProvince] = useState('Hưng Yên');
+  const [editDistrict, setEditDistrict] = useState('Khoái Châu');
 
   // Add New Category Form States
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -202,26 +230,36 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
   };
 
   // Toggle Verified Badge Action (Only Super Admin)
-  const handleToggleVerified = (id: string, currentStatus: boolean) => {
+  const handleToggleVerified = async (id: string, currentStatus: boolean) => {
     if (!isAdmin) {
       alert('⛔ Chỉ duy nhất Admin Tổng mới có quyền Gắn và gỡ nhãn Đã Xác Minh!');
       return;
     }
 
+    const nextState = !currentStatus;
     setEntries((prev) =>
       prev.map((item) => {
         if (item.id === id) {
-          const nextState = !currentStatus;
           return {
             ...item,
             is_verified: nextState,
-            verified_by: nextState ? 'Admin Tổng (Trần Văn Quyền)' : undefined,
+            verified_by: nextState ? 'Admin Tổng' : undefined,
             verified_at: nextState ? new Date().toISOString() : undefined,
           };
         }
         return item;
       })
     );
+
+    try {
+      await supabase.from('directory_entries').update({
+        is_verified: nextState,
+        verified_by: nextState ? 'Admin Tổng' : null,
+        verified_at: nextState ? new Date().toISOString() : null,
+      }).eq('id', id);
+    } catch (err) {
+      console.warn('Supabase toggle verified note:', err);
+    }
 
     alert(currentStatus ? '⚪ Đã GỠ nhãn đã xác minh!' : '✅ Đã GẮN nhãn "ĐÃ XÁC MINH THỰC ĐỊA" cho mục danh bạ này!');
   };
@@ -235,8 +273,73 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
     alert(`⚠️ Đã gửi Báo Số Sai cho mục "${item.title}"!\nBáo cáo đã được chuyển về Hàng đợi Admin rà soát kiểm tra. Cảm ơn bạn đã phản hồi!`);
   };
 
-  // Create New Directory Entry (Admin Only)
-  const handleCreateEntry = () => {
+  // Open Edit Entry Modal
+  const handleOpenEditModal = (item: DirectoryEntry) => {
+    if (!isAdmin) return;
+    setEditingEntryId(item.id);
+    setEditTitle(item.title);
+    setEditCategory(item.category_id);
+    setEditPhone(item.phone);
+    setEditLinkedPhone(item.linked_user_phone || item.phone);
+    setEditAddress(item.address);
+    setEditProvince(item.province);
+    setEditDistrict(item.district);
+    setEditEntryModalOpen(true);
+  };
+
+  // Save Edit Entry Action & Supabase Sync
+  const handleSaveEditEntry = async () => {
+    if (!isAdmin) return;
+    if (!editTitle || !editPhone || !editAddress) {
+      alert('Vui lòng điền đầy đủ Tên dịch vụ, Số điện thoại và Địa chỉ!');
+      return;
+    }
+
+    const updatedItem: DirectoryEntry = {
+      id: editingEntryId,
+      title: editTitle,
+      category_id: editCategory,
+      phone: editPhone,
+      linked_user_phone: editLinkedPhone.trim() || editPhone.trim(),
+      address: editAddress,
+      province: editProvince,
+      district: editDistrict,
+      distance_km: 1.5,
+      is_verified: true,
+      report_wrong_number_count: 0,
+      created_at: new Date().toISOString(),
+    };
+
+    setEntries((prev) => prev.map((e) => (e.id === editingEntryId ? updatedItem : e)));
+    setEditEntryModalOpen(false);
+
+    try {
+      await supabase.from('directory_entries').upsert([updatedItem]);
+    } catch (err) {
+      console.warn('Supabase upsert edit directory entry note:', err);
+    }
+
+    alert(`✅ Đã cập nhật mục danh bạ "${editTitle}" thành công và đồng bộ toàn hệ thống!`);
+  };
+
+  // Delete Directory Entry Action & Supabase Sync
+  const handleDeleteEntry = async (id: string, title: string) => {
+    if (!isAdmin) return;
+    if (!confirm(`⚠️ Bạn có chắc chắn muốn XÓA mục danh bạ "${title}" khỏi hệ thống?`)) return;
+
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+
+    try {
+      await supabase.from('directory_entries').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Supabase delete directory entry note:', err);
+    }
+
+    alert(`🗑️ Đã xóa mục danh bạ "${title}" thành công và đồng bộ toàn hệ thống!`);
+  };
+
+  // Create New Directory Entry (Admin Only) & Supabase Sync
+  const handleCreateEntry = async () => {
     if (!isAdmin) {
       alert('⛔ Chỉ duy nhất Admin Tổng mới có quyền Thêm mục danh bạ mới!');
       return;
@@ -269,7 +372,13 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
     setNewLinkedPhone('');
     setNewAddress('');
 
-    alert(`🎉 Đã thêm mục danh bạ mới "${newEntryItem.title}"!\n📌 Nhãn mặc định: CHƯA XÁC MINH (Cần Admin kiểm tra thực địa để gắn nhãn ✅).`);
+    try {
+      await supabase.from('directory_entries').insert([newEntryItem]);
+    } catch (err) {
+      console.warn('Supabase insert new directory entry note:', err);
+    }
+
+    alert(`🎉 Đã thêm mục danh bạ mới "${newEntryItem.title}" và đồng bộ toàn hệ thống!`);
   };
 
   // Create New Category (Admin Only)
@@ -521,19 +630,41 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
                       ⚠️ Báo số sai
                     </button>
 
-                    {/* Admin Verification Toggle Button */}
+                    {/* Admin Verification Toggle, Edit & Delete Action Buttons */}
                     {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleVerified(item.id, item.is_verified)}
-                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
-                          item.is_verified 
-                            ? 'bg-rose-100 text-rose-800 hover:bg-rose-200' 
-                            : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200'
-                        }`}
-                      >
-                        {item.is_verified ? 'Gỡ nhãn xác minh' : '✓ Gắn nhãn Đã Xác Minh'}
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(item)}
+                          className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center gap-1 border border-indigo-200"
+                          title="Sửa mục danh bạ & SĐT định danh"
+                        >
+                          <Edit3 className="w-3 h-3 text-indigo-600" />
+                          <span>Sửa</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEntry(item.id, item.title)}
+                          className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center gap-1 border border-rose-200"
+                          title="Xóa mục danh bạ khỏi hệ thống"
+                        >
+                          <Trash2 className="w-3 h-3 text-rose-600" />
+                          <span>Xóa</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleVerified(item.id, item.is_verified)}
+                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                            item.is_verified 
+                              ? 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200' 
+                              : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+                          }`}
+                        >
+                          {item.is_verified ? '✓ Đã xác minh' : '⚪ Chưa xác minh'}
+                        </button>
+                      </div>
                     )}
 
                   </div>
@@ -682,6 +813,102 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 font-extrabold">
               <button onClick={() => setAddCategoryModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-xl">Hủy</button>
               <button onClick={handleCreateCategory} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow-md cursor-pointer">Thêm Danh Mục</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-MODAL 3: EDIT DIRECTORY ENTRY (ADMIN ONLY) */}
+      {editEntryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 text-xs font-medium shadow-2xl border border-indigo-100">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-indigo-900 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-indigo-600" />
+                <span>Cập Nhật Mục Danh Bạ SOS</span>
+              </h3>
+              <button onClick={() => setEditEntryModalOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block font-bold text-gray-800 mb-1">Tên dịch vụ / Thợ / Cửa hàng *</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-800 mb-1">Chọn danh mục:</label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+                >
+                  {categories.filter(c => c.id !== 'all').map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-800 mb-1">Số điện thoại gọi thẳng *</label>
+                <input
+                  type="text"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-indigo-900 mb-1">📱 SĐT / Tài khoản dịch vụ cứu hộ liên kết (Để nhận tin nhắn SOS)</label>
+                <input
+                  type="text"
+                  value={editLinkedPhone}
+                  onChange={(e) => setEditLinkedPhone(e.target.value)}
+                  className="w-full p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-xl font-bold text-indigo-950 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-800 mb-1">Địa chỉ chi tiết *</label>
+                <input
+                  type="text"
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-gray-800 mb-1">Tỉnh / Thành</label>
+                  <input
+                    type="text"
+                    value={editProvince}
+                    onChange={(e) => setEditProvince(e.target.value)}
+                    className="w-full p-2 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-800 mb-1">Huyện / Quận</label>
+                  <input
+                    type="text"
+                    value={editDistrict}
+                    onChange={(e) => setEditDistrict(e.target.value)}
+                    className="w-full p-2 bg-gray-50 border border-gray-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 font-extrabold">
+              <button onClick={() => setEditEntryModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-xl">Hủy</button>
+              <button onClick={handleSaveEditEntry} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow-md cursor-pointer">Lưu Cập Nhật</button>
             </div>
           </div>
         </div>
