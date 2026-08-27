@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Bell, PackageCheck, MessageSquare, CheckCircle2, X } from 'lucide-react';
 import type { AppNotification } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface NotificationBellProps {
   onOpenOrderTrackingModal: () => void;
@@ -16,37 +17,32 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   const [isOpen, setIsOpen] = useState(false);
 
   // Real-time Notification Feed for both Buyer & Shop
-  const [notifications, setNotifications] = useState<AppNotification[]>([
-    {
-      id: 'notif-1',
-      user_id: 'current-user',
-      title: '🚚 Đơn hàng #ORD-9812 đang giao',
-      body: 'Shop "Nông Sản & Lẩu Thái Khoái Châu" đã gửi hàng cho shipper giao tới địa chỉ của bạn.',
-      type: 'order_status_update',
-      order_id: 'ORD-9812',
-      is_read: false,
-      created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-    },
-    {
-      id: 'notif-2',
-      user_id: 'current-user',
-      title: '💬 Tin nhắn mới từ Shop Khoái Châu',
-      body: 'Shop vừa gửi tin nhắn xác nhận sẵn sàng đóng gói và freeship cho đơn hàng.',
-      type: 'new_message',
-      order_id: 'ORD-9812',
-      is_read: false,
-      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-    {
-      id: 'notif-3',
-      user_id: 'current-user',
-      title: '🎉 Thưởng điểm danh +50 Xu Thường',
-      body: 'Bạn vừa nhận +50 Xu Thường cho điểm danh hàng ngày thành công.',
-      type: 'system',
-      is_read: true,
-      created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-    },
-  ]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  React.useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+
+    const fetchRealNotifications = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          setNotifications(data);
+        }
+      } catch (err) {
+        console.warn('Supabase fetch notifications note:', err);
+      }
+    };
+
+    fetchRealNotifications();
+  }, [user]);
 
   // UNAUTHENTICATED GUEST = BLANK (0 NOTIFICATIONS)
   const activeNotifications = user ? notifications : [];

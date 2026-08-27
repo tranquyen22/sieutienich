@@ -54,118 +54,73 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
   const [mobileViewMode, setMobileViewMode] = useState<'list' | 'detail'>('list');
 
   // Preset Active Conversations Threads List
-  const [threads, setThreads] = useState<ChatThread[]>([
-    {
-      id: 'thread-1',
-      partner_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
-      partner_avatar: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
-      partner_role: 'merchant',
-      last_message: 'Dạ shop sẵn sàng hỗ trợ đóng hàng giao ngay cho bạn nhé!',
-      last_message_time: '16:45',
-      unread_count: 1,
-      is_online: true,
-    },
-    {
-      id: 'thread-2',
-      partner_name: 'Thời Trang Nam TQ Flagship Store',
-      partner_avatar: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&q=80',
-      partner_role: 'merchant',
-      last_message: 'Áo khoác gió có sẵn đủ size S, M, L nha khách ơi!',
-      last_message_time: 'Hôm qua',
-      unread_count: 0,
-      is_online: true,
-    },
-    {
-      id: 'thread-3',
-      partner_name: 'Thợ Sửa Điện Nước Hùng Cường (Danh Bạ)',
-      partner_avatar: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&q=80',
-      partner_role: 'directory',
-      last_message: 'Em đang qua hỗ trợ rà soát đường ống nước nhà mình đây ạ.',
-      last_message_time: '2 ngày trước',
-      unread_count: 0,
-      is_online: false,
-    },
-    {
-      id: 'thread-4',
-      partner_name: 'Trung Tâm CSKH Siêu Tiện Ích Platform',
-      partner_avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&q=80',
-      partner_role: 'cskh',
-      last_message: 'Tổng đài hỗ trợ 24/7 sẵn sàng giải đáp thắc mắc của quý khách.',
-      last_message_time: '10:15',
-      unread_count: 0,
-      is_online: true,
-    },
-  ]);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
 
-  const [activeThreadId, setActiveThreadId] = useState<string>('thread-1');
+  const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [searchThreadTerm, setSearchThreadTerm] = useState<string>('');
   const [inputMessage, setInputMessage] = useState<string>('');
 
   // Individual Chat Messages Stream state
-  const [chatMessages, setChatMessages] = useState<Record<string, SingleChatMessage[]>>({
-    'thread-1': [
-      {
-        id: 'm-1',
-        thread_id: 'thread-1',
-        sender_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
-        sender_role: 'merchant',
-        content: 'Chào bạn! Cửa hàng nhận đơn ship giao siêu tốc trong 30 phút.',
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-        is_me: false,
-      },
-      {
-        id: 'm-2',
-        thread_id: 'thread-1',
-        sender_name: 'Khách Hàng',
-        sender_role: 'buyer',
-        content: 'Shop ơi, mình mua đơn từ 300k có được miễn phí vận chuyển không ạ?',
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-        is_me: true,
-      },
-      {
-        id: 'm-3',
-        thread_id: 'thread-1',
-        sender_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
-        sender_role: 'merchant',
-        content: 'Dạ shop hỗ trợ Freeship bán kính 5km cho đơn từ 200k nha bạn! Đơn của bạn ship ngay 30 phút ạ.',
-        created_at: new Date(Date.now() - 1800000).toISOString(),
-        is_me: false,
-      },
-    ],
-    'thread-2': [
-      {
-        id: 'm-201',
-        thread_id: 'thread-2',
-        sender_name: 'Thời Trang Nam TQ Flagship Store',
-        sender_role: 'merchant',
-        content: 'Áo khoác gió có sẵn đủ size S, M, L nha khách ơi!',
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        is_me: false,
-      },
-    ],
-    'thread-3': [
-      {
-        id: 'm-301',
-        thread_id: 'thread-3',
-        sender_name: 'Thợ Sửa Điện Nước Hùng Cường',
-        sender_role: 'directory',
-        content: 'Em đang qua hỗ trợ rà soát đường ống nước nhà mình đây ạ.',
-        created_at: new Date(Date.now() - 172800000).toISOString(),
-        is_me: false,
-      },
-    ],
-    'thread-4': [
-      {
-        id: 'm-401',
-        thread_id: 'thread-4',
-        sender_name: 'Trung Tâm CSKH Siêu Tiện Ích',
-        sender_role: 'cskh',
-        content: 'Tổng đài hỗ trợ 24/7 sẵn sàng giải đáp thắc mắc của quý khách.',
-        created_at: new Date().toISOString(),
-        is_me: false,
-      },
-    ],
-  });
+  const [chatMessages, setChatMessages] = useState<Record<string, SingleChatMessage[]>>({});
+
+  useEffect(() => {
+    if (!user) {
+      setThreads([]);
+      setChatMessages({});
+      return;
+    }
+
+    const fetchRealChatMessages = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('direct_messages')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          const grouped: Record<string, SingleChatMessage[]> = {};
+          const threadMap: Record<string, ChatThread> = {};
+
+          data.forEach((msg: any) => {
+            const tid = msg.thread_id || 'thread-default';
+            if (!grouped[tid]) grouped[tid] = [];
+
+            grouped[tid].push({
+              id: msg.id,
+              thread_id: tid,
+              sender_name: msg.sender_name || 'Thành viên',
+              sender_role: msg.sender_role || 'buyer',
+              content: msg.content,
+              created_at: msg.created_at,
+              is_me: msg.sender_id === user.id,
+            });
+
+            threadMap[tid] = {
+              id: tid,
+              partner_name: msg.sender_name || 'Hộp thoại trao đổi',
+              partner_avatar: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
+              partner_role: msg.sender_role || 'merchant',
+              last_message: msg.content,
+              last_message_time: 'Gần đây',
+              unread_count: 0,
+              is_online: true,
+            };
+          });
+
+          setChatMessages(grouped);
+          const threadList = Object.values(threadMap);
+          setThreads(threadList);
+          if (threadList.length > 0 && !activeThreadId) {
+            setActiveThreadId(threadList[0].id);
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase fetch chat messages note:', err);
+      }
+    };
+
+    fetchRealChatMessages();
+  }, [user]);
 
   // AUTO-TRIGGER NEW CHAT THREAD WITH PRODUCT ASKING WHEN BUYER CLICKS FROM PRODUCT PAGE
   useEffect(() => {
