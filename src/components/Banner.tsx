@@ -29,7 +29,7 @@ export const Banner: React.FC = () => {
     },
     {
       id: 3,
-      badge: "Danh Bạ Trực Tiếp 24/7",
+      badge: "🆘 SOS Cấp Cứu & Dịch Vụ 24/7",
       title: "Siêu Tiện Ích - Vận Tải & Chuyển Đồ Nội Khu",
       subtitle: "Danh bạ liên hệ trực tiếp chủ xe ba gác, dịch vụ chuyển nhà cư dân nhanh chóng, không qua trung gian.",
       img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=80",

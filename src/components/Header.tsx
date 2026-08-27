@@ -115,15 +115,15 @@ export const Header: React.FC<HeaderProps> = ({
         {/* RIGHT ACTION BUTTONS */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
-          {/* PUBLIC DIRECTORY TRIGGER BUTTON */}
+          {/* SOS DIRECTORY TRIGGER BUTTON */}
           {onOpenPublicDirectoryModal && (
             <button
               onClick={onOpenPublicDirectoryModal}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 rounded-full text-xs font-black border border-indigo-200 transition cursor-pointer"
-              title="Mở Danh bạ tiện ích trực tuyến"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-900 rounded-full text-xs font-black border border-rose-200 transition cursor-pointer"
+              title="Mở SOS tiện ích trực tuyến 24/7"
             >
-              <Building2 className="w-4 h-4 text-indigo-600" />
-              <span>Danh Bạ Tiện Ích</span>
+              <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">SOS</span>
+              <span>SOS</span>
             </button>
           )}
 
@@ -206,7 +206,7 @@ export const Header: React.FC<HeaderProps> = ({
                       className="w-full text-left px-4 py-2 text-xs font-extrabold text-indigo-950 bg-indigo-50/60 hover:bg-indigo-100 flex items-center gap-2 border-b border-gray-100 cursor-pointer"
                     >
                       <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                      <span>📇 Danh Bạ Tiện Ích (Tìm Thợ/Xe/Nhà Nghỉ)</span>
+                      <span>🆘 SOS (Tìm Thợ / Cứu Hộ / Xe / Cấp Cứu 24/7)</span>
                     </button>
                   )}
 

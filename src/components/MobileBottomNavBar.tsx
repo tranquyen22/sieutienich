@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Building2, MessageCircle, PackageCheck, User } from 'lucide-react';
+import { Home, MessageCircle, PackageCheck, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface MobileBottomNavBarProps {
@@ -41,13 +41,13 @@ export const MobileBottomNavBar: React.FC<MobileBottomNavBarProps> = ({
         <span>Trang Chủ</span>
       </button>
 
-      {/* 2. DANH BẠ TIỆN ÍCH */}
+      {/* 2. SOS TIỆN ÍCH CẤP CỨU */}
       <button
         onClick={onOpenPublicDirectoryModal}
-        className="flex flex-col items-center justify-center gap-0.5 text-gray-600 hover:text-indigo-600 py-1 px-2 rounded-xl active:bg-gray-100 transition cursor-pointer"
+        className="flex flex-col items-center justify-center gap-0.5 text-rose-600 font-extrabold hover:text-rose-700 py-1 px-2 rounded-xl active:bg-rose-50 transition cursor-pointer"
       >
-        <Building2 className="w-5 h-5 text-gray-500" />
-        <span>Danh Bạ</span>
+        <span className="bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none">SOS</span>
+        <span>SOS</span>
       </button>
 
       {/* 3. TIN NHẮN REALTIME (VỚI HUY HIỆU NỔI) */}

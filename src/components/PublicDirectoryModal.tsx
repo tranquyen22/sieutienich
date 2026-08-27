@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   X, Phone, MapPin, Navigation, AlertTriangle, Plus, Search, 
-  CheckCircle2, Building2, ExternalLink
+  CheckCircle2, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { DirectoryCategory, DirectoryEntry } from '../types';
@@ -267,13 +267,13 @@ export const PublicDirectoryModal: React.FC<PublicDirectoryModalProps> = ({ isOp
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2 text-indigo-300 text-xs font-extrabold uppercase tracking-wider mb-1">
-            <Building2 className="w-4 h-4 text-indigo-400" />
-            <span>Danh Bạ Tiện Ích Trực Tuyến & Tìm Số Thợ / Xe / Dịch Vụ</span>
+          <div className="flex items-center gap-2 text-rose-300 text-xs font-extrabold uppercase tracking-wider mb-1">
+            <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded">SOS</span>
+            <span>SOS Tiện Ích Trực Tuyến & Cứu Hộ / Tìm Thợ / Xe 24/7</span>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 className="text-xl sm:text-2xl font-black text-white">Danh Bạ Dịch Vụ & Tiện Ích Đội Ngũ</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-white">🆘 SOS Tiện Ích & Cứu Hộ Dịch Vụ 24/7</h2>
 
             {/* Action Buttons for Super Admin Only */}
             {isAdmin && (
