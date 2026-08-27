@@ -39,6 +39,7 @@ interface DirectMessagingModalProps {
   initialProductName?: string;
   initialProductPrice?: number;
   initialProductImg?: string;
+  initialTargetPhone?: string;
 }
 
 export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
@@ -47,6 +48,7 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
   initialTargetShopName,
   initialProductName,
   initialProductPrice,
+  initialTargetPhone,
 }) => {
   const { user, userRole } = useAuth();
 
@@ -125,24 +127,27 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
 
   // AUTO-TRIGGER NEW CHAT THREAD WHEN BUYER CLICKS FROM PRODUCT PAGE OR SOS DIRECTORY
   useEffect(() => {
-    if (isOpen && (initialTargetShopName || initialProductName)) {
+    if (isOpen && (initialTargetShopName || initialProductName || initialTargetPhone)) {
       const isSOSDirectory = !initialProductName;
       const targetName = initialTargetShopName || 'Gian Hàng Siêu Tiện Ích';
+      const targetPhoneKey = initialTargetPhone ? initialTargetPhone.replace(/\D/g, '') : '';
       
-      // Check if thread already exists with this shop / SOS service
-      const existingThread = threads.find((t) => t.partner_name === targetName);
+      // Form structured thread ID for SOS accounts
+      const targetThreadId = targetPhoneKey ? `thread-sos-${targetPhoneKey}` : `thread-auto-${Date.now()}`;
+      
+      // Check if thread already exists with this shop / SOS service by ID or name
+      const existingThread = threads.find((t) => t.id === targetThreadId || t.partner_name === targetName);
       
       const defaultMessage = isSOSDirectory
-        ? `🆘 Chào đội dịch vụ cứu hộ "${targetName}", tôi đang cần hỗ trợ khẩn cấp. Vui lòng phản hồi!`
+        ? `🆘 Chào đội dịch vụ cứu hộ "${targetName}"${initialTargetPhone ? ` (${initialTargetPhone})` : ''}, tôi đang cần hỗ trợ khẩn cấp. Vui lòng phản hồi!`
         : `Chào shop, mình đang quan tâm sản phẩm "${initialProductName}" ${initialProductPrice ? `- Giá: ${initialProductPrice.toLocaleString()} đ` : ''}. Shop cho mình hỏi hàng có sẵn giao ngay không ạ?`;
 
       if (existingThread) {
         setActiveThreadId(existingThread.id);
         setMobileViewMode('detail');
       } else {
-        const newThreadId = `thread-auto-${Date.now()}`;
         const newThread: ChatThread = {
-          id: newThreadId,
+          id: targetThreadId,
           partner_name: targetName,
           partner_avatar: isSOSDirectory
             ? 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=150&q=80'
@@ -156,7 +161,7 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
 
         const newInitialMsg: SingleChatMessage = {
           id: `msg-auto-${Date.now()}`,
-          thread_id: newThreadId,
+          thread_id: targetThreadId,
           sender_name: user?.user_metadata?.full_name || 'Khách Hàng',
           sender_role: userRole || 'buyer',
           content: defaultMessage,
@@ -169,13 +174,31 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
         setThreads((prev) => [newThread, ...prev]);
         setChatMessages((prev) => ({
           ...prev,
-          [newThreadId]: [newInitialMsg],
+          [targetThreadId]: [newInitialMsg],
         }));
-        setActiveThreadId(newThreadId);
+        setActiveThreadId(targetThreadId);
         setMobileViewMode('detail');
+
+        // Persist initial SOS rescue message to Supabase direct_messages table
+        if (user) {
+          supabase.from('direct_messages').insert([
+            {
+              id: newInitialMsg.id,
+              thread_id: targetThreadId,
+              sender_id: user.id || user.phone,
+              sender_name: newInitialMsg.sender_name,
+              sender_role: newInitialMsg.sender_role,
+              receiver_id: initialTargetPhone || targetName,
+              content: defaultMessage,
+              created_at: newInitialMsg.created_at,
+            }
+          ]).then(({ error }) => {
+            if (error) console.warn('Supabase initial SOS message sync note:', error);
+          });
+        }
       }
     }
-  }, [isOpen, initialTargetShopName, initialProductName, initialProductPrice]);
+  }, [isOpen, initialTargetShopName, initialProductName, initialProductPrice, initialTargetPhone]);
 
   if (!isOpen) return null;
 

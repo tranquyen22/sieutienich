@@ -67,6 +67,7 @@ function AppContent() {
     productId?: string | number;
     productName?: string;
     productPrice?: number;
+    targetPhone?: string;
   }>({});
 
   // Admin Dashboard Portal Landing Modal (Openable by Admin)
@@ -212,6 +213,7 @@ function AppContent() {
         initialProductId={messagingTargetInfo.productId}
         initialProductName={messagingTargetInfo.productName}
         initialProductPrice={messagingTargetInfo.productPrice}
+        initialTargetPhone={messagingTargetInfo.targetPhone}
       />
 
       <BuyerDashboardModal 
@@ -241,11 +243,12 @@ function AppContent() {
       <PublicDirectoryModal
         isOpen={publicDirectoryModalOpen}
         onClose={() => setPublicDirectoryModalOpen(false)}
-        onOpenDirectMessagingModal={(targetShopName, productName, productPrice) => {
+        onOpenDirectMessagingModal={(targetShopName, productName, productPrice, targetPhone) => {
           setMessagingTargetInfo({
             shopName: targetShopName || '',
             productName: productName || '',
             productPrice: productPrice,
+            targetPhone: targetPhone || '',
           });
           setDirectMessagingModalOpen(true);
         }}
