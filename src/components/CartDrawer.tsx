@@ -125,10 +125,6 @@ export const CartDrawer: React.FC = () => {
       payment_method: 'direct_with_seller',
     });
 
-    const methodLabel = deliveryMethod === 'seller_delivery' ? '🚚 Shop giao hàng tận nơi' : '🏬 Đến cửa hàng lấy';
-
-    alert(`Đặt hàng thành công!\n- Phương thức: ${methodLabel}\n- Phí sàn áp dụng: ${platformFeeRate > 0 ? '3% (Shop đã xác minh)' : '0% (Shop chưa xác minh - Miễn phí sàn)'}\n- Tín hiệu đơn tự động đồng bộ thời gian thực (5-10s)!`);
-    
     // Remove ONLY selected items from cart
     for (const item of selectedCartItems) {
       await removeFromCart(item.product.id);
