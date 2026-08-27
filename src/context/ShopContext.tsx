@@ -288,10 +288,15 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     description: string,
     coinCategory: 'regular' | 'tq' = 'regular'
   ) => {
+    let newReg = regularCoins;
+    let newTq = tqCoins;
+
     if (coinCategory === 'regular') {
-      setRegularCoins((prev) => Math.max(0, type === 'spend' ? prev - amount : prev + amount));
+      newReg = Math.max(0, type === 'spend' ? regularCoins - amount : regularCoins + amount);
+      setRegularCoins(newReg);
     } else {
-      setTQCoins((prev) => Math.max(0, type === 'spend' ? prev - amount : prev + amount));
+      newTq = Math.max(0, type === 'spend' ? tqCoins - amount : tqCoins + amount);
+      setTQCoins(newTq);
     }
 
     const newTx: CoinTransaction = {
@@ -305,6 +310,22 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setCoinTransactions((prev) => [newTx, ...prev]);
+
+    if (user) {
+      try {
+        await supabase.from('coin_transactions').insert([newTx]);
+        await supabase.from('profiles').upsert([
+          {
+            id: user.id,
+            regular_coins: newReg,
+            tq_coins: newTq,
+            updated_at: new Date().toISOString(),
+          }
+        ]);
+      } catch (err) {
+        console.warn('Supabase coin transaction sync note:', err);
+      }
+    }
   };
 
   const dailyCheckIn = async (): Promise<{ success: boolean; message: string }> => {
@@ -591,6 +612,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     recordPurchase(newOrder.items.map((it) => it.product.id));
     await clearCart();
 
+    if (user) {
+      try {
+        await supabase.from('orders').insert([
+          {
+            id: newOrder.id,
+            user_id: user.id,
+            status: newOrder.status,
+            final_amount: newOrder.final_amount,
+            items: newOrder.items,
+            shipping_address: newOrder.shipping_address,
+            payment_method: newOrder.payment_method,
+            created_at: newOrder.created_at,
+          }
+        ]);
+      } catch (err) {
+        console.warn('Supabase createOrder sync note:', err);
+      }
+    }
+
     return newOrder;
   };
 
@@ -614,6 +654,20 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return ord;
       })
     );
+
+    if (user) {
+      try {
+        await supabase.from('orders').update({
+          status: newStatus,
+          cancel_reason: options?.cancelReason,
+          cancelled_by: options?.cancelledBy,
+          completed_by: options?.completedBy,
+          updated_at: new Date().toISOString(),
+        }).eq('id', orderId);
+      } catch (err) {
+        console.warn('Supabase updateOrderStatus sync note:', err);
+      }
+    }
   };
 
   const addProduct = async (productData: Omit<Product, 'id'>): Promise<{ error: Error | null }> => {

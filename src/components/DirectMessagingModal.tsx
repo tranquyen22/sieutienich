@@ -4,6 +4,7 @@ import {
   Phone, ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import type { UserRole } from '../types';
 
 export interface ChatThread {
@@ -245,9 +246,9 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
   );
 
   // Send Message Action
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || !activeThreadId) return;
 
     const newMsg: SingleChatMessage = {
       id: `msg-${Date.now()}`,
@@ -272,7 +273,26 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
       )
     );
 
+    const msgContent = inputMessage;
     setInputMessage('');
+
+    if (user) {
+      try {
+        await supabase.from('direct_messages').insert([
+          {
+            id: newMsg.id,
+            thread_id: newMsg.thread_id,
+            sender_id: user.id,
+            sender_name: newMsg.sender_name,
+            sender_role: newMsg.sender_role,
+            content: msgContent,
+            created_at: newMsg.created_at,
+          }
+        ]);
+      } catch (err) {
+        console.warn('Supabase messaging sync note:', err);
+      }
+    }
   };
 
   return (

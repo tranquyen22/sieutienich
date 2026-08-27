@@ -412,8 +412,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         created_at: new Date().toISOString(),
       } as any;
 
+      const role = wantOpenShop ? 'merchant' : 'buyer';
+
       setUser(newUserObj);
-      setUserRole(wantOpenShop ? 'merchant' : 'buyer');
+      setUserRole(role);
+
+      // Sync account profile to Supabase 'profiles' table
+      try {
+        await supabase.from('profiles').upsert([
+          {
+            id: createdUserId,
+            full_name: fullName,
+            phone: phone,
+            email: registeredEmail,
+            role: role,
+            created_at: new Date().toISOString(),
+          }
+        ]);
+      } catch (e) {
+        console.warn('Supabase profile sync note:', e);
+      }
 
       let appCreated = false;
 
@@ -432,6 +450,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAllApplications((prev) => [newApp, ...prev]);
         setMerchantApplication(newApp);
         appCreated = true;
+
+        // Sync shop application to Supabase 'merchant_applications' table
+        try {
+          await supabase.from('merchant_applications').upsert([newApp]);
+        } catch (e) {
+          console.warn('Supabase merchant application sync note:', e);
+        }
       }
 
       return { error: null, applicationCreated: appCreated };
