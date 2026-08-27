@@ -115,6 +115,20 @@ export const Header: React.FC<HeaderProps> = ({
         {/* RIGHT ACTION BUTTONS */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
+          {/* SERVICE 24/7 SPECIAL RESCUE MESSENGER TRIGGER BUTTON */}
+          {userRole === 'service_247' && (
+            <button
+              onClick={onOpenDirectMessagingModal}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white rounded-full text-xs font-black shadow-md transition cursor-pointer border border-rose-300 animate-pulse"
+              title="Bàn trực tin nhắn SOS & Cứu hộ khẩn cấp 24/7"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <MessageSquare className="w-4 h-4 text-white" />
+              <span className="hidden sm:inline">🆘 Bàn Trực Tin Nhắn SOS 24/7</span>
+              <span className="sm:hidden">Trực SOS</span>
+            </button>
+          )}
+
           {/* SOS DIRECTORY TRIGGER BUTTON */}
           {onOpenPublicDirectoryModal && (
             <button
@@ -249,6 +263,20 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <Users className="w-4 h-4 text-blue-600" />
                       <span>👥 Admin Quản Lý Tài Khoản (Thêm/Sửa/Xóa)</span>
+                    </button>
+                  )}
+
+                  {/* SERVICE 24/7 RESCUE DESK MENU ITEM */}
+                  {userRole === 'service_247' && (
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onOpenDirectMessagingModal();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-black text-rose-950 bg-rose-50 hover:bg-rose-100 border-b border-rose-200 flex items-center gap-2 cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>🆘 Bàn Trực Tin Nhắn SOS & Cứu Hộ 24/7</span>
                     </button>
                   )}
 

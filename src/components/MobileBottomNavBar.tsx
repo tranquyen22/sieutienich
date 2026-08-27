@@ -19,7 +19,7 @@ export const MobileBottomNavBar: React.FC<MobileBottomNavBarProps> = ({
   onOpenAuthModal,
   unreadMessageCount = 2,
 }) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
 
   const handleProfileClick = () => {
     if (user) {
@@ -50,20 +50,24 @@ export const MobileBottomNavBar: React.FC<MobileBottomNavBarProps> = ({
         <span>SOS</span>
       </button>
 
-      {/* 3. TIN NHẮN REALTIME (VỚI HUY HIỆU NỔI) */}
+      {/* 3. TIN NHẮN REALTIME (ƯU TIÊN DÀNH CHO DỊCH VỤ 24/7) */}
       <button
         onClick={onOpenDirectMessagingModal}
-        className="flex flex-col items-center justify-center gap-0.5 text-gray-600 hover:text-indigo-600 py-1 px-2 rounded-xl active:bg-gray-100 transition cursor-pointer relative"
+        className={`flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-xl transition cursor-pointer relative ${
+          userRole === 'service_247'
+            ? 'bg-rose-50 text-rose-700 font-black border border-rose-300 shadow-sm animate-pulse'
+            : 'text-gray-600 hover:text-indigo-600 active:bg-gray-100 font-extrabold'
+        }`}
       >
         <div className="relative">
-          <MessageCircle className="w-5 h-5 text-gray-500" />
+          <MessageCircle className={`w-5 h-5 ${userRole === 'service_247' ? 'text-rose-600' : 'text-gray-500'}`} />
           {unreadMessageCount > 0 && (
             <span className="absolute -top-1 -right-1.5 bg-rose-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white">
               {unreadMessageCount}
             </span>
           )}
         </div>
-        <span>Tin Nhắn</span>
+        <span>{userRole === 'service_247' ? 'Trực SOS' : 'Tin Nhắn'}</span>
       </button>
 
       {/* 4. ĐƠN HÀNG CỦA TÔI */}

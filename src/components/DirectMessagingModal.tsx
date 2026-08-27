@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Send, ShoppingBag, ShieldCheck, Search, MessageSquare, 
-  Phone, ArrowLeft, Image, MapPin, Loader2
+  Phone, ArrowLeft, Image, MapPin, Loader2, Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -377,11 +377,20 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-4 sm:px-5 py-3 flex items-center justify-between shrink-0">
+        <div className={`px-4 sm:px-5 py-3 flex items-center justify-between shrink-0 text-white ${
+          userRole === 'service_247'
+            ? 'bg-gradient-to-r from-rose-950 via-red-900 to-amber-950 border-b border-rose-700'
+            : 'bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900'
+        }`}>
           <div className="flex items-center gap-2 min-w-0">
-            <MessageSquare className="w-5 h-5 text-indigo-400 shrink-0" />
-            <h2 className="text-sm sm:text-base font-black text-white truncate">
-              Messenger Realtime • Tin Nhắn Trực Tiếp
+            <MessageSquare className={`w-5 h-5 ${userRole === 'service_247' ? 'text-amber-400 animate-pulse' : 'text-indigo-400'} shrink-0`} />
+            <h2 className="text-sm sm:text-base font-black text-white truncate flex items-center gap-2">
+              <span>{userRole === 'service_247' ? '🆘 BÀN TRỰC CỨU HỘ & DỊCH VỤ SOS 24/7' : 'Messenger Realtime • Tin Nhắn Trực Tiếp'}</span>
+              {userRole === 'service_247' && (
+                <span className="px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-black animate-pulse">
+                  🟢 ONLINE TRỰC 24/7
+                </span>
+              )}
             </h2>
           </div>
 
@@ -582,6 +591,32 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
                     );
                   })}
                 </div>
+
+                {/* QUICK RESCUE REPLIES FOR SERVICE 24/7 ACCOUNTS */}
+                {userRole === 'service_247' && (
+                  <div className="px-3 py-2 bg-amber-50/90 border-t border-amber-200 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
+                    <span className="text-[10px] font-black text-amber-900 shrink-0 uppercase tracking-wider flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-600 animate-pulse" />
+                      <span>Mẫu phản hồi nhanh:</span>
+                    </span>
+                    {[
+                      '⚡ Đội cứu hộ đang trên đường tới vị trí của bạn!',
+                      '🚑 Xe cấp cứu / Y tế đang di chuyển khẩn cấp!',
+                      '📍 Đã nhận tọa độ vị trí GPS của bạn trên bản đồ Google Maps!',
+                      '🛵 Thợ cứu hộ đang di chuyển, vui lòng giữ liên lạc!',
+                      '📞 Đang gọi điện thoại lại cho bạn ngay lập tức!',
+                    ].map((templateText, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setInputMessage(templateText)}
+                        className="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 rounded-full text-[11px] font-bold shrink-0 transition shadow-xs cursor-pointer active:scale-95"
+                      >
+                        {templateText}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Message Input Form */}
                 <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-200 flex items-center gap-2 shrink-0">
