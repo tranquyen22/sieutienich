@@ -123,56 +123,43 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
     fetchRealChatMessages();
   }, [user]);
 
-  // AUTO-TRIGGER NEW CHAT THREAD WITH PRODUCT ASKING WHEN BUYER CLICKS FROM PRODUCT PAGE
+  // AUTO-TRIGGER NEW CHAT THREAD WHEN BUYER CLICKS FROM PRODUCT PAGE OR SOS DIRECTORY
   useEffect(() => {
-    if (isOpen && initialProductName) {
-      const shopName = initialTargetShopName || 'Gian Hàng Siêu Tiện Ích';
+    if (isOpen && (initialTargetShopName || initialProductName)) {
+      const isSOSDirectory = !initialProductName;
+      const targetName = initialTargetShopName || 'Gian Hàng Siêu Tiện Ích';
       
-      // Check if thread already exists with this shop
-      const existingThread = threads.find((t) => t.partner_name === shopName);
+      // Check if thread already exists with this shop / SOS service
+      const existingThread = threads.find((t) => t.partner_name === targetName);
       
-      const autoProductMessage = `Chào shop, mình đang quan tâm sản phẩm "${initialProductName}" ${initialProductPrice ? `- Giá: ${initialProductPrice.toLocaleString()} đ` : ''}. Shop cho mình hỏi hàng có sẵn giao ngay không ạ?`;
+      const defaultMessage = isSOSDirectory
+        ? `🆘 Chào đội dịch vụ cứu hộ "${targetName}", tôi đang cần hỗ trợ khẩn cấp. Vui lòng phản hồi!`
+        : `Chào shop, mình đang quan tâm sản phẩm "${initialProductName}" ${initialProductPrice ? `- Giá: ${initialProductPrice.toLocaleString()} đ` : ''}. Shop cho mình hỏi hàng có sẵn giao ngay không ạ?`;
 
       if (existingThread) {
         setActiveThreadId(existingThread.id);
         setMobileViewMode('detail');
-
-        // Append product question message automatically
-        const newProdMsg: SingleChatMessage = {
-          id: `msg-prod-${Date.now()}`,
-          thread_id: existingThread.id,
-          sender_name: 'Khách Hàng',
-          sender_role: 'buyer',
-          content: autoProductMessage,
-          product_name: initialProductName,
-          product_price: initialProductPrice,
-          created_at: new Date().toISOString(),
-          is_me: true,
-        };
-
-        setChatMessages((prev) => ({
-          ...prev,
-          [existingThread.id]: [...(prev[existingThread.id] || []), newProdMsg],
-        }));
       } else {
         const newThreadId = `thread-auto-${Date.now()}`;
         const newThread: ChatThread = {
           id: newThreadId,
-          partner_name: shopName,
-          partner_avatar: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
-          partner_role: 'merchant',
-          last_message: autoProductMessage,
+          partner_name: targetName,
+          partner_avatar: isSOSDirectory
+            ? 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=150&q=80'
+            : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150&q=80',
+          partner_role: isSOSDirectory ? 'directory' : 'merchant',
+          last_message: defaultMessage,
           last_message_time: 'Vừa xong',
           unread_count: 0,
           is_online: true,
         };
 
-        const newProdMsg: SingleChatMessage = {
-          id: `msg-prod-${Date.now()}`,
+        const newInitialMsg: SingleChatMessage = {
+          id: `msg-auto-${Date.now()}`,
           thread_id: newThreadId,
-          sender_name: 'Khách Hàng',
-          sender_role: 'buyer',
-          content: autoProductMessage,
+          sender_name: user?.user_metadata?.full_name || 'Khách Hàng',
+          sender_role: userRole || 'buyer',
+          content: defaultMessage,
           product_name: initialProductName,
           product_price: initialProductPrice,
           created_at: new Date().toISOString(),
@@ -182,13 +169,13 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
         setThreads((prev) => [newThread, ...prev]);
         setChatMessages((prev) => ({
           ...prev,
-          [newThreadId]: [newProdMsg],
+          [newThreadId]: [newInitialMsg],
         }));
         setActiveThreadId(newThreadId);
         setMobileViewMode('detail');
       }
     }
-  }, [isOpen, initialProductName, initialTargetShopName, initialProductPrice]);
+  }, [isOpen, initialTargetShopName, initialProductName, initialProductPrice]);
 
   if (!isOpen) return null;
 
