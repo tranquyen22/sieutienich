@@ -100,6 +100,30 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     setImages(updated);
   };
 
+  const handleLocalImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files);
+    fileList.forEach((file, i) => {
+      const targetIdx = index + i;
+      if (targetIdx < maxImagesLimit) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            setImages((prev) => {
+              const updated = [...prev];
+              while (updated.length <= targetIdx) updated.push('');
+              updated[targetIdx] = event.target!.result as string;
+              return updated;
+            });
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
   const handleRemoveImageField = (index: number) => {
     if (images.length > 1) {
       setImages(images.filter((_, i) => i !== index));
@@ -651,11 +675,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          {/* 5. DYNAMIC IMAGES URL LIST */}
+          {/* 5. DYNAMIC IMAGES URL & LOCAL FILE PICKER LIST */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="block font-black text-gray-900">
-                7. Hình Ảnh Sản Phẩm ({images.length}/{maxImagesLimit} ảnh)
+                7. Hình Ảnh Sản Phẩm ({images.filter(Boolean).length}/{maxImagesLimit} ảnh)
               </label>
               {images.length < maxImagesLimit && (
                 <button
@@ -670,18 +694,50 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
             {images.map((imgUrl, idx) => (
               <div key={idx} className="flex items-center gap-2">
+                {/* Thumbnail Preview */}
+                {imgUrl ? (
+                  <img
+                    src={imgUrl}
+                    alt={`Preview ${idx + 1}`}
+                    className="w-9 h-9 rounded-lg object-cover border border-indigo-200 shrink-0 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-lg bg-gray-100 border border-dashed border-gray-300 shrink-0 flex items-center justify-center text-[10px] font-bold text-gray-400">
+                    {idx + 1}
+                  </div>
+                )}
+
+                {/* URL Input */}
                 <input
                   type="text"
                   value={imgUrl}
                   onChange={(e) => handleImageChange(idx, e.target.value)}
-                  placeholder={`Dán link ảnh ${idx + 1} (Unsplash, Imgur...)...`}
-                  className="flex-1 p-2 bg-gray-50 border border-gray-300 rounded-xl font-medium"
+                  placeholder={`Dán link ảnh ${idx + 1} hoặc chọn từ thiết bị...`}
+                  className="flex-1 p-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white"
                 />
+
+                {/* Local Storage Device File Picker Button */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  id={`add-prod-file-${idx}`}
+                  className="hidden"
+                  onChange={(e) => handleLocalImageUpload(idx, e)}
+                />
+                <label
+                  htmlFor={`add-prod-file-${idx}`}
+                  className="px-2.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl cursor-pointer text-xs flex items-center gap-1 border border-indigo-200 shrink-0 transition"
+                  title="Chọn tệp ảnh trực tiếp từ bộ nhớ máy tính/thư viện điện thoại"
+                >
+                  <span>📁 Chọn ảnh</span>
+                </label>
+
                 {images.length > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveImageField(idx)}
-                    className="text-rose-500 font-bold p-2 hover:bg-rose-50 rounded-xl cursor-pointer"
+                    className="text-rose-500 font-bold p-2 hover:bg-rose-50 rounded-xl cursor-pointer shrink-0"
+                    title="Xóa ô ảnh"
                   >
                     ✕
                   </button>

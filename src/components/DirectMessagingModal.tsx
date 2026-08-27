@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Send, ShoppingBag, ShieldCheck, Search, MessageSquare, 
-  Phone, ArrowLeft
+  Phone, ArrowLeft, Image
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -295,6 +295,60 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
     }
   };
 
+  const handleChatImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !activeThreadId) return;
+
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      if (event.target?.result) {
+        const newMsg: SingleChatMessage = {
+          id: `msg-photo-${Date.now()}`,
+          thread_id: activeThreadId,
+          sender_name: userRole === 'merchant' ? 'Chủ Shop' : 'Khách Hàng',
+          sender_role: userRole === 'merchant' ? 'merchant' : 'buyer',
+          content: '📷 [Đã gửi 1 hình ảnh từ thiết bị]',
+          product_name: 'Hình ảnh đính kèm từ bộ nhớ thiết bị',
+          created_at: new Date().toISOString(),
+          is_me: true,
+        };
+
+        setChatMessages((prev) => ({
+          ...prev,
+          [activeThreadId]: [...(prev[activeThreadId] || []), newMsg],
+        }));
+
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === activeThreadId
+              ? { ...t, last_message: '📷 [Đã gửi 1 hình ảnh từ thiết bị]', last_message_time: 'Vừa xong' }
+              : t
+          )
+        );
+
+        if (user) {
+          try {
+            await supabase.from('direct_messages').insert([
+              {
+                id: newMsg.id,
+                thread_id: newMsg.thread_id,
+                sender_id: user.id,
+                sender_name: newMsg.sender_name,
+                sender_role: newMsg.sender_role,
+                content: newMsg.content,
+                created_at: newMsg.created_at,
+              }
+            ]);
+          } catch (err) {
+            console.warn('Supabase photo messaging sync note:', err);
+          }
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
       <div 
@@ -510,6 +564,21 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
 
                 {/* Message Input Form */}
                 <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-200 flex items-center gap-2 shrink-0">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="chat-photo-attachment"
+                    className="hidden"
+                    onChange={handleChatImageUpload}
+                  />
+                  <label
+                    htmlFor="chat-photo-attachment"
+                    className="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-full cursor-pointer transition shrink-0 border border-indigo-200 flex items-center justify-center"
+                    title="Gửi tệp ảnh từ bộ nhớ thiết bị / thư viện điện thoại"
+                  >
+                    <Image className="w-4 h-4 text-indigo-600" />
+                  </label>
+
                   <input
                     type="text"
                     value={inputMessage}

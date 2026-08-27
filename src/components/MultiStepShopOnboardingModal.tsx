@@ -35,6 +35,18 @@ export const MultiStepShopOnboardingModal: React.FC<MultiStepShopOnboardingModal
     { day: 'CN', open_time: '08:00', close_time: '22:00', is_open: true },
   ]);
 
+  const handleStorePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setStorePhoto(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(files[0]);
+  };
+
   if (!isOpen) return null;
 
   const handleNext = () => {
@@ -225,15 +237,31 @@ export const MultiStepShopOnboardingModal: React.FC<MultiStepShopOnboardingModal
 
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Ảnh Giấy phép GPKD / Ảnh mặt bằng thực tế</label>
-                  <input
-                    type="url"
-                    value={storePhoto}
-                    onChange={(e) => setStorePhoto(e.target.value)}
-                    placeholder="URL ảnh mặt bằng cửa hàng"
-                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-2"
-                  />
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={storePhoto}
+                      onChange={(e) => setStorePhoto(e.target.value)}
+                      placeholder="Dán URL ảnh hoặc chọn từ thiết bị..."
+                      className="flex-1 px-3.5 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs font-medium"
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="onboarding-shop-photo-file"
+                      className="hidden"
+                      onChange={handleStorePhotoUpload}
+                    />
+                    <label
+                      htmlFor="onboarding-shop-photo-file"
+                      className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl cursor-pointer text-xs flex items-center gap-1 border border-indigo-200 shrink-0 transition"
+                      title="Chọn tệp ảnh từ bộ nhớ thiết bị / thư viện"
+                    >
+                      <span>📁 Chọn ảnh</span>
+                    </label>
+                  </div>
                   {storePhoto && (
-                    <img src={storePhoto} alt="Mặt bằng cửa hàng" className="w-full h-32 object-cover rounded-xl border border-gray-200" />
+                    <img src={storePhoto} alt="Mặt bằng cửa hàng" className="w-full h-32 object-cover rounded-xl border border-gray-200 shadow-sm" />
                   )}
                 </div>
               </div>
