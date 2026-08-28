@@ -371,3 +371,29 @@ export interface CategoryInfo {
   name: string;
   iconName: string;
 }
+
+export interface SubwebTheme {
+  brand_color: string;       // Hex color e.g. '#4f46e5'
+  secondary_color?: string;  // Hex color e.g. '#06b6d4'
+  welcome_message?: string;
+  banner_url?: string;
+  hotline?: string;
+  address?: string;
+  province?: string;
+  district?: string;
+  google_maps_url?: string;
+}
+
+export interface ShopSubwebConfig {
+  id: string;
+  shop_id: string;
+  shop_name: string;
+  user_id: string;
+  custom_slug: string;
+  is_subweb_active: boolean;
+  subweb_theme: SubwebTheme;
+  qr_code_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
