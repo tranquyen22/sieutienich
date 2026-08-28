@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Bell, PackageCheck, MessageSquare, CheckCircle2, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, PackageCheck, MessageSquare, CheckCircle2, X, Volume2, VolumeX } from 'lucide-react';
 import type { AppNotification } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { requestNotificationPermission, triggerNativePWAWebPush } from '../utils/pushNotification';
 
 interface NotificationBellProps {
   onOpenOrderTrackingModal: () => void;
@@ -15,9 +16,31 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 }) => {
   const { user, userRole } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
   // Real-time Notification Feed for both Buyer & Shop
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPushPermission(Notification.permission);
+    }
+  }, []);
+
+  const handleEnableWebPush = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const perm = await requestNotificationPermission();
+    setPushPermission(perm);
+    if (perm === 'granted') {
+      triggerNativePWAWebPush({
+        title: '🔔 Đã Bật Chuông Báo PWA Native!',
+        body: 'Hệ thống sẽ tự động phát âm thanh chuông báo & hiển thị thông báo native khi có đơn hàng hoặc tin nhắn SOS mới.',
+        soundType: 'chime',
+      });
+    } else {
+      alert('⚠️ Bạn cần chọn "Cho Phép" (Allow) trong hộp thoại trình duyệt để nhận chuông báo PWA khi ứng dụng chạy ngầm.');
+    }
+  };
 
   React.useEffect(() => {
     if (!user) {
@@ -123,6 +146,32 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                   <X className="w-4 h-4" />
                 </button>
               </div>
+            </div>
+
+            {/* PWA WEB PUSH & NATIVE RINGTONE PERMISSION PROMPT BAR */}
+            <div className="px-3.5 py-2 bg-indigo-50/90 border-b border-indigo-100 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                {pushPermission === 'granted' ? (
+                  <Volume2 className="w-4 h-4 text-emerald-600 shrink-0 animate-pulse" />
+                ) : (
+                  <VolumeX className="w-4 h-4 text-amber-600 shrink-0" />
+                )}
+                <span className="text-[11px] font-bold text-gray-800 truncate">
+                  {pushPermission === 'granted'
+                    ? '🟢 Chuông báo PWA & Push Native đang BẬT'
+                    : '🔔 Nhận chuông báo PWA khi app chạy ngầm'}
+                </span>
+              </div>
+
+              {pushPermission !== 'granted' && (
+                <button
+                  type="button"
+                  onClick={handleEnableWebPush}
+                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-[10px] font-black transition shrink-0 cursor-pointer shadow-xs active:scale-95"
+                >
+                  Bật Chuông
+                </button>
+              )}
             </div>
 
             {/* Notifications Scrollable Stream */}

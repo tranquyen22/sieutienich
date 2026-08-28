@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { UserRole } from '../types';
+import { triggerNativePWAWebPush } from '../utils/pushNotification';
 
 export interface ChatThread {
   id: string;
@@ -180,6 +181,13 @@ export const DirectMessagingModal: React.FC<DirectMessagingModalProps> = ({
       // ALWAYS ACTIVATE THIS TARGET THREAD AND SET MOBILE VIEW MODE TO DETAIL!
       setActiveThreadId(targetThreadId);
       setMobileViewMode('detail');
+
+      // Trigger Web Push Notification & Emergency Siren Sound
+      triggerNativePWAWebPush({
+        title: isSOSDirectory ? `🆘 CỨU HỘ KHẨN CẤP: ${targetName}` : `💬 Tin Nhắn Mới: ${targetName}`,
+        body: defaultMessage,
+        soundType: isSOSDirectory ? 'emergency' : 'chime',
+      });
 
       // Persist initial SOS rescue message to Supabase direct_messages table
       if (user) {
