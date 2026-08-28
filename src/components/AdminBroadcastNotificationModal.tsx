@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { X, Send, Bell, Users, Store, ShieldCheck, User, Loader2 } from 'lucide-react';
+import {
+  X, Send, Bell, Users, Store, ShieldCheck, User, Loader2, Eye, ShieldAlert,
+  Flame, Image as ImageIcon, Link as LinkIcon
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { NotificationTargetScope, AppNotification } from '../types';
+import type { NotificationPriority, SystemNotificationItem } from '../hooks/useSystemNotifications';
 
 interface AdminBroadcastNotificationModalProps {
   isOpen: boolean;
@@ -16,6 +20,10 @@ export const AdminBroadcastNotificationModal: React.FC<AdminBroadcastNotificatio
   const [specificUserId, setSpecificUserId] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [priority, setPriority] = useState<NotificationPriority>('NORMAL');
+  const [imageUrl, setImageUrl] = useState('');
+  const [actionUrl, setActionUrl] = useState('');
+  const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form');
   const [sending, setSending] = useState(false);
 
   if (!isOpen) return null;
@@ -36,6 +44,8 @@ export const AdminBroadcastNotificationModal: React.FC<AdminBroadcastNotificatio
 
     try {
       const notifId = `broadcast-${Date.now()}`;
+
+      // Legacy fallback notification object
       const newNotif: AppNotification = {
         id: notifId,
         user_id: targetScope === 'to_specific' ? specificUserId.trim() : 'broadcast',
@@ -48,21 +58,54 @@ export const AdminBroadcastNotificationModal: React.FC<AdminBroadcastNotificatio
         created_at: new Date().toISOString(),
       };
 
-      // Save notification record into Supabase notifications table
+      // New system notification item
+      const newSystemNotif: Partial<SystemNotificationItem> = {
+        id: notifId,
+        title: title.trim(),
+        body: body.trim(),
+        target_type:
+          targetScope === 'to_all'
+            ? 'ALL_PLATFORM'
+            : targetScope === 'to_merchants'
+            ? 'ALL_MERCHANTS'
+            : targetScope === 'to_staff'
+            ? 'ALL_STAFF'
+            : 'SPECIFIC_USER',
+        target_user_id: targetScope === 'to_specific' ? specificUserId.trim() : undefined,
+        priority: priority,
+        image_url: imageUrl.trim() || undefined,
+        action_url: actionUrl.trim() || undefined,
+        created_at: new Date().toISOString(),
+      };
+
+      // 1. Insert into legacy notifications table
       await supabase.from('notifications').insert([newNotif]);
 
+      // 2. Insert into system_notifications table
+      try {
+        await supabase.from('system_notifications').insert([newSystemNotif]);
+      } catch (sysErr) {
+        console.warn('System notifications insert note:', sysErr);
+      }
+
       const scopeLabels: Record<NotificationTargetScope, string> = {
-        to_all: '📢 Toàn Sàn (Tất cả khách hàng & người dùng)',
-        to_merchants: '🏪 Tất Cả Các Gian Hàng / Chủ Shop',
+        to_all: '📢 Toàn Sàn (Tất cả người dùng)',
+        to_merchants: '🏪 Tất Cả Gian Hàng / Chủ Shop',
         to_staff: '👥 Khối Nhân Viên Nội Bộ',
         to_specific: `🎯 Tài Khoản Đích Danh (${specificUserId.trim()})`,
       };
 
-      alert(`🎉 ĐÃ PHÁT THÔNG BÁO HỆ THỐNG THÀNH CÔNG!\nPhạm vi mục tiêu: ${scopeLabels[targetScope]}\nTiêu đề: "${title}"`);
+      alert(
+        `🎉 ĐÃ PHÁT THÔNG BÁO HỆ THỐNG THÀNH CÔNG!\n\nPhạm vi: ${scopeLabels[targetScope]}\nMức ưu tiên: ${priority}\nTiêu đề: "${title}"`
+      );
 
       setTitle('');
       setBody('');
+      setImageUrl('');
+      setActionUrl('');
       setSpecificUserId('');
+      setPriority('NORMAL');
+      setActiveTab('form');
       onClose();
     } catch (err: any) {
       alert(`Đã xảy ra lỗi khi gửi thông báo: ${err.message}`);
@@ -73,189 +116,394 @@ export const AdminBroadcastNotificationModal: React.FC<AdminBroadcastNotificatio
 
   return (
     <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div 
-        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 max-h-[92vh] flex flex-col min-w-0"
+      <div
+        className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative border border-indigo-100 max-h-[92vh] flex flex-col min-w-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 relative shrink-0">
-          <button 
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 relative shrink-0 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-amber-300 text-xs font-extrabold uppercase tracking-wider mb-1">
+              <Bell className="w-4 h-4 text-amber-400" />
+              <span>Admin Broadcast Notification Engine</span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-black text-white">Soạn & Phát Thông Báo Hệ Thống</h2>
+          </div>
+
+          <button
             type="button"
-            onClick={onClose} 
-            className="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition absolute right-4 top-4 shrink-0 cursor-pointer"
+            onClick={onClose}
+            className="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition shrink-0 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
-
-          <div className="flex items-center gap-2 text-amber-300 text-xs font-extrabold uppercase tracking-wider mb-1">
-            <Bell className="w-4 h-4 text-amber-400" />
-            <span>Trung Tâm Phát Thông Báo Hệ Thống Admin</span>
-          </div>
-
-          <h2 className="text-xl font-black text-white">Soạn & Gửi Thông Báo Hệ Thống</h2>
         </div>
 
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSendBroadcast} className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs font-medium">
-          
-          {/* 1. Target Scope Picker */}
-          <div className="space-y-2">
-            <label className="block font-black text-gray-900">
-              1. Chọn Phạm Vi Mục Tiêu Nhận Thông Báo *
-            </label>
-            
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setTargetScope('to_all')}
-                className={`p-3 rounded-2xl border text-left cursor-pointer transition flex items-center gap-2 ${
-                  targetScope === 'to_all'
-                    ? 'bg-indigo-600 text-white border-indigo-600 font-black shadow-md'
-                    : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <Users className="w-4 h-4 shrink-0" />
-                <div>
-                  <strong className="block text-xs">📢 Toàn Sàn</strong>
-                  <span className="text-[10px] opacity-80 block">Gửi tất cả người dùng</span>
-                </div>
-              </button>
+        {/* Navigation Tabs (Form vs Live Preview) */}
+        <div className="flex border-b border-gray-200 bg-gray-50/80 px-4 pt-2 gap-2 text-xs font-black shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('form')}
+            className={`px-4 py-2.5 rounded-t-2xl transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'form'
+                ? 'bg-white border-indigo-600 text-indigo-700 shadow-2xs'
+                : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Soạn Thảo Thông Báo</span>
+          </button>
 
-              <button
-                type="button"
-                onClick={() => setTargetScope('to_merchants')}
-                className={`p-3 rounded-2xl border text-left cursor-pointer transition flex items-center gap-2 ${
-                  targetScope === 'to_merchants'
-                    ? 'bg-amber-600 text-white border-amber-600 font-black shadow-md'
-                    : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <Store className="w-4 h-4 shrink-0" />
-                <div>
-                  <strong className="block text-xs">🏪 Các Gian Hàng</strong>
-                  <span className="text-[10px] opacity-80 block">Gửi tất cả Chủ Shop</span>
-                </div>
-              </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('preview')}
+            className={`px-4 py-2.5 rounded-t-2xl transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'preview'
+                ? 'bg-white border-indigo-600 text-indigo-700 shadow-2xs'
+                : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5 text-amber-600" />
+            <span>Xem Trước Trực Quan (Live Preview)</span>
+          </button>
+        </div>
 
-              <button
-                type="button"
-                onClick={() => setTargetScope('to_staff')}
-                className={`p-3 rounded-2xl border text-left cursor-pointer transition flex items-center gap-2 ${
-                  targetScope === 'to_staff'
-                    ? 'bg-emerald-600 text-white border-emerald-600 font-black shadow-md'
-                    : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4 shrink-0" />
-                <div>
-                  <strong className="block text-xs">👥 Khối Nhân Viên</strong>
-                  <span className="text-[10px] opacity-80 block">Gửi tài khoản nhân viên</span>
-                </div>
-              </button>
+        {/* Modal Scrollable Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 text-xs font-medium">
+          {activeTab === 'form' ? (
+            <form onSubmit={handleSendBroadcast} className="space-y-4">
+              {/* 1. Target Scope Picker */}
+              <div className="space-y-2">
+                <label className="block font-black text-gray-900">
+                  1. Chọn Phạm Vi Mục Tiêu Nhận Thông Báo *
+                </label>
 
-              <button
-                type="button"
-                onClick={() => setTargetScope('to_specific')}
-                className={`p-3 rounded-2xl border text-left cursor-pointer transition flex items-center gap-2 ${
-                  targetScope === 'to_specific'
-                    ? 'bg-purple-600 text-white border-purple-600 font-black shadow-md'
-                    : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <User className="w-4 h-4 shrink-0" />
-                <div>
-                  <strong className="block text-xs">🎯 Đích Danh</strong>
-                  <span className="text-[10px] opacity-80 block">Gửi 1 tài khoản cụ thể</span>
-                </div>
-              </button>
-            </div>
-          </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setTargetScope('to_all')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition flex items-center gap-2 ${
+                      targetScope === 'to_all'
+                        ? 'bg-indigo-600 text-white border-indigo-600 font-black shadow-md'
+                        : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Users className="w-4 h-4 shrink-0" />
+                    <div>
+                      <strong className="block text-xs">📢 Toàn Sàn</strong>
+                      <span className="text-[10px] opacity-80 block">Gửi tất cả người dùng</span>
+                    </div>
+                  </button>
 
-          {/* Specific User ID Input */}
-          {targetScope === 'to_specific' && (
-            <div className="space-y-1.5 animate-in fade-in duration-200">
-              <label className="block font-bold text-gray-800">
-                Nhập Số điện thoại hoặc User ID người nhận *:
-              </label>
-              <input
-                type="text"
-                required
-                value={specificUserId}
-                onChange={(e) => setSpecificUserId(e.target.value)}
-                placeholder="VD: 0912345678 hoặc USR-0912345678..."
-                className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 focus:bg-white"
-              />
+                  <button
+                    type="button"
+                    onClick={() => setTargetScope('to_merchants')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition flex items-center gap-2 ${
+                      targetScope === 'to_merchants'
+                        ? 'bg-amber-600 text-white border-amber-600 font-black shadow-md'
+                        : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Store className="w-4 h-4 shrink-0" />
+                    <div>
+                      <strong className="block text-xs">🏪 Các Gian Hàng</strong>
+                      <span className="text-[10px] opacity-80 block">Gửi tất cả Chủ Shop</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTargetScope('to_staff')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition flex items-center gap-2 ${
+                      targetScope === 'to_staff'
+                        ? 'bg-emerald-600 text-white border-emerald-600 font-black shadow-md'
+                        : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4 shrink-0" />
+                    <div>
+                      <strong className="block text-xs">👥 Khối Nhân Viên</strong>
+                      <span className="text-[10px] opacity-80 block">Gửi tài khoản nhân viên</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTargetScope('to_specific')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition flex items-center gap-2 ${
+                      targetScope === 'to_specific'
+                        ? 'bg-purple-600 text-white border-purple-600 font-black shadow-md'
+                        : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <User className="w-4 h-4 shrink-0" />
+                    <div>
+                      <strong className="block text-xs">🎯 Đích Danh</strong>
+                      <span className="text-[10px] opacity-80 block">Gửi 1 tài khoản cụ thể</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Specific User ID Input */}
+              {targetScope === 'to_specific' && (
+                <div className="space-y-1.5 animate-in fade-in duration-200">
+                  <label className="block font-bold text-gray-800">
+                    Nhập Số điện thoại hoặc User ID người nhận *:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={specificUserId}
+                    onChange={(e) => setSpecificUserId(e.target.value)}
+                    placeholder="VD: 0912345678 hoặc USR-0912345678..."
+                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 focus:bg-white"
+                  />
+                </div>
+              )}
+
+              {/* 2. Priority Selector */}
+              <div className="space-y-1.5">
+                <label className="block font-black text-gray-900">
+                  2. Chọn Mức Độ Ưu Tiên Thông Báo (Priority) *
+                </label>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPriority('NORMAL')}
+                    className={`p-2.5 rounded-xl border text-center font-bold cursor-pointer transition ${
+                      priority === 'NORMAL'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    🔵 NORMAL (Bình thường)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPriority('HIGH')}
+                    className={`p-2.5 rounded-xl border text-center font-bold cursor-pointer transition ${
+                      priority === 'HIGH'
+                        ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    🟡 HIGH (Quan trọng)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPriority('URGENT')}
+                    className={`p-2.5 rounded-xl border text-center font-bold cursor-pointer transition flex items-center justify-center gap-1 ${
+                      priority === 'URGENT'
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-sm animate-pulse'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Flame className="w-3.5 h-3.5 text-amber-300" />
+                    <span>🔴 URGENT (Khẩn cấp)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Notification Title */}
+              <div className="space-y-1.5">
+                <label className="block font-black text-gray-900">3. Tiêu Đề Thông Báo *</label>
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="VD: 📣 Thông báo bảo trì hệ thống & Cập nhật chính sách giao hàng..."
+                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                />
+              </div>
+
+              {/* 4. Notification Body Text */}
+              <div className="space-y-1.5">
+                <label className="block font-black text-gray-900">4. Nội Dung Chi Tiết Thông Báo *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="VD: Kính gửi quý khách hàng / gian hàng, hệ thống Siêu Tiện Ích vừa cập nhật tính năng định vị Google Maps..."
+                  className="w-full p-3 bg-gray-50 border border-gray-300 rounded-2xl font-medium text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                />
+              </div>
+
+              {/* 5. Optional Image URL & Action URL */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-gray-800 flex items-center gap-1">
+                    <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Link Ảnh Banner (Tùy chọn):</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://domain.com/banner.jpg"
+                    className="w-full p-2 bg-gray-50 border border-gray-300 rounded-xl text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-gray-800 flex items-center gap-1">
+                    <LinkIcon className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Link Nút Hành Động (Tùy chọn):</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={actionUrl}
+                    onChange={(e) => setActionUrl(e.target.value)}
+                    placeholder="https://sieutienich.com/khuyen-mai"
+                    className="w-full p-2 bg-gray-50 border border-gray-300 rounded-xl text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between shrink-0 font-extrabold">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('preview')}
+                  className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl cursor-pointer flex items-center gap-1.5 transition"
+                >
+                  <Eye className="w-4 h-4 text-amber-600" />
+                  <span>Xem Trước Màn Hình</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sending}
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white rounded-xl shadow-md cursor-pointer font-black flex items-center gap-1.5"
+                  >
+                    {sending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Đang phát thông báo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 text-indigo-200" />
+                        <span>🚀 Phát Thông Báo Tức Thời</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          ) : (
+            /* LIVE PREVIEW TAB MODE */
+            <div className="space-y-5 animate-in fade-in duration-150">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs font-bold flex items-center gap-2">
+                <Eye className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Đây là mô phỏng giao diện hiển thị thực tế trên thiết bị người dùng:</span>
+              </div>
+
+              {/* 1. TOAST BANNER LIVE PREVIEW */}
+              <div className="space-y-1.5">
+                <span className="font-black text-gray-900 uppercase text-[10px] tracking-wider block">
+                  1. Màn Hình Pop-up Banner Khẩn Cấp (Pop-up Toast Preview):
+                </span>
+
+                <div
+                  className={`rounded-3xl p-4 shadow-xl border backdrop-blur-md relative overflow-hidden transition-all ${
+                    priority === 'URGENT'
+                      ? 'bg-gradient-to-r from-red-600 via-rose-700 to-amber-600 text-white border-rose-400'
+                      : 'bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white border-indigo-500'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {priority === 'URGENT' ? (
+                      <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-black text-amber-200 uppercase tracking-widest flex items-center gap-1">
+                        <ShieldAlert className="w-3.5 h-3.5 text-amber-300" />
+                        <span>🚨 THÔNG BÁO KHẨN CẤP THỜI GIAN THỰC</span>
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-[10px] font-extrabold text-indigo-200 uppercase tracking-wider flex items-center gap-1">
+                        <Bell className="w-3.5 h-3.5 text-amber-400" />
+                        <span>📢 THÔNG BÁO THỜI GIAN THỰC</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt="Preview Banner"
+                        className="w-14 h-14 rounded-2xl object-cover border border-white/20 shrink-0"
+                      />
+                    ) : (
+                      <div className="p-3 bg-white/20 rounded-2xl text-white shrink-0">
+                        <Bell className="w-6 h-6 text-amber-300" />
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-black text-sm text-white truncate">{title || 'Tiêu đề thông báo xem trước...'}</h4>
+                      <p className="text-xs text-white/90 font-medium leading-relaxed mt-1 line-clamp-2">
+                        {body || 'Nội dung chi tiết thông báo xem trước...'}
+                      </p>
+
+                      {actionUrl && (
+                        <div className="mt-2">
+                          <span className="inline-block px-3 py-1 bg-white text-indigo-900 rounded-xl text-[10px] font-black shadow-xs">
+                            Xem Chi Tiết ➔
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. NOTIFICATION BELL CARD LIVE PREVIEW */}
+              <div className="space-y-1.5 pt-2">
+                <span className="font-black text-gray-900 uppercase text-[10px] tracking-wider block">
+                  2. Thẻ Trong Danh Sách Chuông Thông Báo (Bell List Item Preview):
+                </span>
+
+                <div className="p-3.5 bg-indigo-50/90 border border-indigo-200 rounded-2xl flex items-start gap-3 shadow-xs">
+                  <div className="p-2 rounded-xl bg-indigo-600 text-white shrink-0">
+                    <Bell className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-extrabold text-xs text-gray-900 truncate">{title || 'Tiêu đề xem trước'}</h5>
+                      <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                    </div>
+                    <p className="text-[11px] text-gray-700 leading-snug line-clamp-2 mt-0.5">
+                      {body || 'Nội dung thông báo xem trước'}
+                    </p>
+                    <span className="text-[10px] text-indigo-600 font-bold block pt-1">Vừa xong • Bấm để mở</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 flex justify-end gap-2 shrink-0 font-extrabold">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('form')}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl cursor-pointer"
+                >
+                   Quay Lại Chỉnh Sửa
+                </button>
+              </div>
             </div>
           )}
-
-          {/* 2. Notification Title */}
-          <div className="space-y-1.5">
-            <label className="block font-black text-gray-900">
-              2. Tiêu Đề Thông Báo *
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="VD: 📣 Thông báo bảo trì hệ thống & Cập nhật chính sách giao hàng..."
-              className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-bold text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white"
-            />
-          </div>
-
-          {/* 3. Notification Body Text */}
-          <div className="space-y-1.5">
-            <label className="block font-black text-gray-900">
-              3. Nội Dung Chi Tiết Thông Báo *
-            </label>
-            <textarea
-              required
-              rows={4}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="VD: Kính gửi quý khách hàng / gian hàng, hệ thống Siêu Tiện Ích vừa cập nhật tính năng định vị Google Maps trực tiếp..."
-              className="w-full p-3 bg-gray-50 border border-gray-300 rounded-2xl font-medium text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
-            />
-          </div>
-
-          {/* Guidelines Box */}
-          <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-2xl text-indigo-950 space-y-1 text-[11px]">
-            <strong className="font-extrabold block text-indigo-900">📌 Quy Tắc Phát Thông Báo Hệ Thống:</strong>
-            <p className="font-medium leading-relaxed">
-              Thông báo sau khi gửi sẽ lập tức hiển thị trên biểu tượng Chuông thông báo (`NotificationBell`) của tài khoản mục tiêu theo thời gian thực.
-            </p>
-          </div>
-
-          {/* Submit Controls */}
-          <div className="pt-2 border-t border-gray-100 flex justify-end gap-2 shrink-0 font-extrabold">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl cursor-pointer"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={sending}
-              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white rounded-xl shadow-md cursor-pointer font-black flex items-center gap-1.5"
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Đang phát thông báo...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 text-indigo-200" />
-                  <span>🚀 Phát Thông Báo Tức Thời</span>
-                </>
-              )}
-            </button>
-          </div>
-
-        </form>
-
+        </div>
       </div>
     </div>
   );
