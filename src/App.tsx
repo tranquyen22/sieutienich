@@ -32,8 +32,11 @@ import { MobileBottomNavBar } from './components/MobileBottomNavBar';
 import { ImpersonationBannerBar } from './components/ImpersonationBannerBar';
 import { PWAInstallPromptBar } from './components/PWAInstallPromptBar';
 import { CartDrawer } from './components/CartDrawer';
+import { AdminShopSubwebModal } from './components/AdminShopSubwebModal';
+import { SubStorefrontLayout } from './components/SubStorefrontLayout';
+import { useShop } from './context/ShopContext';
 import { ShieldCheck, Zap } from 'lucide-react';
-import type { Product, CustomerAddress, Order } from './types';
+import type { Product, CustomerAddress, Order, MerchantApplication, ShopSubwebConfig } from './types';
 
 function AppContent() {
 
@@ -73,6 +76,11 @@ function AppContent() {
   // Admin Dashboard Portal Landing Modal (Openable by Admin)
   const [adminDashboardModalOpen, setAdminDashboardModalOpen] = useState(false);
 
+  // Admin Subweb Management Modal States
+  const [adminSubwebModalOpen, setAdminSubwebModalOpen] = useState(false);
+  const [selectedSubwebMerchant, setSelectedSubwebMerchant] = useState<MerchantApplication | null>(null);
+
+  const { products, cartItems, setIsCartOpen } = useShop();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Address Book Demo Data State
@@ -98,6 +106,46 @@ function AppContent() {
       is_default: false,
     },
   ]);
+
+  // Router Check: Is visitor accessing a Sub-Storefront PWA URL `/shop/:slug`?
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isSubwebPath = pathname.startsWith('/shop/');
+  const activeSlug = isSubwebPath ? pathname.replace('/shop/', '').split('/')[0] : '';
+
+  // RENDER ISOLATED SUB-STOREFRONT LAYOUT FOR PUBLIC WEB CON `/shop/:slug`
+  if (isSubwebPath && activeSlug) {
+    const activeSubwebConfig: ShopSubwebConfig = {
+      id: `subweb-${activeSlug}`,
+      shop_id: `shop-${activeSlug}`,
+      shop_name: activeSlug.replace(/-/g, ' ').toUpperCase(),
+      user_id: `usr-${activeSlug}`,
+      custom_slug: activeSlug,
+      is_subweb_active: true,
+      subweb_theme: {
+        brand_color: '#4f46e5',
+        welcome_message: `Chào mừng bạn đến với Gian Hàng ${activeSlug.replace(/-/g, ' ').toUpperCase()}!`,
+        address: 'Hệ thống Web Con Độc Lập Siêu Tiện Ích Platform',
+      },
+    };
+
+    return (
+      <SubStorefrontLayout
+        subwebConfig={activeSubwebConfig}
+        allProducts={products}
+        onBackToMarketplace={() => {
+          window.history.pushState({}, '', '/');
+          window.dispatchEvent(new Event('popstate'));
+        }}
+        onOpenProductDetail={(product) => setSelectedProduct(product)}
+        onOpenDirectMessaging={(phone, shopName) => {
+          setMessagingTargetInfo({ targetPhone: phone, shopName });
+          setDirectMessagingModalOpen(true);
+        }}
+        onOpenCart={() => setIsCartOpen(true)}
+        cartCount={cartItems.length}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-16 sm:pb-0">
@@ -176,6 +224,15 @@ function AppContent() {
       <AdminMerchantReviewModal 
         isOpen={adminReviewModalOpen} 
         onClose={() => setAdminReviewModalOpen(false)}
+        onOpenSubwebModal={(merchant) => {
+          setSelectedSubwebMerchant(merchant);
+          setAdminSubwebModalOpen(true);
+        }}
+      />
+      <AdminShopSubwebModal
+        isOpen={adminSubwebModalOpen}
+        onClose={() => setAdminSubwebModalOpen(false)}
+        merchant={selectedSubwebMerchant}
       />
       <CoinWalletModal isOpen={coinWalletModalOpen} onClose={() => setCoinWalletModalOpen(false)} />
       <OrderTrackingModal 

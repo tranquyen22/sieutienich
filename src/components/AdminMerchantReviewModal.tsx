@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, Check, Ban, Clock, PhoneCall, ShieldAlert, Key, Truck } from 'lucide-react';
+import { X, ShieldCheck, Check, Ban, Clock, PhoneCall, ShieldAlert, Key, Truck, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import type { FulfillmentPolicy } from '../types';
@@ -7,9 +7,10 @@ import type { FulfillmentPolicy } from '../types';
 interface AdminMerchantReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenSubwebModal?: (merchant: any) => void;
 }
 
-export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> = ({ isOpen, onClose }) => {
+export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> = ({ isOpen, onClose, onOpenSubwebModal }) => {
   const { allApplications, approveMerchantApplication, rejectMerchantApplication, isAdmin, startShopImpersonation } = useAuth();
   const { 
     products, deleteProduct, 
@@ -156,12 +157,23 @@ export const AdminMerchantReviewModal: React.FC<AdminMerchantReviewModalProps> =
                         </div>
 
                         <div className="flex items-center gap-2">
+                          {/* SUBWEB & QR CREATION BUTTON */}
+                          <button
+                            type="button"
+                            onClick={() => onOpenSubwebModal && onOpenSubwebModal(app)}
+                            className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 rounded-xl font-extrabold text-[11px] border border-indigo-300 flex items-center gap-1 shadow-xs cursor-pointer"
+                            title="Cấu hình Web con độc lập & Tạo mã QR Standee cho Shop"
+                          >
+                            <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>🌐 Tạo Web Con & QR</span>
+                          </button>
+
                           {/* QUICK IMPERSONATION ACCESS BUTTON (FOR TAX/POLICE INSPECTION) */}
                           {isAdmin && (
                             <button
                               type="button"
                               onClick={() => handleQuickImpersonation(app)}
-                              className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl font-extrabold text-[11px] border border-amber-300 flex items-center gap-1 shadow-sm cursor-pointer"
+                              className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl font-extrabold text-[11px] border border-amber-300 flex items-center gap-1 shadow-xs cursor-pointer"
                               title="Đăng nhập nhanh vào shop trả lời cơ quan thuế/công an mà không phải hỏi shop"
                             >
                               <Key className="w-3.5 h-3.5 text-amber-600" />
