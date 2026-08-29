@@ -314,7 +314,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: 'USR-ADMIN-001',
           email: SUPER_ADMIN_EMAIL,
           user_metadata: {
-            full_name: 'Trần Văn Quyền',
+            full_name: 'Trần Văn Quyền (Super Admin)',
             phone: SUPER_ADMIN_PHONE,
           },
           app_metadata: {},
@@ -324,6 +324,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setUser(adminUser);
         setUserRole('admin');
+        return { error: null };
+      }
+
+      // Check Demo Shop Merchant Credentials
+      if (cleanPhone === '0988123456' || cleanIdent.toLowerCase() === 'demoshop@sieutienich.vn') {
+        const merchantUser = {
+          id: 'USR-SHOP-DEMO',
+          email: 'demoshop@sieutienich.vn',
+          user_metadata: {
+            full_name: 'Chủ Gian Hàng Nông Lâm Store',
+            phone: '0988123456',
+            shop_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
+          },
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        } as any;
+
+        setUser(merchantUser);
+        setUserRole('merchant');
+
+        // Set approved merchant application state
+        setMerchantApplication({
+          id: 'app-demo-shop',
+          user_id: 'USR-SHOP-DEMO',
+          user_email: 'demoshop@sieutienich.vn',
+          full_name: 'Chủ Gian Hàng Nông Lâm Store',
+          phone: '0988123456',
+          shop_name: 'Nông Sản & Lẩu Thái Khoái Châu Official',
+          category: 'groceries',
+          status: 'approved',
+          verification_phase: 'phase_2_audit',
+          created_at: new Date().toISOString(),
+        });
+
+        return { error: null };
+      }
+
+      // Check Demo Service 24/7 SOS Credentials
+      if (cleanPhone === '0911223344' || cleanIdent.toLowerCase() === 'service247@sieutienich.vn') {
+        const serviceUser = {
+          id: 'USR-SERVICE-247',
+          email: 'service247@sieutienich.vn',
+          user_metadata: {
+            full_name: 'Đội Trực Cứu Hộ SOS 24/7',
+            phone: '0911223344',
+          },
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        } as any;
+
+        setUser(serviceUser);
+        setUserRole('service_247');
         return { error: null };
       }
 

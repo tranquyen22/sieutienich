@@ -226,6 +226,72 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   <span>Đăng nhập</span>
                 )}
               </button>
+
+              {/* QUICK DEMO LOGIN ACCOUNTS PICKER */}
+              <div className="pt-3 border-t border-gray-100 space-y-2">
+                <span className="block text-[11px] font-black text-gray-500 uppercase tracking-wider text-center">
+                  ⚡ Nút Đăng Nhập Nhanh Tài Khoản Thử Nghiệm (Demo Accounts)
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginIdentifier('0988123456');
+                      setLoginPassword('123456');
+                      signInWithIdentifier('0988123456', '123456').then(() => {
+                        setSuccessMsg('🎉 Đã đăng nhập thành công Tài khoản Demo Shop!');
+                        setTimeout(() => { onClose(); resetForm(); }, 800);
+                      });
+                    }}
+                    className="p-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-left cursor-pointer transition flex flex-col justify-between"
+                  >
+                    <div className="flex items-center gap-1 font-black text-xs">
+                      <Store className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>🏪 Demo Shop</span>
+                    </div>
+                    <span className="text-[10px] text-amber-800 font-bold block pt-0.5 truncate">0988123456</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginIdentifier('0367818343');
+                      setLoginPassword('123456');
+                      signInWithIdentifier('0367818343', '123456').then(() => {
+                        setSuccessMsg('👑 Đã đăng nhập thành công Tài khoản Super Admin!');
+                        setTimeout(() => { onClose(); resetForm(); }, 800);
+                      });
+                    }}
+                    className="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 rounded-xl text-left cursor-pointer transition flex flex-col justify-between"
+                  >
+                    <div className="flex items-center gap-1 font-black text-xs">
+                      <UserIcon className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>👑 Admin Sàn</span>
+                    </div>
+                    <span className="text-[10px] text-indigo-800 font-bold block pt-0.5 truncate">0367818343</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginIdentifier('0911223344');
+                      setLoginPassword('123456');
+                      signInWithIdentifier('0911223344', '123456').then(() => {
+                        setSuccessMsg('🆘 Đã đăng nhập thành công Trực Cứu Hộ 24/7!');
+                        setTimeout(() => { onClose(); resetForm(); }, 800);
+                      });
+                    }}
+                    className="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-300 rounded-xl text-left cursor-pointer transition flex flex-col justify-between"
+                  >
+                    <div className="flex items-center gap-1 font-black text-xs">
+                      <Phone className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      <span>🆘 Trực 24/7</span>
+                    </div>
+                    <span className="text-[10px] text-rose-800 font-bold block pt-0.5 truncate">0911223344</span>
+                  </button>
+                </div>
+              </div>
             </form>
           )}
 
